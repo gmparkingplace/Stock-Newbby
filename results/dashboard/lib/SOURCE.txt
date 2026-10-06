@@ -1,0 +1,2 @@
+TradingView Lightweight Charts v5.0.8 (Apache-2.0)
+원본: https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js

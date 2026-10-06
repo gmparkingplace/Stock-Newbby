@@ -1,0 +1,78 @@
+{
+  "symbol": "005930.KS",
+  "name": "삼성전자",
+  "candles": [
+    {"time": "2026-08-28", "open": 71000, "high": 72500, "low": 70500, "close": 72000, "volume": 1500000},
+    {"time": "2026-08-29", "open": 72000, "high": 73000, "low": 71500, "close": 72500, "volume": 1200000},
+    {"time": "2026-08-30", "open": 72500, "high": 73500, "low": 72000, "close": 73000, "volume": 1800000},
+    {"time": "2026-08-31", "open": 73000, "high": 74000, "low": 72500, "close": 73500, "volume": 1600000},
+    {"time": "2026-09-01", "open": 73500, "high": 74500, "low": 73000, "close": 74000, "volume": 2000000},
+    {"time": "2026-09-02", "open": 74000, "high": 75000, "low": 73500, "close": 74500, "volume": 1700000},
+    {"time": "2026-09-03", "open": 74500, "high": 75500, "low": 74000, "close": 75000, "volume": 1900000},
+    {"time": "2026-09-04", "open": 75000, "high": 76000, "low": 74500, "close": 75500, "volume": 1600000},
+    {"time": "2026-09-05", "open": 75500, "high": 76500, "low": 75000, "close": 76000, "volume": 2100000},
+    {"time": "2026-09-06", "open": 76000, "high": 77000, "low": 75500, "close": 76500, "volume": 1800000},
+    {"time": "2026-09-07", "open": 76500, "high": 77500, "low": 76000, "close": 77000, "volume": 2200000}
+  ],
+  "lines": {
+    "sma20": [{"time": "2026-09-07", "value": 73800}],
+    "sma60": [{"time": "2026-09-07", "value": 72500}]
+  },
+  "marks": {
+    "A": [{"time": "2026-09-05", "side": "entry", "info": "서버 조회 신호 (원장 없음)"}],
+    "B": [],
+    "C": [{"time": "2026-09-07", "side": "entry", "info": "서버 조회 신호 (원장 없음)"}],
+    "F": []
+  },
+  "state": [
+    {"rsi14": 65.2, "atr14": 850.5, "vol_ratio": 1.2, "don_hi": 76500, "don_lo": 74500, "sigA": "none", "sigB": "none", "sigC": "entry", "sigF": "none"}
+  ],
+  "fib": {
+    "from": "2026-08-28",
+    "to": "2026-09-07",
+    "high": 77500,
+    "low": 70500,
+    "levels": {"0": 70500, "0.236": 72154, "0.382": 73228, "0.5": 74000, "0.618": 74772, "0.786": 75950, "1": 77500, "1.272": 79050, "1.618": 81154}
+  },
+  "levels": {
+    "close": 77000,
+    "sma20": 73800,
+    "sma60": 72500,
+    "don_hi": 76500,
+    "don_lo": 74500,
+    "atr14": 850.5,
+    "rsi14": 65.2,
+    "vol_ratio": 1.2
+  },
+  "marketAsOf": "2026-09-07",
+  "fetchedAt": "2026-09-07T10:00:00+00:00",
+  "servedAt": "2026-09-07T10:00:00+00:00",
+  "confirmed": true,
+  "source": "yfinance",
+  "delayStatus": "unknown",
+  "barAsOf": null,
+  "cacheHit": false,
+  "cacheAge": 0,
+  "confirmedPolicy": "market-calendar",
+  "weekly": {
+    "candles": [
+      {"time": "2026-08-28", "open": 71000, "high": 74000, "low": 70500, "close": 73500, "volume": 6100000},
+      {"time": "2026-09-04", "open": 73500, "high": 77500, "low": 73000, "close": 77000, "volume": 11400000}
+    ],
+    "lines": {"sma20": [], "sma60": []},
+    "marks": {"A": [], "B": [], "C": [], "F": []},
+    "state": [],
+    "fib": {"from": "2026-08-28", "to": "2026-09-04", "high": 77500, "low": 70500, "levels": {}},
+    "levels": {"close": 77000, "sma20": null, "sma60": null, "don_hi": null, "don_lo": null, "atr14": null, "rsi14": null, "vol_ratio": null},
+    "marketAsOf": "2026-09-04",
+    "fetchedAt": "2026-09-07T10:00:00+00:00",
+    "servedAt": "2026-09-07T10:00:00+00:00",
+    "confirmed": true,
+    "source": "yfinance",
+    "delayStatus": "unknown",
+    "barAsOf": null,
+    "cacheHit": false,
+    "cacheAge": 0,
+    "confirmedPolicy": "market-calendar"
+  }
+}

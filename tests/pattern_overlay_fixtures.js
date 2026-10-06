@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {project}=require('../results/dashboard/pattern-overlay.js');
+const {view}=require('../results/dashboard/flag-panel.js');
+const bars=[{time:'2026-01-01'},{time:'2026-01-02'},{time:'2026-01-03'}];
+const triangle={kind:'triangle',points:[{time:bars[0].time,price:120},{time:bars[0].time,price:80},{time:bars[2].time,price:100}]};
+const a=project(triangle,bars,i=>i*20,p=>200-p),b=project(triangle,bars,i=>i*40-10,p=>400-p*2);
+assert.deepEqual(a.points,[{x:0,y:80},{x:0,y:120},{x:40,y:100}]);
+assert.deepEqual(b.points,[{x:-10,y:160},{x:-10,y:240},{x:70,y:200}]);
+assert.equal(project(triangle,bars.slice(1),i=>i,p=>p),null,'missing timeframe must not draw stale geometry');
+assert.equal(project(triangle,bars,i=>null,p=>p),null);
+const analysis={enabled:true,sourceStatus:'ready',provisionalEligible:true,ruleVersion:'flag',timeline:[{barTime:'2026-01-02',confirmed:true,status:'ready',patterns:[{status:'forming',geometry:triangle}]},{barTime:'2026-01-03',confirmed:false,status:'ready',patterns:[{status:'breakout-pending',geometry:triangle}]}],recentEvents:[{confirmedBarTime:'2026-01-03'}]};
+assert.equal(view(analysis,'D',null,false).patterns[0].status,'breakout-pending');
+assert.equal(view(analysis,'D',null,true).patterns[0].status,'paused');
+assert.equal(view(analysis,'D','2026-01-02',false).events.length,0);
+assert.equal(view(analysis,'M',null,false).status,'unsupported');
+assert.equal(view(null,'D',null,false).status,'disabled');
+console.log('Flag view and channel/triangle projection fixtures passed');

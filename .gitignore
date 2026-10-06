@@ -1,0 +1,26 @@
+__pycache__/
+.DS_Store
+.venv/
+logs/
+.pytest_cache/
+work/
+*.pyc
+
+.local.json
+.env
+.env.*
+!.env.example
+tests/browser_current/shots/
+
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+Open API.txt
+*credentials*.txt
+!toss-credentials.example.txt
+
+private-backups/
+*.pem
+*.p12
+*.pfx

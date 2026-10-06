@@ -1,0 +1,18 @@
+const assert=require('assert'),{assess}=require('../results/dashboard/chart-timing.js');
+const now=Date.parse('2026-09-07T06:00:05Z');
+const x={symbol:'126340.KQ',tf:'D',basis:'2026-09-07',now,source:'toss',barAsOf:null,fetchedAt:new Date(now).toISOString(),marketSession:{state:'open'},snapshotEligible:true,enabled:true};
+assert.equal(assess(x).judgmentMode,'live-snapshot');
+assert.equal(assess(x).realtimeReady,false);
+assert.equal(assess({...x,now:now+90001}).judgmentReady,false);
+assert.equal(assess({...x,enabled:false}).judgmentReady,false);
+assert.equal(assess({...x,lastError:'failed'}).reason,'request-error');
+assert.equal(assess({...x,marketSession:{state:'unknown'},confirmed:true}).judgmentReady,false);
+assert.equal(assess({...x,marketSession:{state:'closed'},confirmed:true}).judgmentMode,'closed-confirmed');
+assert.equal(assess({...x,marketSession:{state:'closed'},confirmed:false}).judgmentReady,false);
+assert.equal(assess({...x,snapshotEligible:false}).judgmentReady,false);
+assert.equal(assess({...x,marketSession:{state:'break'}}).judgmentMode,'live-snapshot');
+assert.equal(assess({...x,historical:true,lastError:'failed'}).judgmentMode,'historical');
+const quote={symbol:x.symbol,timestamp:new Date(now).toISOString(),kind:'trade',connection:'subscribed',enabled:true};
+assert.equal(assess({...x,quote}).syncReason,'bar-sync-unverified');
+assert.equal(assess({...x,quote,barAsOf:quote.timestamp}).realtimeReady,true);
+console.log('Timing judgment and independent synchronization guards passed');

@@ -1,0 +1,8 @@
+{
+  "tossCredentialsFile": "",
+  "sharedMarketCache": true,
+  "horizontalPatterns": true,
+  "flagPatterns": true,
+  "serverMonitor": true,
+  "trianglePatterns": true
+}

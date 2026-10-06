@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {build,equalRange}=require('../results/dashboard/indicator-panel.js');
+const frame={confirmed:false,candles:[{time:'2026-01-01',open:10,close:11,volume:0},{time:'2026-01-02',open:11,close:10,volume:100}],state:[{rsi14:0,atr14:0,vol_ratio:null},{rsi14:70,atr14:2,vol_ratio:1.234}]};
+const r=build(frame,'rsi',0);assert.equal(r.value,0);assert.equal(r.provisional,false);assert.deepEqual(r.series[1],{time:'2026-01-02'});
+assert.equal(build(frame,'atr',1).value,2);assert.equal(build(frame,'atr',1).provisional,true);
+const v=build(frame,'volume',1);assert.equal(v.value,100);assert.equal(v.volumeRatio,1.234);assert.equal(build(frame,'volume',0).value,0);
+assert.equal(build({...frame,state:[]},'rsi',1).status,'insufficient-data');assert.equal(build(null,'rsi',-1).status,'unavailable');
+const changed=structuredClone(frame);changed.state[1].rsi14=99;changed.candles[1].volume=999999;
+assert.deepEqual(build(changed,'rsi',0),r,'future values leaked into past selection');
+assert(equalRange({from:-2,to:8},{from:-2,to:8}));assert(!equalRange(null,{from:0,to:1}));
+const intraday={candles:[{time:1767225600,volume:1,open:1,close:1}],state:[{rsi14:50}],confirmed:false};assert.equal(build(intraday,'rsi',0).basisTime,1767225600);
+console.log('Existing frame indicators, zero/missing, provisional, future isolation and H4 time passed');

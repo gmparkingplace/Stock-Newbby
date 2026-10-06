@@ -1,0 +1,4 @@
+interface:
+  display_name: "차트 보조기"
+  short_description: "채팅으로 로컬 차트를 조작하고 같은 판단 근거를 확인합니다"
+  default_prompt: "$chart-assistant 삼성전자 일봉을 최근 6개월로 열고 판단 근거를 설명해줘."

@@ -1,0 +1,68 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: Check public files and secret history
+        run: |
+          set -e
+          python tools/check-public-tree.py
+          curl -fsSL -o /tmp/gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          curl -fsSL -o /tmp/gitleaks-checksums.txt https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt
+          python - <<'PY'
+          import hashlib, tarfile
+          from pathlib import Path
+          archive = Path('/tmp/gitleaks.tar.gz')
+          expected = next(line.split()[0] for line in Path('/tmp/gitleaks-checksums.txt').read_text().splitlines() if line.endswith('gitleaks_8.30.1_linux_x64.tar.gz'))
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected
+          with tarfile.open(archive) as source:
+              source.extract('gitleaks', '/tmp', filter='data')
+          PY
+          /tmp/gitleaks git . --redact=100 --no-banner
+      - name: Install Firefox and geckodriver (single browser)
+        run: |
+          set -e
+          if ! which firefox; then
+            sudo apt-get update
+            sudo apt-get install -y firefox
+          fi
+          if ! which geckodriver; then
+            GECKO_VER=0.36.0
+            curl -fsSL -o /tmp/geckodriver.tar.gz "https://github.com/mozilla/geckodriver/releases/download/v${GECKO_VER}/geckodriver-v${GECKO_VER}-linux64.tar.gz"
+            sudo tar -xzf /tmp/geckodriver.tar.gz -C /usr/local/bin
+            sudo chmod +x /usr/local/bin/geckodriver
+          fi
+          firefox --version
+          geckodriver --version
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest tests/ -q
+      - run: npm test
+      - name: Desktop browser check (one Firefox headless session)
+        env:
+          PYTHON: python3
+        run: npm run test:browser:current
+        timeout-minutes: 10
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: browser-ci-failure
+          path: |
+            tests/browser_current/shots/
+            tests/browser_current/logs/
