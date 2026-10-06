@@ -191,12 +191,12 @@
     {
       "path": "requirements-lock.txt",
       "bytes": 459,
-      "sha256": "b2632d97dc8bcec3c315a4339f377f567ac7a47c635f7a1de423bda6d75dfc0e"
+      "sha256": "f78a0ca142691b92c307585b99b51bf2b7d2509e10fe4f3337f10850b3a545ec"
     },
     {
       "path": "requirements.txt",
-      "bytes": 60,
-      "sha256": "5954ef7c04e0165f98d2744b51bd994b8bbfad726ffc1547f39bbf307a0f5a1c"
+      "bytes": 75,
+      "sha256": "1113fa63d07a61596351b55c856f9e1ebf40c415775d63cc515e38b25d96d5d1"
     },
     {
       "path": "results/dashboard/chart-api.js",
