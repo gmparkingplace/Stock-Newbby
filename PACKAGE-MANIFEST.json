@@ -980,8 +980,8 @@
     },
     {
       "path": "tests/test_public_release.py",
-      "bytes": 2931,
-      "sha256": "c7bcfb1b9d8e81f721a19ad5e71ef5ae754f7b03d677c4e39a881153f952d11e"
+      "bytes": 3024,
+      "sha256": "d2bff3d21287dbb6f8feede7f794b7dcee0f612f29ea090f1a9425881b9030df"
     },
     {
       "path": "tests/test_public_tree_policy.py",

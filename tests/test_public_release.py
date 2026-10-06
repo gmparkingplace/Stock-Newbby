@@ -24,19 +24,20 @@ def test_export_excludes_records_and_uses_empty_credentials(tmp_path, monkeypatc
         p.write_text('public documentation')
     dash = source / 'results/dashboard'
     dash.mkdir(parents=True)
-    (dash / 'data.js').write_text('private old data')
-    (dash / 'data.json').write_text('private old data')
+    sentinels = (b'fixture-private-old-data-4d71', b'fixture-private-record-9ac2')
+    (dash / 'data.js').write_bytes(sentinels[0])
+    (dash / 'data.json').write_bytes(sentinels[0])
     for rel in ['logs/user.sqlite3', 'docs/WORKLOG.md', 'docs/verification/user.png', 'data/account.json']:
         p = source / rel
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text('private record')
+        p.write_bytes(sentinels[1])
     monkeypatch.delenv('TOSS_CREDENTIALS_FILE', raising=False)
     monkeypatch.setattr(release, 'demo_data', lambda _: {'exps': [{'id': 'synthetic-demo'}]})
     dest = tmp_path / 'release'
     release.build(source, dest)
     for p in dest.rglob('*'):
         if p.is_file():
-            assert b'private' not in p.read_bytes()
+            assert not any(value in p.read_bytes() for value in sentinels)
     assert (dest / 'toss-credentials.example.txt').read_text() == 'Client Id:\nClient Secret:\n'
     assert json.loads((dest / '.local.example.json').read_text())['tossCredentialsFile'] == ''
     assert not (dest / '.local.json').exists()
