@@ -27,7 +27,11 @@
       text += " · " + stamp.toLocaleString("ko-KR", {hour12:false});
       if (!fresh) text += " (새 체결 대기)";
     } else text += " · 새 체결 대기";
-    text += S.tf === "H4" ? " · 4시간봉은 기존 공급처 자료" : " · 장중 캔들 스냅샷은 체결 유무와 무관하게 30초 간격 조회";
+    if (S.tf === "H4") {
+      const frame = frameOf(curSym());
+      text += frame?.source === "toss" ? " · 4시간봉: 토스 1분봉 집계" :
+        frame?.source === "yfinance" ? " · 4시간봉: yfinance 집계" : " · 4시간봉 공급처 확인 중";
+    } else text += " · 장중 캔들 스냅샷은 체결 유무와 무관하게 30초 간격 조회";
     el.textContent = text;
   }
   function close() {

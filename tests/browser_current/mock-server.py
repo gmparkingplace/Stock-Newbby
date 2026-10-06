@@ -147,6 +147,22 @@ def source_daily(symbol, timezone, force=False):
 toss_market.CANDLES.daily = source_daily
 
 
+def source_minute(symbol, timezone, force=False):
+    from zoneinfo import ZoneInfo
+    daily, cached, fetched = source_daily(symbol, timezone, force)
+    rows = []
+    for row in daily:
+        start = dt.datetime.fromisoformat(row['t']).replace(hour=9, minute=0 if symbol.endswith('.KS') else 30,
+                                                          tzinfo=ZoneInfo(timezone))
+        for offset in (0, 240):
+            rows.append({**row, 't':int((start+dt.timedelta(minutes=offset)).timestamp()),
+                         'volume':row['volume']/2})
+    return rows, cached, fetched, revision(rows), {'stop':'fixture-history'}
+
+
+toss_market.CANDLES.minute = source_minute
+
+
 def fixture(symbol, force=False):
     result=production.market_lookup(symbol, force=force)
     if CONFIG['patterns']:
@@ -169,6 +185,8 @@ class FixtureCandles:
 class FixtureCache:
     store=PATTERN_STORE
     candles=FixtureCandles()
+    lock=LOCK
+    minutes=SimpleNamespace(minute=source_minute)
     def lookup(self,provider,code,tf,fn,force=False,background=False):
         result=fn(force);return {**result,'stale':False,'cacheHit':False,'cacheAge':0}
 
@@ -283,7 +301,7 @@ class Handler(BaseHTTPRequestHandler):
             symbol = parse_qs(u.query).get('symbol',['005930.KS'])[0]
             family=parse_qs(u.query).get('kind',['horizontal'])[0]
             return self.reply(pattern_service.project(PATTERN_STORE.pattern_result(pattern_service.result_key(symbol,{},family))))
-        if p == '/api/lookup':
+        if p in ('/api/lookup','/api/intraday'):
             symbol = parse_qs(u.query).get('code', [''])[0]
             if symbol not in ('005930.KS','AAPL'):
                 return self.reply({'error':'no fixture', 'kind':'nodata'}, 404)
@@ -293,7 +311,8 @@ class Handler(BaseHTTPRequestHandler):
             if hold and not GATE.wait(18):
                 return self.reply({'error':'gate timeout'}, 504)
             try:
-                payload = fixture(symbol, force=parse_qs(u.query).get('force') == ['1'])
+                force = parse_qs(u.query).get('force') == ['1']
+                payload = production.market_intraday(symbol, force=force) if p == '/api/intraday' else fixture(symbol, force=force)
             except toss_market.TossError:
                 return self.reply({'error':'fixture source request failed','kind':'provider'},503)
             self.reply(payload)

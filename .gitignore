@@ -12,6 +12,11 @@ work/
 !.env.example
 tests/browser_current/shots/
 
+private-backups/
+*.pem
+*.p12
+*.pfx
+
 *.sqlite
 *.sqlite3
 *.sqlite3-*
@@ -19,8 +24,3 @@ tests/browser_current/shots/
 Open API.txt
 *credentials*.txt
 !toss-credentials.example.txt
-
-private-backups/
-*.pem
-*.p12
-*.pfx

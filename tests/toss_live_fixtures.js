@@ -39,5 +39,11 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('p
  frame={marketSession:{state:'closed'},fetchedAt:new Date(now-1000).toISOString(),nextConfirmationAt:new Date(now+5000).toISOString()};
  now+=5001;intervals[0]();assert.equal(refreshes,5);assert.equal(options.at(-1).force,true,'buffer transition bypasses source cache');
  now+=5001;intervals[0]();assert.equal(refreshes,5,'force same boundary only once');
+ S.tf='H4';frame.source='toss';intervals[0]();
+ assert(elements.realtimeLine.textContent.includes('4시간봉: 토스 1분봉 집계'));
+ frame.source='yfinance';intervals[0]();
+ assert(elements.realtimeLine.textContent.includes('4시간봉: yfinance 집계'));
+ delete frame.source;intervals[0]();
+ assert(elements.realtimeLine.textContent.includes('공급처 확인 중'));
  console.log('Toss stream display and market-aware polling guards passed');
 })().catch(e=>{console.error(e);process.exit(1)});

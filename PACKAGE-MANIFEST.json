@@ -1,6 +1,6 @@
 {
   "name": "chart-assistant",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "entry": "run.py",
   "files": [
     {
@@ -11,7 +11,7 @@
     {
       "path": ".gitignore",
       "bytes": 265,
-      "sha256": "d5c7ab6efe0f5f203a163335726a803d03ff2f18804b8698474311faa0269b78"
+      "sha256": "b83efb7120fe4c614d8df16e64536e06f4190e94da9ffc6221e92973d850a44e"
     },
     {
       "path": ".local.example.json",
@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 5054,
-      "sha256": "2734aa49abc8d22c3c3d30902535dac1470d90d78b1206a5e2076d92a556de16"
+      "bytes": 5151,
+      "sha256": "f0816ef4529410e8db02f7ffccfe38bf4fd95169b81df1b75d2a67f4939bd3b6"
     },
     {
       "path": "SECURITY.md",
@@ -40,28 +40,28 @@
     },
     {
       "path": "distribution/FEATURES.md",
-      "bytes": 2703,
-      "sha256": "a7a6e2d3c6b7c606c5005317312b8370fc859b75461508936e003e19a4631000"
+      "bytes": 2880,
+      "sha256": "3b9e36742c3d8b400f67bd3ad9f03d8f7a6c2560c5c467195f101ce65ef8cabb"
     },
     {
       "path": "distribution/README.md",
-      "bytes": 5054,
-      "sha256": "2734aa49abc8d22c3c3d30902535dac1470d90d78b1206a5e2076d92a556de16"
+      "bytes": 5151,
+      "sha256": "f0816ef4529410e8db02f7ffccfe38bf4fd95169b81df1b75d2a67f4939bd3b6"
     },
     {
       "path": "distribution/TOSS.md",
-      "bytes": 1637,
-      "sha256": "6add42b62f1d22e1c597c7dcfe6671aa82760f1d9444efc28b48a89d1a39c923"
+      "bytes": 1885,
+      "sha256": "5205e90c34009b19295a9ae1760ed89d9923ea44a9db6fac06932ff22a0dc454"
     },
     {
       "path": "docs/FEATURES.md",
-      "bytes": 2703,
-      "sha256": "a7a6e2d3c6b7c606c5005317312b8370fc859b75461508936e003e19a4631000"
+      "bytes": 2880,
+      "sha256": "3b9e36742c3d8b400f67bd3ad9f03d8f7a6c2560c5c467195f101ce65ef8cabb"
     },
     {
       "path": "docs/TOSS.md",
-      "bytes": 1637,
-      "sha256": "6add42b62f1d22e1c597c7dcfe6671aa82760f1d9444efc28b48a89d1a39c923"
+      "bytes": 1885,
+      "sha256": "5205e90c34009b19295a9ae1760ed89d9923ea44a9db6fac06932ff22a0dc454"
     },
     {
       "path": "index.html",
@@ -180,8 +180,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 1633,
-      "sha256": "c763293a2f18345a1ff42e3cf9f118fffc18a7be376cb09e426768b03f8b140d"
+      "bytes": 1666,
+      "sha256": "fa491af864080ca569a650f8c9f78722bb7ab7fdaf0c669c01968eb18b406d07"
     },
     {
       "path": "requirements-dev.txt",
@@ -210,8 +210,8 @@
     },
     {
       "path": "results/dashboard/chart-first.html",
-      "bytes": 113543,
-      "sha256": "ab73215f7be64184891a88d0c01e0f86ff3eb9e2a9f97cc690ef1e640af26896"
+      "bytes": 115043,
+      "sha256": "c73ca0efeee8e0f907514c976ac1e4196f42e024298f3de46a5728c1061f6f13"
     },
     {
       "path": "results/dashboard/chart-layout.js",
@@ -350,8 +350,8 @@
     },
     {
       "path": "results/dashboard/toss-live.js",
-      "bytes": 5284,
-      "sha256": "7a66cafea5e071ead9a3e55f485e3ac7b6ff7c32c97a62993b5b62334d84a6ba"
+      "bytes": 5490,
+      "sha256": "7fd0170cc8125380c054d89afc5fe4c6e909d494a06ab767bcfc3430aa71f69b"
     },
     {
       "path": "results/dashboard/triangle-panel.js",
@@ -474,6 +474,11 @@
       "sha256": "17ab75dfafeaff4544d3cacc0e4f5c1b60c5c9721a95959080276357cf064868"
     },
     {
+      "path": "scripts/minute_collection.py",
+      "bytes": 8976,
+      "sha256": "5ba9e653b5ccc124340515bb947a3453a1fd441c2d59711496c7d3911c8d513f"
+    },
+    {
       "path": "scripts/monitor_service.py",
       "bytes": 17936,
       "sha256": "d10a9a71f2019ffe16cc80009c6d2b6b9d6edadc2ac1d3a0bc2d906808727d7e"
@@ -525,8 +530,8 @@
     },
     {
       "path": "scripts/serve_dashboard.py",
-      "bytes": 21208,
-      "sha256": "6d02e3d6adb537129cd19a7190b0ae7ce5910b37810f779d28eac9044af4fe92"
+      "bytes": 22960,
+      "sha256": "f525d88ae93bc7277f9c0857553bb53316194054cebeca55366901f1cd8c4764"
     },
     {
       "path": "scripts/signals.py",
@@ -545,8 +550,8 @@
     },
     {
       "path": "scripts/toss_market.py",
-      "bytes": 10261,
-      "sha256": "65e798353bd217519f229442e155782b86cb3328145acc830712d59287357573"
+      "bytes": 10952,
+      "sha256": "16361e4c9725e3739c43e84bf94decdbdcfbacf9e0e894d4c96875b2d14e325f"
     },
     {
       "path": "scripts/toss_stream.py",
@@ -635,13 +640,18 @@
     },
     {
       "path": "skills/chart-assistant/SKILL.md",
-      "bytes": 19431,
-      "sha256": "9873e48a8e5ce0553bd66886adad00e6827af0f8d79fbb09dfed05703146a768"
+      "bytes": 20751,
+      "sha256": "d7dd40ec504ec66f9f762748fd14a7caf2379bf0c5581949dc5fa1d8e6016913"
     },
     {
       "path": "skills/chart-assistant/agents/openai.yaml",
-      "bytes": 268,
-      "sha256": "5125ef5cf2ef587a94696714a6892e32d54bc9bad1dd70f1f33387a40feaade8"
+      "bytes": 316,
+      "sha256": "01a5459faa5cadd082a5a06cf45e7940d6a69cd2c09f1706841c3abacc35c2a5"
+    },
+    {
+      "path": "skills/chart-assistant/references/chat-data.md",
+      "bytes": 6102,
+      "sha256": "9c21664a5e92df6dc050ee25683e364fa471a005e6b93571959d6768fdb13682"
     },
     {
       "path": "skills/chart-assistant/scripts/chartctl.py",
@@ -650,8 +660,8 @@
     },
     {
       "path": "skills/toss-api-skill/SKILL.md",
-      "bytes": 18607,
-      "sha256": "2563a9cf36db0f269c78a2fbb67976ce145318dc9b12c31a9cf59917efc84184"
+      "bytes": 19358,
+      "sha256": "8840bb27c9b69767099c741d1fec887313a4879e114c695ab910ccf8971b35e1"
     },
     {
       "path": "skills/toss-api-skill/scripts/chartctl.py",
@@ -700,8 +710,8 @@
     },
     {
       "path": "tests/browser_current/mock-server.py",
-      "bytes": 15445,
-      "sha256": "417a359e7693c3c80ecf71d10a58f8fb10bcdd075cdd5e415907eb3d03309dbd"
+      "bytes": 16317,
+      "sha256": "25c957b77a92d438f827ac4cbc1f665d48a763cb30c2bb2a4c5775f25e71d738"
     },
     {
       "path": "tests/browser_current/snapshot-check.js",
@@ -710,8 +720,8 @@
     },
     {
       "path": "tests/browser_current/test.js",
-      "bytes": 75280,
-      "sha256": "fed2ce231740aee29b051cb57b91c6b73e55c46ae2614802fddd1a1da849469a"
+      "bytes": 78577,
+      "sha256": "ea95721c64a104cb8af9160c14bea5cc8b122325ca900baecf614982c463b260"
     },
     {
       "path": "tests/chart_api_fixtures.js",
@@ -1004,6 +1014,11 @@
       "sha256": "0cc8413a6503f32bf941db9fda6fab80e2468bef518ae68f2a56d283c3918bcf"
     },
     {
+      "path": "tests/test_toss_intraday.py",
+      "bytes": 9858,
+      "sha256": "00fdbc59ae973996ece01c16f9ab22f9896b897b9b7aba1ec4b1547ffd83a38d"
+    },
+    {
       "path": "tests/test_toss_market.py",
       "bytes": 7123,
       "sha256": "da70823092bd52fe9b7a86fbc4ee2f71014f2be377a5cb2e34af4077bdf4eb97"
@@ -1019,9 +1034,14 @@
       "sha256": "a1b011f81e8c9f4ab7d520350589395a208e55a5333e209541557a64360960a3"
     },
     {
+      "path": "tests/topbar_fixtures.js",
+      "bytes": 2452,
+      "sha256": "79653ffacadba0c88396ce914e97d868ad0acf50636b29fb273bd5b0941d332d"
+    },
+    {
       "path": "tests/toss_live_fixtures.js",
-      "bytes": 3701,
-      "sha256": "c0837b88cd09dcb243e87306c36eadd4fc3e03f2be48838d10b546824147ac85"
+      "bytes": 4077,
+      "sha256": "d2439646bbd67f0db30b834c87bf3c81d9778674fb106e3dbe196418a5448dcc"
     },
     {
       "path": "tests/triangle_fixture.py",
@@ -1065,8 +1085,8 @@
     },
     {
       "path": "tools/build-public-release.py",
-      "bytes": 9218,
-      "sha256": "22b201cb7ca04417d6807e1b9b61a5541e9743785cc032a7562378616790c823"
+      "bytes": 9407,
+      "sha256": "d7efcbf9d521e1a2ef4b2fda280e3d47f49cfe008defdaffd7b30a16eedca4a5"
     },
     {
       "path": "tools/check-public-tree.py",

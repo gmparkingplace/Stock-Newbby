@@ -182,7 +182,7 @@ def supports(code):
         return False
 
 
-def normalize_candles(rows, timezone):
+def normalize_candles(rows, timezone, interval='1d'):
     """Validate complete OHLCV rows and deduplicate inclusive page boundaries."""
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -200,8 +200,15 @@ def normalize_candles(rows, timezone):
                 raise ValueError('invalid')
             if not lo <= min(o,c) <= max(o,c) <= h:
                 raise ValueError('ohlc')
-            day = stamp.astimezone(ZoneInfo(timezone)).date().isoformat()
-            result[day] = {'t':day, 'open':o, 'high':h, 'low':lo, 'close':c, 'volume':v}
+            if interval == '1m':
+                if stamp.second or stamp.microsecond:
+                    raise ValueError('minute-boundary-required')
+                key = int(stamp.timestamp())
+            elif interval == '1d':
+                key = stamp.astimezone(ZoneInfo(timezone)).date().isoformat()
+            else:
+                raise ValueError('unsupported-interval')
+            result[key] = {'t':key, 'open':o, 'high':h, 'low':lo, 'close':c, 'volume':v}
         except (KeyError, TypeError, ValueError):
             raise TossError('invalid-candle') from None
     return [result[key] for key in sorted(result)]
@@ -214,6 +221,14 @@ class CandleStore:
         self.rows = {}
         self.updated = {}
         self.fetched_at = {}  # 원천 수집 시각(UTC ISO). 캐시 적중 시 원래 값 유지.
+        self.minute_collection = None
+
+    def minute(self, code, timezone, force=False):
+        from minute_collection import MinuteCollection
+        with self.lock:
+            if self.minute_collection is None:
+                self.minute_collection = MinuteCollection(self.client)
+            return self.minute_collection.minute(code, timezone, force=force)
     def daily(self, code, timezone, force=False):
         """(rows, cached, source_fetched_at) 반환. cached여도 fetched_at은 수집 시각."""
         import copy

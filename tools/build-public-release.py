@@ -87,7 +87,7 @@ def demo_data(source):
                           symbols={'005930.KS': result})]}
 
 
-def build(source, output, version='0.6.2'):
+def build(source, output, version='0.6.3'):
     source, output = source.resolve(), output.resolve()
     if output == source or source in output.parents:
         raise ValueError('Output must be outside the development project')
@@ -130,7 +130,9 @@ def build(source, output, version='0.6.2'):
         dest.write_text((source / 'distribution' / name).read_text(), encoding='utf-8')
     (output / 'AGENTS.md').write_text('# Development\n\nRead README.md and docs/FEATURES.md. '
         'Current UI: results/dashboard/chart-first.html. Never commit .local.json, keys, logs or user records. '
-        'Keep synthetic examples distinct from live data. Run npm test and pytest for changes.\n')
+        'Keep synthetic examples distinct from live data. Run npm test and pytest for changes.\n\n'
+        'Desktop only: one browser session and one chart window. Public releases go to gmparkingplace/Stock-Newbby. '
+        'Never import the private development repository history.\n')
     package = json.loads((source / 'package.json').read_text())
     package.update(version=version, description='배포용 초보자 차트 보조기')
     commands = package['scripts']
@@ -163,7 +165,7 @@ def build(source, output, version='0.6.2'):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--version', default='0.6.2')
+    parser.add_argument('--version', default='0.6.3')
     args = parser.parse_args()
     print(f'Public release: {build(ROOT, args.output, args.version)} files; no personal data or key values')
 

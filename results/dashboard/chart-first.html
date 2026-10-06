@@ -21,12 +21,18 @@ body{margin:0;background:var(--bg);color:var(--ink);
 h1{font-size:1.3rem;margin:.5rem 0 .25rem}
 h2{font-size:1.15rem;margin:1.5rem 0 .5rem}
 .sub{color:var(--sub);margin:.25rem 0 0;font-size:.95rem}
-.topbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;
+.topbar{display:grid;grid-template-columns:minmax(0,1fr) 24rem;
+  grid-template-areas:"symbol actions" "timeframes connection";gap:.6rem .8rem;align-items:center;
   background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:.6rem .8rem}
-.topbar>label{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;flex:1 1 22rem;min-width:0;max-width:100%}
-.topbar select,.topbar input{font-size:1rem;min-height:44px;max-width:100%}
-.topbar select{flex:1 1 12rem;min-width:0;padding:.35rem .6rem;border:2px solid var(--line);border-radius:.6rem}
-.topbar input[type="search"]{width:9rem;padding:.35rem .6rem;border:2px solid var(--line);border-radius:.6rem}
+.symbolControls{grid-area:symbol;display:grid;grid-template-columns:minmax(0,1fr) 4.5rem;gap:.5rem;min-width:0}
+.symbolControls>label{display:grid;grid-template-columns:auto minmax(8rem,11rem) minmax(0,1fr);align-items:center;gap:.5rem;min-width:0}
+.toolbarActions{grid-area:actions;display:grid;grid-template-columns:6.5rem 10rem 6.5rem;gap:.5rem;justify-content:end;min-width:0}
+.topbar select,.topbar input{font-size:1rem;height:44px;width:100%;min-width:0;max-width:100%}
+.topbar select,.topbar input[type="search"]{padding:.35rem .6rem;border:2px solid var(--line);border-radius:.6rem}
+.topbar button{height:44px;min-width:0;white-space:nowrap;padding:.35rem .5rem}
+.topbar>.seg{grid-area:timeframes;display:grid;grid-template-columns:repeat(4,5rem);gap:.5rem}
+#netState{grid-area:connection;min-width:0;height:3.3em;line-height:1.65;margin:0;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 button{cursor:pointer;border:2px solid var(--accent);background:#fff;color:var(--accent);
   border-radius:.6rem;padding:.45rem .85rem;font-size:1rem;min-height:44px}
 button[aria-pressed="true"]{background:var(--accent);color:#fff}
@@ -34,9 +40,13 @@ button:disabled{border-color:var(--line);color:var(--sub);cursor:not-allowed}
 button:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible{
   outline:3px solid var(--focus);outline-offset:2px}
 .seg{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center}
-.titleline{display:flex;gap:.6rem;flex-wrap:wrap;align-items:baseline;margin-top:.9rem}
-.titleline .sym{font-size:1.25rem;font-weight:800}
-.titleline .basis{color:var(--sub);font-size:.95rem}
+.titleline{display:grid;gap:.25rem;min-width:0;margin-top:.9rem}
+.titleline .sym{font-size:1.25rem;font-weight:800;height:1.65em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titleline .basis{color:var(--sub);font-size:.95rem;height:3.3em;overflow:hidden;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@media(max-width:64rem){.topbar{grid-template-columns:minmax(0,1fr);grid-template-areas:"symbol" "timeframes" "actions" "connection"}
+  .toolbarActions{grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}
+  .topbar>.seg{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .statusbox{background:var(--card);border:1px solid var(--line);border-radius:.75rem;
   padding:clamp(1rem,2vw,1.5rem);margin-top:1rem;min-width:0}
 #statusLine{font-size:1.1rem;font-weight:800;margin:0;
@@ -260,19 +270,19 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
   <header>
     <h1>차트 보조기</h1>
     <div class="topbar" role="group" aria-label="종목과 주기 선택">
-      <label>종목 <input type="search" id="q" placeholder="종목·코인 (예: 비나텍·BTC)" aria-label="종목 검색">
+      <div class="symbolControls"><label>종목 <input type="search" id="q" placeholder="종목·코인 (예: 비나텍·BTC)" aria-label="종목 검색">
       <select id="sym" aria-label="종목 선택"></select></label>
-      <button type="button" id="btnLookup">조회</button>
+      <button type="button" id="btnLookup">조회</button></div>
       <div class="seg" role="group" aria-label="봉 주기">
         <button type="button" id="tD" aria-pressed="true">일봉</button>
         <button type="button" id="tW" aria-pressed="false">주봉</button>
         <button type="button" id="tH" aria-pressed="false">4시간</button>
         <button type="button" id="tM" aria-pressed="false">월봉</button>
       </div>
-      <button type="button" id="btnRefresh">새로고침</button>
+      <div class="toolbarActions"><button type="button" id="btnRefresh" aria-busy="false">새로고침</button>
       <button type="button" id="btnAuto" aria-pressed="true">자동갱신 ON</button>
-      <button type="button" id="btnHelp" aria-haspopup="dialog">? 도움말</button>
-      <span class="hint" id="netState"></span>
+      <button type="button" id="btnHelp" aria-haspopup="dialog">? 도움말</button></div>
+      <span class="hint" id="netState" role="status" aria-live="polite"></span>
     </div>
     <div class="titleline">
       <span class="sym" id="symTitle">—</span>
@@ -624,11 +634,11 @@ async function detectServer() {
   paintBasis();
   return false;
 }
-function paintNet(t) { const el = $("netState"); if (el) el.textContent = t || ""; }
+function paintNet(t) { const el = $("netState"); if (el) { el.textContent = t || ""; el.title = t || ""; } }
 function setBusy(b, label) {
   S.refreshing = b;
   const rb = $("btnRefresh");
-  if (rb) { rb.disabled = b; rb.textContent = b ? (label || "조회 중…") : "새로고침"; }
+  if (rb) { rb.disabled = b; rb.textContent = b ? "조회 중…" : "새로고침"; rb.setAttribute("aria-busy", String(b)); }
   paintNet(b ? (label || "조회 중…") : (serverMode ? "서버 연결됨" : "서버 미연결 · 내장 자료"));
 }
 function h4CacheGet(sym) {
@@ -1269,12 +1279,14 @@ function renderSource() {
 }
 function paintBasis() {
   const d = curSym();
-  if (!d) { $("symTitle").textContent = "종목 없음"; return; }
+  if (!d) { $("symTitle").textContent = "종목 없음"; $("symTitle").title = "종목 없음";
+    $("basisLine").textContent = "자료 기준 없음"; $("basisLine").title = "자료 기준 없음"; return; }
   const f = frameOf(d);
   const m = LIVE_META[metaKey(S.symbol, S.tf)];
   const lt = m ? m.marketAsOf : (f ? latestTime(f) : "-");
   const c = f && f.candles.length ? f.candles[f.candles.length - 1].close : null;
   $("symTitle").textContent = `${d.name || d.symbol} · ${d.symbol} · ${fmtP(c)}`;
+  $("symTitle").title = $("symTitle").textContent;
   let src;
   if (S.tf === "H4") {
     src = LIVE_H4[d.symbol] ? (m && m.cacheHit ? "서버 조회(캐시 재사용)" : "서버 최신 조회")
@@ -1293,6 +1305,7 @@ function paintBasis() {
   if (!serverMode) line += " · 파일 모드(서버 미연결)";
   if (S.lastErr) line += ` · 최신 조회 실패(${(ERR_TXT[S.lastErr.kind] || "오류")}) · 마지막 자료 유지`;
   $("basisLine").textContent = line;
+  $("basisLine").title = line;
 }
 function paintPreset() {
   document.querySelectorAll(".periodbar [data-p]").forEach(b => {

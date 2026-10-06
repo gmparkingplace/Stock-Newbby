@@ -883,6 +883,48 @@ async function cachedTriangleReplay(){
   evidence.push({scenario:'Cached real bars: interior fractional apex and bounded stable observation dots',...result});
 }
 
+async function topbarStability(){
+  await config({reset:true});await navigate();
+  await ev('if(S.autoRef)document.getElementById("btnAuto").click();void 0');
+  const geometry=()=>ev(`(()=>{
+    const ids=['q','sym','btnLookup','btnRefresh','btnAuto','btnHelp','tD','tW','tH','tM','netState','symTitle','basisLine'];
+    const rect=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+    return {items:Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))])),
+      header:rect(document.querySelector('.topbar')),title:rect(document.querySelector('.titleline')),
+      overflow:document.querySelector('.topbar').scrollWidth>document.querySelector('.topbar').clientWidth};
+  })()`);
+  for(const width of [1440,1280,1024]){
+    await cmd('/window/rect','POST',{width,height:1000});
+    await ev('setBusy(false);S.lastErr=null;paintBasis();void 0');
+    const before=await geometry();assert.equal(before.overflow,false);
+    await config({holdSymbol:'AAPL'});
+    await ev('window.__headerDone=false;requestNewTicker("AAPL").finally(()=>window.__headerDone=true);void 0');
+    await until(()=>ev('S.refreshing'),'held lookup busy');
+    assert.deepEqual(await geometry(),before,`header moved during lookup at ${width}px`);
+    assert.equal(await ev('document.getElementById("btnRefresh").textContent'),'조회 중…');
+    await config({release:true});await until(()=>ev('window.__headerDone && !S.refreshing'),'header lookup completed');
+    assert.deepEqual(await geometry(),before,`header moved after lookup at ${width}px`);
+    await config({restError:true});
+    await ev('window.__headerDone=false;requestNewTicker("AAPL").then(r=>window.__headerResult=r).finally(()=>window.__headerDone=true);void 0');
+    await until(()=>ev('window.__headerDone && !S.refreshing && window.__headerResult?.ok===false'),'header failed lookup');
+    assert.deepEqual(await geometry(),before,`header moved after failure at ${width}px`);
+    await ev(`paintNet('공급처 조회 실패 · '.repeat(60));LIVE_D.AAPL.name='아주 긴 종목명 '.repeat(30);S.lastErr={kind:'provider'};paintBasis();void 0`);
+    assert.deepEqual(await geometry(),before,`long status or symbol changed header at ${width}px`);
+    assert.equal(await ev('document.getElementById("netState").title===document.getElementById("netState").textContent'),true);
+    assert.equal(await ev('document.getElementById("symTitle").title===document.getElementById("symTitle").textContent'),true);
+    assert.equal(await ev('document.getElementById("basisLine").title===document.getElementById("basisLine").textContent'),true);
+    await config({restError:false});
+  }
+  await cmd('/window/rect','POST',{width:1280,height:900});
+  await ev('S.lastErr=null;void 0');
+  await ev('__CF.setTF("H4");void 0');
+  await until(()=>ev('!S.refreshing && frameOf(curSym())?.source==="toss"'),'Toss H4 loaded');
+  assert.equal(await ev('frameOf(curSym()).sourceInterval'),'1m');
+  assert.equal(await ev('frameOf(curSym()).candles.length'),260);
+  await checkErrors();
+  evidence.push({scenario:'Desktop lookup header: identical geometry pending/success/failure/long status at 1440/1280/1024px; configured stock H4 uses Toss minute aggregation'});
+}
+
 async function main() {
   for(const exe of [PY,DRIVER,FIREFOX]) {const r=spawnSync(exe,['--version'],{timeout:10000});assert(!r.error&&r.status===0,`required executable unavailable: ${exe}`);}
   assert(!await portOpen(PORT),'fixture port already owned by another process');assert(!await portOpen(WDPORT),'WebDriver port already owned by another process');
@@ -901,7 +943,7 @@ async function main() {
       else if(process.env.MONITOR_ONLY==='1')await monitorScenario();
       else if(process.env.FLAG_ONLY==='1')await flagScenario();
       else if(process.env.PATTERN_ONLY==='1')await patternScenario();
-      else {await navigate(); await scenarios(); await patternScenario(); await flagScenario(); await monitorScenario(); await triangleScenario(); await indicatorScenario(); await technicalScenario();}
+      else {await topbarStability(); await config({reset:true}); await navigate(); await scenarios(); await patternScenario(); await flagScenario(); await monitorScenario(); await triangleScenario(); await indicatorScenario(); await technicalScenario();}
       if(process.env.CACHED_TRIANGLE_REPLAY)await cachedTriangleReplay();
   } catch(error) {
     cleanupDeadline=Date.now()+45000;

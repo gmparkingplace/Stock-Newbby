@@ -1,13 +1,13 @@
 {
   "name": "beginner-chart-assistant",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "description": "배포용 초보자 차트 보조기",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "test": "node tests/obs_model_fixtures.js && node tests/toss_live_fixtures.js && node tests/chart_viewport_fixtures.js && node tests/chart_timing_fixtures.js && node tests/entry_model_fixtures.js && node tests/entry_review_fixtures.js && node tests/volume_profile_fixtures.js && node tests/chart_util_fixtures.js && node tests/chart_api_fixtures.js && node tests/chart_layout_fixtures.js && node tests/snapshot_volume_fixtures.js && node tests/pattern_panel_fixtures.js && node tests/pattern_context_fixtures.js && node tests/pattern_overlay_fixtures.js && node tests/monitor_panel_fixtures.js && node tests/triangle_overlay_fixtures.js && node tests/pattern_window_fixtures.js && node tests/indicator_panel_fixtures.js && node tests/technical_indicators_fixtures.js && node tests/coin_pattern_panel_fixtures.js && node tests/context_help_fixtures.js && node tests/extended_indicators_fixtures.js && node tests/four_ma_fixtures.js && node tests/low_structure_fixtures.js && node tests/low_entry_fixtures.js && node tests/low_context_fixtures.js && node tests/low_panel_fixtures.js && node tests/snapshot_transport_fixtures.js",
+    "test": "node tests/obs_model_fixtures.js && node tests/toss_live_fixtures.js && node tests/chart_viewport_fixtures.js && node tests/chart_timing_fixtures.js && node tests/entry_model_fixtures.js && node tests/entry_review_fixtures.js && node tests/volume_profile_fixtures.js && node tests/chart_util_fixtures.js && node tests/chart_api_fixtures.js && node tests/chart_layout_fixtures.js && node tests/snapshot_volume_fixtures.js && node tests/pattern_panel_fixtures.js && node tests/pattern_context_fixtures.js && node tests/pattern_overlay_fixtures.js && node tests/monitor_panel_fixtures.js && node tests/triangle_overlay_fixtures.js && node tests/pattern_window_fixtures.js && node tests/indicator_panel_fixtures.js && node tests/technical_indicators_fixtures.js && node tests/coin_pattern_panel_fixtures.js && node tests/context_help_fixtures.js && node tests/extended_indicators_fixtures.js && node tests/four_ma_fixtures.js && node tests/low_structure_fixtures.js && node tests/low_entry_fixtures.js && node tests/low_context_fixtures.js && node tests/low_panel_fixtures.js && node tests/snapshot_transport_fixtures.js && node tests/topbar_fixtures.js",
     "test:browser:current": "node tests/browser_current/test.js",
     "test:low-structure": "node tests/low_structure_fixtures.js",
     "test:low-entry": "node tests/low_structure_fixtures.js && node tests/low_entry_fixtures.js && node tests/low_context_fixtures.js && node tests/low_panel_fixtures.js"

@@ -3,7 +3,7 @@
 실행: .venv/bin/python scripts/serve_dashboard.py [포트, 기본 8734]
 - http://localhost:8734/ (대시보드)
 - GET /api/lookup?code=TSLA → 캔들+지표+신호 (최근 3년 일봉, 자동 시장 매핑)
-- GET /api/intraday?code=TSLA → 4시간봉 지표+신호 (최근 6개월 60분봉 리샘플)
+- GET /api/intraday?code=TSLA → 4시간봉 지표+신호 (토스 1분봉 우선, 미설정 시 yfinance)
 - GET /api/backtest?code=TSLA → 즉석 백테스트 (동일 규칙·t+1 시가·비용 0, 참고용)
 - GET /api/related?code=TSLA → 관련 종목 (동일 시장 유니버스 + 벤치마크)
 시장 매핑: .KS→KR(069500.KS/091160.KS), 코인(BTC 등)→COIN(UTC), 그 외→US(SPY/XLK). 비용 0 베이스라인.
@@ -243,13 +243,50 @@ def market_lookup(code, force=False, background=False):
     return attach(_with_meta(payload,{k:payload[k] for k in ('cacheHit','cacheAge','stale')}))
 
 
+def _toss_intraday(code, force=False):
+    from toss_market import CLIENT, CANDLES, toss_symbol
+    from minute_collection import MinuteCollection
+    symbol = toss_symbol(code)
+    tz = 'Asia/Seoul' if symbol.isdigit() else 'America/New_York'
+    if market_cache.enabled():
+        svc = market_cache.services()
+        with svc.lock:
+            if not hasattr(svc, 'minutes'):
+                svc.minutes = MinuteCollection(CLIENT, svc.store, clock=svc.clock)
+        rows, cached, fetched, data_revision, history = svc.minutes.minute(code, tz, force=force)
+    else:
+        rows, cached, fetched, data_revision, history = CANDLES.minute(code, tz, force=force)
+    d = pd.DataFrame(rows)
+    d.index = pd.to_datetime(d.pop('t'), unit='s', utc=True)
+    candles = to_4h(d, tz).tail(MinuteCollection.TARGET_BARS)
+    out = frame(candles, True)
+    if not out['candles']:
+        raise ValueError('4시간봉 데이터 부족')
+    out.update(symbol=code, name=NAMES.get(code, code), tf='H4', live=True,
+               strats=['A','B','C','F'], trades={}, source='toss',
+               sourceInterval='1m', aggregation='exchange-date-first-minute-4h',
+               fetchedAt=fetched, delayStatus='unknown', barAsOf=None,
+               marketAsOf=out['candles'][-1]['time'], dataRevision=data_revision,
+               cacheHit=cached, cacheAge=None, history=history)
+    return _with_meta(out, {})
+
+
 def market_intraday(code, force=False, background=False):
+    from toss_market import enabled, supports
     code = norm_code(code)
-    if not market_cache.enabled():
-        return _with_meta(*intraday(code,force=force))
     if not code:
         raise ValueError('종목 코드 없음')
-    payload = market_cache.services().lookup('yfinance',code,'H4',lambda force:_with_meta(*intraday(code,force=force)),force,background=background)
+    provider = 'yfinance'
+    if enabled() and not code.startswith('^') and not is_coin(code):
+        from toss_catalog import resolve
+        code = resolve(code)
+        if supports(code):
+            provider = 'toss'
+    def collect(force):
+        return _toss_intraday(code, force=force) if provider == 'toss' else _with_meta(*intraday(code, force=force))
+    if not market_cache.enabled():
+        return collect(force)
+    payload = market_cache.services().lookup(provider,code,'H4',collect,force,background=background)
     from pattern_service import attach
     return attach(_with_meta(payload,{k:payload[k] for k in ('cacheHit','cacheAge','stale')}))
 

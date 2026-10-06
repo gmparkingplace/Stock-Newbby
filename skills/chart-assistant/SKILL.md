@@ -1,11 +1,13 @@
 ---
 name: chart-assistant
-description: Control the user's local chart assistant, explain its entry judgments and indicators, read cached patterns/events, and analyze R/H low-entry structures offline. Use for requests to operate or analyze with this chart assistant.
+description: Control the user's local chart assistant, show chart and auxiliary indicator data in chat, explain entry judgments, read cached patterns/events, and analyze R/H low-entry structures offline. Use for requests to operate or analyze with this chart assistant.
 ---
 
 # Chart assistant
 
 Project: the cloned Stock-Newbby folder. Packaged skill: `skills/chart-assistant`. After edits, update the installed skill with `python3 tools/install-chart-skill.py --update`.
+
+For analysis requests, include chart auxiliary data directly in the conversation, not only a prose conclusion or a link to the app. Read [references/chat-data.md](references/chat-data.md) for the compact indicator/level/volume-profile output and its date/source rules. Prefer the acknowledged snapshot or one already acquired frame; calculate missing auxiliary values with the app's shared JS modules without changing the selected chart indicators or collecting again for each value. Simple navigation requests do not need a full report.
 
 Choose the execution mode before discovery:
 - On-screen `view`/`inspect`/`auto`: needs the running server and its existing chart tab. Use one browser; reuse the user's tab.
@@ -133,3 +135,6 @@ Browser `inspect.lowStructures` returns recent structures, the selected one, tim
 
 
 Pattern timing: `inspect.patterns`/`flags`/`triangles` share the current/historical rule. Clicking the latest bar still means current view. A current unfinished snapshot is blocked after 90 seconds, automatic refresh OFF/hidden, or a lookup error. A past confirmed result is not invalidated by today's fetch error. Report the returned state and source date rather than inferring permission from chart color.
+
+
+Stock H4 provider routing (2026-10-07): `/api/intraday` uses Toss adjusted 1-minute candles when Toss is configured, and yfinance 60-minute candles only when unconfigured. Coins/indices stay on yfinance. A Toss failure does not switch sources. Initial minute paging may return `queue-busy` while the same background collection continues; do not force/replay requests or label this as authentication failure. Frames carry `source`, `sourceInterval=1m`, `aggregation` and `history`. Toss minutes may include extended sessions, so H4 timestamps/values can differ from Yahoo regular-session frames. Preserve fetched/market times, confirmation/freshness guards and missing-indicator states. Stocks H4 pattern/R/H support remains unchanged (unsupported).

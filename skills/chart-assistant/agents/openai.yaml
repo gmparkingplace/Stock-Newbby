@@ -1,4 +1,4 @@
 interface:
   display_name: "차트 보조기"
-  short_description: "채팅으로 로컬 차트를 조작하고 같은 판단 근거를 확인합니다"
-  default_prompt: "$chart-assistant 삼성전자 일봉을 최근 6개월로 열고 판단 근거를 설명해줘."
+  short_description: "로컬 차트를 조작하고 지표·매물대·진입 근거를 대화창에 표시합니다"
+  default_prompt: "$chart-assistant 삼성전자 일봉을 분석하고 이동평균·OBV·지지·저항·매물대를 대화창에 표로 보여줘."
