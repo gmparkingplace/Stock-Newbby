@@ -28,7 +28,7 @@
   function tick(){if(signature(current())!==last)render();}
   function render(){const v=current();last=signature(v);$('trianglePanel').hidden=v.status==='disabled';
     if(v.status==='disabled'){FlagPanel.update();return;}
-    $('triangleState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'삼각수렴은 주식 일봉·코인 일봉/4시간봉에서 확인합니다.',paused:'자료 보류 · 이전 이력은 유지합니다.',error:'계산 오류 · 새 판단 보류','insufficient-data':'확정된 접촉점 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'돌파 방향을 확인하세요.':'확인된 삼각형 없음'}`;
+    $('triangleState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'삼각수렴은 주식·코인 일봉/4시간봉에서 확인합니다.',paused:'자료 보류 · 이전 이력은 유지합니다.',error:'계산 오류 · 새 판단 보류','insufficient-data':'확정된 접촉점 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'돌파 방향을 확인하세요.':'확인된 삼각형 없음'}`;
     if(v.status==='error')$('triangleState').textContent=errorText((S.tf==='H4'?frameOf(curSym()):curSym())?.triangleAnalysis?.errorCode)+' · 새 판단 보류';
     const select=$('triangleChoice');select.replaceChildren();const add=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);};
     add('auto','최근 유효 삼각형');for(const p of v.patterns)add(p.patternId,`${name(p)} · ${label(p)}`);

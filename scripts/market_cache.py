@@ -28,7 +28,7 @@ class MarketCache:
         self.store = MarketStore(path)
         self.clock = clock
         self.scheduler = RequestScheduler(wait_seconds=wait_seconds)
-        self.version = revision([ (ROOT/'scripts'/name).read_text() for name in ('signals.py','indicators.py','kr_p5.py','fetch_snapshot.py','time_contract.py','exchange_sessions.py','yahoo_quality.py')])[:16]
+        self.version = revision([ (ROOT/'scripts'/name).read_text() for name in ('signals.py','indicators.py','kr_p5.py','fetch_snapshot.py','time_contract.py','exchange_sessions.py','yahoo_quality.py','h4_sessions.py')])[:16]
         self.stats = dict(cacheHits=0, sourceCollections=0)
         self.lock = Lock()
 

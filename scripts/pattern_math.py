@@ -4,13 +4,18 @@ from datetime import date, datetime, timezone
 import math
 
 
-def validated(candles, confirmed_through, timeframe='D'):
+def validated(candles, confirmed_through, timeframe='D', symbol=None):
+    from universe import is_coin
+    stock_h4 = timeframe == 'H4' and symbol is not None and not is_coin(symbol)
     rows = deepcopy(candles)
     previous = None
     for row in rows:
         stamp = row['time']
         if timeframe=='H4':
-            valid_time=type(stamp) is int and stamp>0 and stamp%14400==0
+            valid_time=type(stamp) is int and stamp>0 and stamp%(60 if stock_h4 else 14400)==0
+            if stock_h4:
+                missing = row.get('missingBarsBefore')
+                valid_time = valid_time and type(missing) is int and missing >= 0
             if valid_time:
                 try:datetime.fromtimestamp(stamp,timezone.utc)
                 except (ValueError,OverflowError,OSError):valid_time=False
@@ -39,7 +44,10 @@ def analyze_contiguous(analyzer, rows, symbol, confirmed_through, provisional, l
     """
     if timeframe != 'H4' or profile == 'legacy':
         return None
-    starts = [0] + [i for i in range(1, len(rows)) if rows[i]['time']-rows[i-1]['time'] != 14400]
+    from universe import is_coin
+    coin = is_coin(symbol)
+    starts = [0] + [i for i in range(1, len(rows)) if
+                   (rows[i]['time']-rows[i-1]['time'] != 14400 if coin else rows[i]['missingBarsBefore'] > 0)]
     if len(starts) == 1:
         return None
     timeline, events, warnings = [], [], []
@@ -55,7 +63,7 @@ def analyze_contiguous(analyzer, rows, symbol, confirmed_through, provisional, l
         events.extend(result['events'])
         if start:
             warnings.append(dict(code='missing-h4-bars', previous=rows[start-1]['time'],
-                                 next=rows[start]['time'], missingBars=(rows[start]['time']-rows[start-1]['time'])//14400-1))
+                                 next=rows[start]['time'], missingBars=(rows[start]['time']-rows[start-1]['time'])//14400-1 if coin else rows[start]['missingBarsBefore']))
     return dict(result, confirmedThrough=confirmed_through, timeline=timeline, events=events,
                 segmentCount=len(starts), dataWarnings=warnings)
 

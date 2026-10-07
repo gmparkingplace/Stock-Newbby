@@ -9,8 +9,8 @@
   const finite=v=>typeof v==='number'&&Number.isFinite(v);
   const absent=v=>v===null||v===undefined;
   const fail=(code,details={})=>({code,...details});
-  function validTime(time,timeframe){
-    if(timeframe==='H4')return Number.isSafeInteger(time)&&time>0&&time%14400===0&&Number.isFinite(new Date(time*1000).getTime());
+  function validTime(time,timeframe,stockH4=false){
+    if(timeframe==='H4')return Number.isSafeInteger(time)&&time>0&&time%(stockH4?60:14400)===0&&Number.isFinite(new Date(time*1000).getTime());
     if(typeof time!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(time)||time.startsWith('0000-'))return false;
     const stamp=new Date(time+'T00:00:00Z');
     return Number.isFinite(stamp.getTime())&&stamp.toISOString().slice(0,10)===time;
@@ -22,10 +22,11 @@
     if(![p.leftBars,p.rightBars].every(v=>Number.isInteger(v)&&v>=1&&v<=5)||p.atrPeriod!==14)return null;
     return p;
   }
-  function validateBar(bar,index,timeframe,previousTime){
+  function validateBar(bar,index,timeframe,previousTime,stockH4){
     if(!bar||typeof bar!=='object'||Array.isArray(bar))return fail('invalid-bar',{index});
     const {time}=bar;
-    if(!validTime(time,timeframe))return fail('invalid-bar-time',{index,time});
+    if(!validTime(time,timeframe,stockH4))return fail('invalid-bar-time',{index,time});
+    if(stockH4&&(!Number.isSafeInteger(bar.missingBarsBefore)||bar.missingBarsBefore<0))return fail('session-continuity-required',{index,time});
     if(previousTime!==null&&time<=previousTime)return fail('invalid-bar-order',{index,time});
     for(const field of ['open','high','low','close']){
       if(!absent(bar[field])&&(!finite(bar[field])||bar[field]<=0))return fail('invalid-price',{index,time,field});
@@ -44,7 +45,7 @@
     const {symbol,candles,timeframe,observedThrough,confirmedThrough}=input;
     if(!['D','H4'].includes(timeframe))return {...base,status:'unsupported',error:null,reason:'timeframe-not-supported'};
     if(typeof symbol!=='string'||!symbol.trim()||symbol.length>32)return reject('invalid-symbol');
-    if(timeframe==='H4'&&!/^[A-Z0-9]+-USD$/.test(symbol.toUpperCase()))return {...base,status:'unsupported',reason:'h4-crypto-only'};
+    const stockH4=timeframe==='H4'&&!/^[A-Z0-9]+-USD$/.test(symbol.toUpperCase());
     const params=parameters(input.params);
     if(!params)return reject('invalid-parameters');
     if(input.version!==undefined&&input.version!==version)return reject('unsupported-version');
@@ -54,20 +55,20 @@
       if(observedThrough!==null||confirmedThrough!==null)return reject('invalid-cutoff');
       return {...base,status:'unavailable',reason:'no-candles',parameters:params};
     }
-    if(!validTime(observedThrough,timeframe))return reject('invalid-observed-cutoff');
+    if(!validTime(observedThrough,timeframe,stockH4))return reject('invalid-observed-cutoff');
     // Stop at the requested prefix. Invalid or corrected future bars do not affect this result.
     let end=-1;
     for(let i=0;i<candles.length;i++)if(candles[i]?.time===observedThrough){end=i;break;}
     if(end<0)return reject('observed-cutoff-not-found');
     let confirmed=-1,previousTime=null;
     for(let i=0;i<=end;i++){
-      const error=validateBar(candles[i],i,timeframe,previousTime);
+      const error=validateBar(candles[i],i,timeframe,previousTime,stockH4);
       if(error)return {...base,error};
       previousTime=candles[i].time;
       if(previousTime===confirmedThrough)confirmed=i;
     }
     if(confirmedThrough!==null){
-      if(!validTime(confirmedThrough,timeframe))return reject('invalid-confirmed-cutoff');
+      if(!validTime(confirmedThrough,timeframe,stockH4))return reject('invalid-confirmed-cutoff');
       if(confirmedThrough>observedThrough)return reject('confirmation-after-observation');
       if(confirmed<0)return reject('confirmed-cutoff-not-found');
     }
@@ -77,7 +78,7 @@
       const b=candles[i],priceReady=['open','high','low','close'].every(k=>finite(b[k]));
       const volumeStatus=absent(b.volume)?'missing':b.volume===0?'zero':'known';
       if(volumeStatus==='missing')warnings.push({code:'volume-missing',index:i,time:b.time});
-      const timeGap=timeframe==='H4'&&i>0&&b.time-candles[i-1].time!==14400;
+      const timeGap=timeframe==='H4'&&i>0&&(stockH4?b.missingBarsBefore>0:b.time-candles[i-1].time!==14400);
       if(timeGap){warnings.push({code:'bar-gap',index:i,time:b.time});needsSegment=true;previousClose=null;seed=[];atr=null;}
       if(!priceReady){
         warnings.push({code:'price-missing',index:i,time:b.time});

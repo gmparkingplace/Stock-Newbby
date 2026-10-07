@@ -124,7 +124,7 @@ def test_cached_coin_api_timeframe_filter_does_not_collect(enabled_store,monkeyp
     code,data=svc.handle(h);assert code==200 and data['timeframe']=='H4'
     h.path='/api/events?symbol=BTC-USD&tf=H4';code,data=svc.handle(h)
     assert code==200 and len(data['events'])==1 and data['events'][0]['timeframe']=='H4' and data['nextCursor']==2
-    h.path='/api/patterns?symbol=AAPL&kind=triangle&tf=H4';assert svc.handle(h)[1]['sourceStatus']=='unsupported'
+    h.path='/api/patterns?symbol=AAPL&kind=triangle&tf=H4';assert svc.handle(h)[1]['sourceStatus']=='not-collected'
 
 
 def test_intraday_transport_attaches_same_cached_frame_without_more_collections(enabled_store,monkeypatch):

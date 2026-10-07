@@ -96,11 +96,14 @@ def intraday(code: str) -> dict:
     fetched = _utcnow_iso()
     if df.index.tz is None:
         df = df.tz_localize(tz)
+    from h4_sessions import annotate, trim_first_session
+    df, partial_warnings = trim_first_session(df, code)
     d, warnings = latest_valid_segment(to_4h(df, tz))
     out = frame(d, True)
+    annotate(out['candles'], code)
     out.update({"symbol": code, "name": NAMES.get(code, code), "live": True, "tf": "H4",
                 "strats": ["A", "B", "C", "F"], "trades": {}, "fetchedAt": fetched,
-                "dataWarnings": warnings})
+                "dataWarnings": partial_warnings + warnings})
     return _fresh(out, code, tz, out["candles"][-1]["time"] if out["candles"] else 0, "H4", {})
 
 

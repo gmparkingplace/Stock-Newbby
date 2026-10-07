@@ -64,7 +64,7 @@ def supported(symbol, timeframe, family):
     from universe import is_coin
     if symbol.startswith('^'):return False
     if is_coin(symbol):return timeframe in ('D','H4') and family in ('flag','triangle')
-    return timeframe=='D'
+    return timeframe=='D' or timeframe=='H4' and family in ('flag','triangle')
 
 
 def result_key(symbol, levels, family='horizontal', timeframe='D'):
@@ -105,6 +105,10 @@ def evaluate(payload, store, now=None, family='horizontal'):
     symbol = payload['symbol']
     tf=payload.get('tf','D')
     if not supported(symbol,tf,family):return dict(enabled=True,symbol=symbol,timeframe=tf,sourceStatus='unsupported')
+    from universe import is_coin
+    if tf == 'H4' and not is_coin(symbol) and any('missingBarsBefore' not in r for r in payload['candles']):
+        return dict(enabled=True, symbol=symbol, timeframe=tf, sourceStatus='unsupported',
+                    reason='session-continuity-required')
     engine,rule=analyze,RULE
     if family=='flag':
         from flag_patterns import analyze as engine, RULE as rule

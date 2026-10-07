@@ -1256,6 +1256,8 @@ function renderSource() {
   ];
   const quality=(f?.dataWarnings||[]).find(x=>x.code==="invalid-yahoo-bars");
   if(quality)rows.push(["자료 확인",`가격 오류 ${quality.count}개 봉 · ${fmtT(quality.analysisFrom)}부터 정상 구간으로 계산합니다. 이전 ${quality.excludedHistoryBars}개 봉은 분석에서 제외했습니다.`]);
+  const partial=(f?.dataWarnings||[]).find(x=>x.code==="partial-first-yahoo-session");
+  if(partial)rows.push(["4시간봉 집계",`${partial.sessionDate} 첫 거래일은 개장 이후부터 조회되어 제외했습니다. 이후 거래일부터 개장 시각 기준으로 계산합니다.`]);
   for(const [key,value] of rows){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=key;dd.textContent=value;grid.append(dt,dd);}body.appendChild(grid);
   const sections=[
     ["표시를 읽는 방법",[
@@ -1307,6 +1309,7 @@ function paintBasis() {
   if (m && m.fetchedAt) line += ` · 수집 ${fmtClock(m.fetchedAt)}`;
   const quality=(f?.dataWarnings||[]).find(x=>x.code==="invalid-yahoo-bars");
   if (quality) line += ` · 가격 오류 ${quality.count}봉 제외 · ${fmtT(quality.analysisFrom)}부터 계산`;
+  if ((f?.dataWarnings||[]).some(x=>x.code==="partial-first-yahoo-session")) line += " · 첫 거래일 불완전 자료 제외";
   if (!serverMode) line += " · 파일 모드(서버 미연결)";
   if (S.lastErr) line += ` · 최신 조회 실패(${(ERR_TXT[S.lastErr.kind] || "오류")}) · 마지막 자료 유지`;
   $("basisLine").textContent = line;

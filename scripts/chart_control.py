@@ -6,6 +6,9 @@ import time
 import uuid
 from urllib.parse import urlparse, parse_qs
 
+MAX_COMMAND_BYTES = 65536
+MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
+
 class ControlStore:
     def __init__(self):
         self.lock = threading.RLock()
@@ -95,7 +98,10 @@ def handle(handler):
                 else:reply(404,{'error':'unknown endpoint'})
         elif handler.command=='POST':
             length=int(handler.headers.get('Content-Length','0'))
-            if not 0<length<=65536: raise ValueError('invalid body size')
+            # Analysis histories exceed a command's small envelope. Keep both
+            # bounded; only browser snapshots get the larger local allowance.
+            limit = MAX_SNAPSHOT_BYTES if u.path in ('/api/control/poll','/api/control/result') else MAX_COMMAND_BYTES
+            if not 0<length<=limit: raise ValueError('invalid body size')
             if handler.headers.get_content_type()!='application/json': raise ValueError('JSON required')
             body=json.loads(handler.rfile.read(length))
             if not isinstance(body,dict): raise ValueError('JSON object required')

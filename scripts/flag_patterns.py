@@ -83,7 +83,7 @@ def present(p, rows, end, status=None):
 def analyze(candles,symbol,confirmed_through,provisional=False,levels=None,timeframe='D',profile='balanced'):
     if timeframe not in ('D','H4'):raise ValueError('unsupported-pattern-timeframe')
     cfg=parameters(profile);rule=rule_version('flag',timeframe,profile)
-    rows=validated(candles,confirmed_through,timeframe)
+    rows=validated(candles,confirmed_through,timeframe,symbol)
     segmented=analyze_contiguous(analyze,rows,symbol,confirmed_through,provisional,levels,timeframe,profile)
     if segmented is not None:return segmented
     atr=atr14(rows)

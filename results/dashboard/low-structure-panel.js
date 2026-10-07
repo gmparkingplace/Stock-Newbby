@@ -42,7 +42,7 @@ if(typeof window!=='undefined'&&typeof document!=='undefined')(() => {
   model=current();selected=model?.selected||null;
   $('lowStructurePanel').hidden=S.entryFamily!=='low';
   const legend=$('lowMarkerLegend');if(legend)legend.hidden=S.entryFamily!=='low';
-  $('lowStructureStatus').textContent=!model?'차트 자료 대기':model.status==='unsupported'?'일봉·코인 4시간봉에서 지원합니다.':model.status==='invalid-data'?'봉 자료 오류 · 저점 판단 보류':model.status==='unconfirmed'?'확정봉 확인 대기':selected?`${model.manual?'과거 구조 · 현재 판단과 별도 · ':''}${LowEntryModel.names[selected.family]} · ${LowEntryModel.describe(selected,model.parameters).rowLabel}`:'선택한 전략의 구조 없음 · 최근 3개월';
+  $('lowStructureStatus').textContent=!model?'차트 자료 대기':model.status==='unsupported'?'일봉·4시간봉에서 지원합니다.':model.status==='invalid-data'?'봉 자료 오류 · 저점 판단 보류':model.status==='unconfirmed'?'확정봉 확인 대기':selected?`${model.manual?'과거 구조 · 현재 판단과 별도 · ':''}${LowEntryModel.names[selected.family]} · ${LowEntryModel.describe(selected,model.parameters).rowLabel}`:'선택한 전략의 구조 없음 · 최근 3개월';
   const select=$('lowStructureChoice');select.replaceChildren();
   const add=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);};
   add('auto','판단 기준 구조');for(const s of model?.structures||[])add(s.id,`${LowEntryModel.names[s.family]} · ${fmtT(s.knownAt)} · ${LowEntryModel.describe(s,model.parameters).rowLabel}`);

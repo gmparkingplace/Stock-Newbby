@@ -137,7 +137,7 @@ test('cutoffs are explicit, existing and ordered',()=>{
 });
 test('unsupported timeframe/symbol and empty input have distinct states',()=>{
  assert.equal(run(constant,{timeframe:'M'}).status,'unsupported');assert.equal(run(constant,{timeframe:'W'}).status,'unsupported');
- assert.equal(run(constant,{timeframe:'H4',symbol:'005930.KS'}).reason,'h4-crypto-only');
+ assert.equal(run(constant,{timeframe:'H4',symbol:'005930.KS'}).error.code,'invalid-observed-cutoff');
  assert.equal(run([],{}).status,'unavailable');assert.equal(run([],{}).reason,'no-candles');
  assert.equal(run([],{confirmedThrough:day(0)}).error.code,'invalid-cutoff');
  assert.equal(M.analyze(null).error.code,'invalid-input');assert.equal(run(constant,{symbol:''}).error.code,'invalid-symbol');
@@ -164,5 +164,18 @@ test('browser UMD and Node use identical pure engine',()=>{
  const data=lowBars([12,11,9,10,12,13,12,10,11,13]);
  const input={symbol:'TEST',timeframe:'D',candles:data,observedThrough:day(9),confirmedThrough:day(9)};
  assert.deepEqual(JSON.parse(JSON.stringify(ctx.LowStructureModel.analyze(input))),M.analyze(input));
+});
+test('stock H4 preserves ATR across closures and resets on missing market bars',()=>{
+ const start=Date.UTC(2026,0,5,14,30)/1000;
+ const f=constant.map((b,i)=>({...b,time:start+Math.floor(i/2)*86400+(i%2)*14400,missingBarsBefore:0}));
+ const out=run(f,{symbol:'VOYG',timeframe:'H4'});
+ assert.equal(out.status,'ready');assert.equal(out.series.at(-1).segment,0);
+ assert.equal(out.dataWarnings.length,0);assert.equal(out.series[13].atr,2);
+ const missing=structuredClone(f);missing[40].missingBarsBefore=1;
+ const gap=run(missing,{symbol:'VOYG',timeframe:'H4'});
+ assert.equal(gap.series[40].segment,1);assert.equal(gap.series[40].atr,null);
+ assert.equal(gap.status,'insufficient-data');
+ const absent=structuredClone(f);delete absent[10].missingBarsBefore;
+ assert.equal(run(absent,{symbol:'VOYG',timeframe:'H4'}).error.code,'session-continuity-required');
 });
 console.log(`Low structure P0: ${count} cases passed (Wilder golden, confirmed pivots, prefix causality, gaps, validation and browser/Node parity)`);

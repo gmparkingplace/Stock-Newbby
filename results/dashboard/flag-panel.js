@@ -30,7 +30,7 @@
   function render(){
     const v=current(),a=S.tf==='H4'?frameOf(curSym()):curSym();lastState=signature(v);$('flagPanel').hidden=v.status==='disabled';$('flagOverlayControls').hidden=v.status==='disabled'&&!a?.triangleAnalysis?.enabled;
     if(v.status==='disabled'){update();return;}
-    $('flagState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'플래그는 주식 일봉·코인 일봉/4시간봉에서 확인합니다.',error:'플래그 계산 오류 · 새 판단 보류',paused:'자료 보류 · 이전 이력은 유지합니다.','insufficient-data':'선행 가격과 확정 피벗 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'형성과 종가 돌파를 구분하세요.':'확인된 플래그 구조 없음'}`;
+    $('flagState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'플래그는 주식·코인 일봉/4시간봉에서 확인합니다.',error:'플래그 계산 오류 · 새 판단 보류',paused:'자료 보류 · 이전 이력은 유지합니다.','insufficient-data':'선행 가격과 확정 피벗 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'형성과 종가 돌파를 구분하세요.':'확인된 플래그 구조 없음'}`;
     const select=$('flagChoice');select.replaceChildren();
     const addOption=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);};
     addOption('auto','최근 유효 패턴');for(const p of v.patterns)addOption(p.patternId,`${p.type.endsWith('-triangle')?TrianglePanel.name(p):name(p)} · ${labels[p.status]}`);

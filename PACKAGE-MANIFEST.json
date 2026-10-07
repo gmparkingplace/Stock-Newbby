@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6011,
-      "sha256": "19d5a97117ece852724198c64751929d0fcf6efea6a42b1e085d996ac0f40af1"
+      "bytes": 6456,
+      "sha256": "ffa83318251dc6ce8cf1013a4b20706e4dbd8beabed3f0718ae1ffec3ad197f4"
     },
     {
       "path": "SECURITY.md",
@@ -55,8 +55,8 @@
     },
     {
       "path": "docs/FEATURES.md",
-      "bytes": 3953,
-      "sha256": "a452cdacf9285b0c4f539c5c4af6c13fa31363bb85cce107e1d3e8721a49b05e"
+      "bytes": 4392,
+      "sha256": "b2da4fdd03746a8ddafc6c197e643331aede8664c3e3075944f54a2124dfce82"
     },
     {
       "path": "docs/TOSS.md",
@@ -210,8 +210,8 @@
     },
     {
       "path": "results/dashboard/chart-first.html",
-      "bytes": 115896,
-      "sha256": "ea30902f7e7c16eae74eefcce46ac96d7fe89e07bef9a069ad8d8b58105e6af5"
+      "bytes": 116322,
+      "sha256": "98de74c28dc2654d3e0dea7b2b732c4b5edf55a059c631fb69a80d3a0e832b33"
     },
     {
       "path": "results/dashboard/chart-layout.js",
@@ -260,8 +260,8 @@
     },
     {
       "path": "results/dashboard/flag-panel.js",
-      "bytes": 6686,
-      "sha256": "1c08d6eb1372ed40dbffd4e2513dab800c41602cad38aada4956452885553f08"
+      "bytes": 6679,
+      "sha256": "85638a8312a9d55329e2b148176f23f67de91f8c4b4bfb973b15c1799b7fc2e3"
     },
     {
       "path": "results/dashboard/index.html",
@@ -300,13 +300,13 @@
     },
     {
       "path": "results/dashboard/low-structure-model.js",
-      "bytes": 7492,
-      "sha256": "94229928965b304db60ad664932147c54afda7911510d91398327551d69f886c"
+      "bytes": 7685,
+      "sha256": "9d3540b784566ff83518f4d8f206e469808eb4f3f2942330738898e79e640569"
     },
     {
       "path": "results/dashboard/low-structure-panel.js",
-      "bytes": 9303,
-      "sha256": "27f1523521afa650c37d8c67d72f8e232f3dc77d80b638a932fa782e36d4509d"
+      "bytes": 9296,
+      "sha256": "4698b5f6d111dd3be7881904a239135438f303f245315a54c5fcfa60a0fea28d"
     },
     {
       "path": "results/dashboard/low-structure-rules.js",
@@ -355,8 +355,8 @@
     },
     {
       "path": "results/dashboard/triangle-panel.js",
-      "bytes": 7782,
-      "sha256": "696ddd4941b478775d086c821e85cc94c4b7883bec780a2930097fbd4c5f26bc"
+      "bytes": 7775,
+      "sha256": "a661d9c59fbecc33513c6c041bda12f6014aac8a8305b68347d8bc59a8281afb"
     },
     {
       "path": "results/dashboard/volume-profile-panel.js",
@@ -405,8 +405,8 @@
     },
     {
       "path": "scripts/chart_control.py",
-      "bytes": 6097,
-      "sha256": "21732707ccc74755efe32b64632ea246f44ead4e93f4d7b10b87bdd8db6239a1"
+      "bytes": 6436,
+      "sha256": "8ed4ed07ad7f4ace9bd5c3caad13bf8781388f20d907faca0b963ad8c63d08a4"
     },
     {
       "path": "scripts/chart_p3.py",
@@ -435,8 +435,13 @@
     },
     {
       "path": "scripts/flag_patterns.py",
-      "bytes": 10261,
-      "sha256": "b6f95996c5b67d73189d9fe4452db5fdb171c47fa2adf95e77fe1bea0ccd8c21"
+      "bytes": 10268,
+      "sha256": "a0ae98264dad0adc2cbdfb9c1abd409162439e0248e1ac70b1bcb6d0299eb172"
+    },
+    {
+      "path": "scripts/h4_sessions.py",
+      "bytes": 2440,
+      "sha256": "3102f567e533226f77fb01d94c377b926a573bd322d279fe9a9950b114a1085a"
     },
     {
       "path": "scripts/horizontal_patterns.py",
@@ -470,8 +475,8 @@
     },
     {
       "path": "scripts/market_cache.py",
-      "bytes": 4293,
-      "sha256": "4f54d4eae2e4f8b64bc43527b066dee981c3455a4f9615ed8bdb0e8267c5f9dd"
+      "bytes": 4310,
+      "sha256": "7b294978d991b5f286b7b0311117d0939823e84fe6bd3e3ac58517b4f037033b"
     },
     {
       "path": "scripts/market_store.py",
@@ -495,8 +500,8 @@
     },
     {
       "path": "scripts/pattern_math.py",
-      "bytes": 4529,
-      "sha256": "bfd23d99a4fd2afbf7f2dab3698eac563ef1e93d7d15a264283582253e12b265"
+      "bytes": 5012,
+      "sha256": "9876f88c5d94d1287cecfce0a83c3db4635895a0b30b33330f1b4c98a783d6a7"
     },
     {
       "path": "scripts/pattern_profiles.py",
@@ -505,8 +510,8 @@
     },
     {
       "path": "scripts/pattern_service.py",
-      "bytes": 16648,
-      "sha256": "8fe5b59a45f79a80c5ff815781f08d37325be91b18bc94ba8f59b3148c9ae4f7"
+      "bytes": 16992,
+      "sha256": "f870fb749556a5387615a4bc371d3eb9161857fdddfacab3ab85cecdd32eb271"
     },
     {
       "path": "scripts/pattern_window.py",
@@ -535,8 +540,8 @@
     },
     {
       "path": "scripts/serve_dashboard.py",
-      "bytes": 23283,
-      "sha256": "a44dde295c21ba51a5ec73d33cf53788f456b10346f9837c3ae90228df810dfe"
+      "bytes": 23450,
+      "sha256": "558b8a96c1a7de88e509376310541873a35d6e4095dbb3cf64dbb6c046b70b12"
     },
     {
       "path": "scripts/signals.py",
@@ -570,8 +575,8 @@
     },
     {
       "path": "scripts/triangle_patterns.py",
-      "bytes": 9189,
-      "sha256": "51ec921362bd4378405c0da92f9899f113c3ea5525e3c3da6905bb3d3d9a7e7c"
+      "bytes": 9196,
+      "sha256": "466ea3c2bf67d4c135111539a9724b7bfa38644159ccfbed403c5fd9c36c7c18"
     },
     {
       "path": "scripts/universe.py",
@@ -825,8 +830,8 @@
     },
     {
       "path": "tests/low_structure_fixtures.js",
-      "bytes": 12531,
-      "sha256": "f8eb53c02fe0363e1332298408a7175d1ed34e8830a6f106598be88ade7cb764"
+      "bytes": 13406,
+      "sha256": "7bcd3bcc089c996661c5245a07cbb05ac9f7caa2f581e14d748f2b35e6cfc415"
     },
     {
       "path": "tests/monitor_panel_fixtures.js",
@@ -890,8 +895,8 @@
     },
     {
       "path": "tests/test_chart_control.py",
-      "bytes": 1930,
-      "sha256": "d3a3922bfb7a0bf17e2fd3a65feb2f6e989a9e9833d543c7e8bbbb90e236ea41"
+      "bytes": 3546,
+      "sha256": "705909cd0cc57364b5ec3cd6fa9ab525091f549d013b83df222155ab5bcac249"
     },
     {
       "path": "tests/test_chartctl_vp.py",
@@ -900,8 +905,8 @@
     },
     {
       "path": "tests/test_coin_patterns.py",
-      "bytes": 12262,
-      "sha256": "e86d3325c8b16fa351deed3e5dbcc73826072d303181e45e2583368e928c334f"
+      "bytes": 12264,
+      "sha256": "b349c1f50dbeda1ccb44399d4604f94429923fb76b0de5ec6ac36c4cb4f16442"
     },
     {
       "path": "tests/test_coin_routing.py",
@@ -1007,6 +1012,11 @@
       "path": "tests/test_review_fixes.py",
       "bytes": 5520,
       "sha256": "9e7392dbab7dad8730180321bcb45b0e7900f6a6e2bd6713ce60be2775728033"
+    },
+    {
+      "path": "tests/test_stock_h4.py",
+      "bytes": 5474,
+      "sha256": "470519f4188a99db713fb9f730c9b99775f1a12f276cfa0a6c32b96c38ca00ab"
     },
     {
       "path": "tests/test_strategy_audit.py",
