@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 5151,
-      "sha256": "f0816ef4529410e8db02f7ffccfe38bf4fd95169b81df1b75d2a67f4939bd3b6"
+      "bytes": 6011,
+      "sha256": "19d5a97117ece852724198c64751929d0fcf6efea6a42b1e085d996ac0f40af1"
     },
     {
       "path": "SECURITY.md",
@@ -55,8 +55,8 @@
     },
     {
       "path": "docs/FEATURES.md",
-      "bytes": 2880,
-      "sha256": "3b9e36742c3d8b400f67bd3ad9f03d8f7a6c2560c5c467195f101ce65ef8cabb"
+      "bytes": 3953,
+      "sha256": "a452cdacf9285b0c4f539c5c4af6c13fa31363bb85cce107e1d3e8721a49b05e"
     },
     {
       "path": "docs/TOSS.md",
@@ -190,13 +190,13 @@
     },
     {
       "path": "requirements-lock.txt",
-      "bytes": 459,
-      "sha256": "f78a0ca142691b92c307585b99b51bf2b7d2509e10fe4f3337f10850b3a545ec"
+      "bytes": 558,
+      "sha256": "8dbbce6c868a085d951ecad9f962ada9e33f194ab85614065d6e877645164145"
     },
     {
       "path": "requirements.txt",
-      "bytes": 75,
-      "sha256": "1113fa63d07a61596351b55c856f9e1ebf40c415775d63cc515e38b25d96d5d1"
+      "bytes": 102,
+      "sha256": "aa0c8d1bb75f73902b410bb5d478338f97906bc8b93fa1c31cde0e8e02baf8e3"
     },
     {
       "path": "results/dashboard/chart-api.js",
@@ -210,8 +210,8 @@
     },
     {
       "path": "results/dashboard/chart-first.html",
-      "bytes": 115043,
-      "sha256": "c73ca0efeee8e0f907514c976ac1e4196f42e024298f3de46a5728c1061f6f13"
+      "bytes": 115896,
+      "sha256": "ea30902f7e7c16eae74eefcce46ac96d7fe89e07bef9a069ad8d8b58105e6af5"
     },
     {
       "path": "results/dashboard/chart-layout.js",
@@ -424,6 +424,11 @@
       "sha256": "30bac120e9f58c57ecbd0b05143afebbbfeda41b41c3e2604b4db790899d8dad"
     },
     {
+      "path": "scripts/exchange_sessions.py",
+      "bytes": 1731,
+      "sha256": "3e97698b2733b86ae8c39d9454ed13e621a63c54f6e68936c128c05161568957"
+    },
+    {
       "path": "scripts/fetch_snapshot.py",
       "bytes": 5795,
       "sha256": "f29511ae384d1d7d01937cf64ec6ee26d9be4e6fbea41b2c4e47dfd208b5a026"
@@ -465,8 +470,8 @@
     },
     {
       "path": "scripts/market_cache.py",
-      "bytes": 4251,
-      "sha256": "0098060254b6a03e90c52d2bf92606ac594dc3145f852b408d7d22dcd3a81135"
+      "bytes": 4293,
+      "sha256": "4f54d4eae2e4f8b64bc43527b066dee981c3455a4f9615ed8bdb0e8267c5f9dd"
     },
     {
       "path": "scripts/market_store.py",
@@ -530,8 +535,8 @@
     },
     {
       "path": "scripts/serve_dashboard.py",
-      "bytes": 22960,
-      "sha256": "f525d88ae93bc7277f9c0857553bb53316194054cebeca55366901f1cd8c4764"
+      "bytes": 23283,
+      "sha256": "a44dde295c21ba51a5ec73d33cf53788f456b10346f9837c3ae90228df810dfe"
     },
     {
       "path": "scripts/signals.py",
@@ -540,8 +545,8 @@
     },
     {
       "path": "scripts/time_contract.py",
-      "bytes": 11041,
-      "sha256": "60ba3639452d8097a2cd582fe3d3fc2a062fce33a86af3ff3a7d0c137b70760a"
+      "bytes": 11596,
+      "sha256": "599dbc912a3d1fea25bc4fce680cbecb5aacf4439b4402385c733758ee32f521"
     },
     {
       "path": "scripts/toss_catalog.py",
@@ -632,6 +637,11 @@
       "path": "scripts/verify_p5kr.py",
       "bytes": 6403,
       "sha256": "afa878445c15a6efc0099b30fca5bfac72996ab091e24d962dfeadcb6a4f2213"
+    },
+    {
+      "path": "scripts/yahoo_quality.py",
+      "bytes": 1800,
+      "sha256": "2b77a6554ed1c76e55d2403bff3a223aeaa951b463cf53a0d0fc05598d1068de"
     },
     {
       "path": "setup.py",
@@ -945,8 +955,8 @@
     },
     {
       "path": "tests/test_market_session.py",
-      "bytes": 5134,
-      "sha256": "819087e99d10d1e673e19ef8f357159b0e07a857844f447091e33499edd71957"
+      "bytes": 5284,
+      "sha256": "c2e121cbbcaf25bc41f01b462d5fb99de7b9d27479dcaec25594f719e794af90"
     },
     {
       "path": "tests/test_monitor_service.py",
@@ -1034,6 +1044,11 @@
       "sha256": "a1b011f81e8c9f4ab7d520350589395a208e55a5333e209541557a64360960a3"
     },
     {
+      "path": "tests/test_yahoo_fallback.py",
+      "bytes": 4855,
+      "sha256": "f1247823b08f5b94686797691df4589a6ec06c0ac719bbdb4751de32a146e318"
+    },
+    {
       "path": "tests/topbar_fixtures.js",
       "bytes": 2452,
       "sha256": "79653ffacadba0c88396ce914e97d868ad0acf50636b29fb273bd5b0941d332d"
@@ -1080,8 +1095,8 @@
     },
     {
       "path": "tools/build-package.py",
-      "bytes": 2557,
-      "sha256": "0d59709023976fc2d6d22e8365d5c162b3c75d4582842cdda5ef795256fad4dd"
+      "bytes": 2588,
+      "sha256": "aabec7cd4ce97a94f5140c444a21c4765acbf0bfe6c550b577f8d433ddc662fb"
     },
     {
       "path": "tools/build-public-release.py",

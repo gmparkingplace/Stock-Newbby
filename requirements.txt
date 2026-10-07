@@ -3,3 +3,4 @@ numpy==2.4.6
 yfinance==1.7.0
 websockets==17.1
 urllib3==2.8.0
+exchange-calendars==4.13.2

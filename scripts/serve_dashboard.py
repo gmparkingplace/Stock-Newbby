@@ -26,6 +26,7 @@ from kr_p5 import atr_wilder  # noqa: E402
 from time_contract import _fresh, _utcnow_iso, judgment_metadata, market_session, ttl_cache  # noqa: E402
 from universe import COIN_ALIAS, COINS, NAMES, UNIVERSE, is_coin, is_kr, market_of, norm_code  # noqa: E402
 from signals import frame, to_4h, to_monthly, to_weekly  # noqa: E402
+from yahoo_quality import latest_valid_segment  # noqa: E402
 from request_metrics import RequestMetrics  # noqa: E402
 import market_cache  # noqa: E402
 
@@ -58,15 +59,19 @@ def lookup(code: str) -> dict:
     df = df.tz_convert(tz) if df.index.tz is not None else df.tz_localize(tz)
     d = to_adjusted(df).reset_index(names="timestamp")
     d["t"] = pd.to_datetime(d["timestamp"]).dt.date.astype(str)
+    d, warnings = latest_valid_segment(d)
     out = frame(d, True)
     out.update({"symbol": code, "name": NAMES.get(code, code), "live": True,
                 "strats": ["A", "B", "C", "F"], "trades": {},
-                "weekly": frame(to_weekly(d), True), "fetchedAt": fetched})
+                "weekly": frame(to_weekly(d), True), "fetchedAt": fetched,
+                "dataWarnings": warnings})
     out["weekly"].update(fetchedAt=fetched, sourceDate=d["t"].iloc[-1])
+    out["weekly"]["dataWarnings"] = warnings
     out["weekly"] = _fresh(out["weekly"], code, tz, out["weekly"]["candles"][-1]["time"], "W", {})
     m, mmeta = to_monthly(d)
     out["monthly"] = frame(m, True)
     out["monthly"].update(fetchedAt=fetched, sourceDate=d["t"].iloc[-1],
+                          dataWarnings=warnings,
                           monthlyBars=mmeta["monthlyBars"], dailyBars=mmeta["dailyBars"],
                           droppedIncompleteFirst=mmeta["droppedIncompleteFirst"])
     mlast = out["monthly"]["candles"][-1]["time"] if out["monthly"]["candles"] else None
@@ -91,9 +96,11 @@ def intraday(code: str) -> dict:
     fetched = _utcnow_iso()
     if df.index.tz is None:
         df = df.tz_localize(tz)
-    out = frame(to_4h(df, tz), True)
+    d, warnings = latest_valid_segment(to_4h(df, tz))
+    out = frame(d, True)
     out.update({"symbol": code, "name": NAMES.get(code, code), "live": True, "tf": "H4",
-                "strats": ["A", "B", "C", "F"], "trades": {}, "fetchedAt": fetched})
+                "strats": ["A", "B", "C", "F"], "trades": {}, "fetchedAt": fetched,
+                "dataWarnings": warnings})
     return _fresh(out, code, tz, out["candles"][-1]["time"] if out["candles"] else 0, "H4", {})
 
 

@@ -13,8 +13,9 @@ ignored={'.venv','__pycache__','.pytest_cache','.git','logs','shots','work','pri
 secrets=[]
 if (root/'.local.json').is_file():
     sys.path.insert(0,str(root/'scripts'))
-    from toss_market import read_credentials
-    secrets=[s.encode() for s in read_credentials().values()]
+    from toss_market import enabled, read_credentials
+    if enabled():
+        secrets=[s.encode() for s in read_credentials().values()]
 files=[]
 for p in sorted(root.rglob('*')):
     rel=p.relative_to(root)

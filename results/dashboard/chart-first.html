@@ -1249,10 +1249,13 @@ function renderSource() {
   const source=provider==="toss"?"토스증권":provider==="yfinance"?"Yahoo Finance":S.sourceKind==="live"?"서버 조회 · 공급처 확인 필요":"앱에 저장된 자료";
   const rows=[
     ["자료 제공",source],
+    ["장 운영 기준",f?.marketSession?.source==="exchange-calendar"?"거래소 정규장 캘린더 · 휴장일·단축장 반영":f?.marketSession?.source==="toss"?"토스 시장 운영 정보":f?.marketSession?.source==="continuous"?"24시간 거래":"확인 대기"],
     ["판단 기준",obs?`${fmtT(obs.model.observationAsOf)} · ${tfWord()}${obs.model.currentBarProvisional?" · 잠정":""}`:"자료 없음"],
     ["마지막 조회",fmtClock(f?.fetchedAt || m?.fetchedAt) || "조회 시각 없음"],
     ["지금 판단해도 되나요?",obs?.model.timeliness.message || "자료 확인 대기"]
   ];
+  const quality=(f?.dataWarnings||[]).find(x=>x.code==="invalid-yahoo-bars");
+  if(quality)rows.push(["자료 확인",`가격 오류 ${quality.count}개 봉 · ${fmtT(quality.analysisFrom)}부터 정상 구간으로 계산합니다. 이전 ${quality.excludedHistoryBars}개 봉은 분석에서 제외했습니다.`]);
   for(const [key,value] of rows){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=key;dd.textContent=value;grid.append(dt,dd);}body.appendChild(grid);
   const sections=[
     ["표시를 읽는 방법",[
@@ -1270,7 +1273,7 @@ function renderSource() {
       `관찰 규칙 ${ObsModel.RULE_VERSION}. 평균선은 ${avgWord(20)}, ${avgWord(60)}을 사용해요.`,
       "최근 고점은 직전 20봉의 최고가, 최근 저점은 직전 10봉의 최저가예요. 기준봉 자신은 제외해요.",
       "A/B/C/F 진입 조건은 상단 ‘전략 조합 비교’에서 볼 수 있어요. 과거 선택에서는 그 이후 자료를 판단에 넣지 않아요.",
-      "토스 일봉과 일봉을 집계한 주봉·월봉을 사용해요. 4시간봉·토스 미지원 종목은 기존 공급처 경로예요. 장중 30초·폐장 60초 정기 조회는 공급처 시세 지연을 보장하는 주기가 아니에요.",
+      "토스 API가 설정된 주식은 토스를 먼저 사용해요. 키가 없거나 미지원 종목이면 Yahoo Finance를 사용하고, 코인·지수도 Yahoo Finance를 사용해요. 4시간봉은 토스 1분봉 또는 야후 60분봉을 집계해요. 조회 주기는 시세 지연을 보장하지 않아요.",
       S.lastErr ? `최근 조회 문제: ${ERR_TXT[S.lastErr.kind] || S.lastErr.kind}${S.lastErr.upstreamStatus ? ' · 공급처 HTTP ' + S.lastErr.upstreamStatus : ''}${S.lastErr.retryAt ? ' · 재시도 가능 ' + fmtClock(S.lastErr.retryAt) : ''}` : "최근 선택 종목 조회 오류 없음.",
       "차트: TradingView Lightweight Charts 5.0.8 · Apache-2.0. 시장 체결가 점선과 개인 보유·매도 내역은 표시하지 않아요."
     ]]
@@ -1302,6 +1305,8 @@ function paintBasis() {
     if (f && f.droppedIncompleteFirst) line += " · 첫 월 불완전 제외";
   }
   if (m && m.fetchedAt) line += ` · 수집 ${fmtClock(m.fetchedAt)}`;
+  const quality=(f?.dataWarnings||[]).find(x=>x.code==="invalid-yahoo-bars");
+  if (quality) line += ` · 가격 오류 ${quality.count}봉 제외 · ${fmtT(quality.analysisFrom)}부터 계산`;
   if (!serverMode) line += " · 파일 모드(서버 미연결)";
   if (S.lastErr) line += ` · 최신 조회 실패(${(ERR_TXT[S.lastErr.kind] || "오류")}) · 마지막 자료 유지`;
   $("basisLine").textContent = line;

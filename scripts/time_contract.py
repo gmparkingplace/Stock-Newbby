@@ -29,15 +29,21 @@ def _market(code):
 
 
 def calendar_days(market, query_date):
-    """Official three-day calendar. Missing data is not an explicit holiday."""
+    """Toss first; local regular exchange sessions when Toss is unconfigured."""
     date.fromisoformat(query_date)
     with _CALENDAR_LOCK:
-        key = (market, query_date)
+        configured = toss_market.enabled()
+        key = (market, query_date, 'toss' if configured else 'exchange-calendar')
         hit = _CALENDAR_CACHE.get(key)
         if hit and 0 <= _now() - hit[0] < 60:
             return hit[1]
-        if not toss_market.enabled():
-            raise ValueError("calendar-not-configured")
+        if not configured:
+            from exchange_sessions import calendar_days as regular_days
+            days = regular_days(market, query_date)
+            if len(_CALENDAR_CACHE) >= 256:
+                _CALENDAR_CACHE.pop(next(iter(_CALENDAR_CACHE)))
+            _CALENDAR_CACHE[key] = (_now(), days)
+            return days
         reply = toss_market.CLIENT.get("/api/v1/market-calendar/" + market, date=query_date)
         days = {}
         for role in ("today", "previousBusinessDay", "nextBusinessDay"):
@@ -75,9 +81,12 @@ def market_session(code, now=None):
     market, tz = _market(code)
     today = now.astimezone(ZoneInfo(tz)).date().isoformat()
     result = dict(state="unknown", market=market, sessionDate=None,
-                  checkedAt=now.isoformat(), nextTransitionAt=None, lastSessionEnd=None)
+                  checkedAt=now.isoformat(), nextTransitionAt=None, lastSessionEnd=None,
+                  source='toss' if toss_market.enabled() else 'exchange-calendar',
+                  scope='integrated' if toss_market.enabled() else 'regular')
     if market == "continuous":
-        return {**result, "state": "open", "sessionDate": today}
+        return {**result, "state": "open", "sessionDate": today,
+                "source": "continuous", "scope": "continuous"}
     try:
         days = calendar_days(market, today)
         boundaries = sorted({t for intervals in days.values() for pair in intervals for t in pair})

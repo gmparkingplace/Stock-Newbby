@@ -103,5 +103,7 @@ def test_expired_failure_and_unconfigured_never_closed(provider,monkeypatch):
     assert m.market_session('^KS11',now)['state']=='unknown'
     m._CALENDAR_CACHE.clear()
     monkeypatch.setattr(m.toss_market,'enabled',lambda:False)
-    assert m.market_session('AAPL',now)['state']=='unknown'
+    fallback=m.market_session('AAPL',now)
+    assert fallback['state']=='closed'  # US Labor Day, using the regular calendar.
+    assert fallback['source']=='exchange-calendar' and fallback['scope']=='regular'
     assert m.market_session('BTC-USD',now)['state']=='open'
