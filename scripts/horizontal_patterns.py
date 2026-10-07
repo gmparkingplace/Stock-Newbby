@@ -1,9 +1,15 @@
 """Causal daily horizontal crossings; price evidence, never an entry/order verdict."""
-from pattern_math import validated, atr14
+from pattern_math import validated, analyze_contiguous, atr14
 import math
 from market_store import revision
 
 RULE = 'horizontal-d-v1'
+
+
+def rule_version(timeframe='D'):
+    if timeframe not in ('D', 'H4'):
+        raise ValueError('unsupported-pattern-timeframe')
+    return RULE if timeframe == 'D' else 'horizontal-h4-v1'
 
 
 def settings(value=None):
@@ -23,7 +29,7 @@ def settings(value=None):
     return out
 
 
-def analyze(candles, symbol, confirmed_through, provisional=False, levels=None):
+def analyze(candles, symbol, confirmed_through, provisional=False, levels=None, timeframe='D', profile='balanced'):
     """Replay only supplied bars. ATR: first 14 TR mean, then Wilder recurrence.
 
     Fixed crossing line/ATR are immutable through the next 10 confirmed bars.
@@ -31,7 +37,11 @@ def analyze(candles, symbol, confirmed_through, provisional=False, levels=None):
     Failure = close crosses line by .1 ATR in the opposite direction. Failure wins.
     """
     levels = settings(levels)
-    rows = validated(candles, confirmed_through)
+    rule = rule_version(timeframe)
+    rows = validated(candles, confirmed_through, timeframe, symbol)
+    segmented = analyze_contiguous(analyze, rows, symbol, confirmed_through, provisional, levels, timeframe, profile)
+    if segmented is not None:
+        return segmented
     config_id = revision(levels)[:16]
     events, active, timeline = [], [], []
     atr = atr14(rows)
@@ -63,7 +73,7 @@ def analyze(candles, symbol, confirmed_through, provisional=False, levels=None):
                             barTime=t, close=c, status='forming')
                 if crossed:
                     item['status'] = 'confirmed' if confirmed else 'breakout-pending' if provisional and i == len(rows)-1 else 'paused'
-                    item['patternId'] = revision([symbol, 'D', kind, RULE, line if kind.startswith('user-') else None, t])
+                    item['patternId'] = revision([symbol, timeframe, kind, rule, line if kind.startswith('user-') else None, t])
                     if confirmed:
                         active.append({**item, 'index':i, 'retested':False, 'failed':False})
                         events.append({**item, 'eventType':'confirmed', 'confirmedBarTime':t, 'anchorTime':t})
@@ -86,7 +96,8 @@ def analyze(candles, symbol, confirmed_through, provisional=False, levels=None):
                                    'confirmedBarTime':t, 'anchorTime':pattern['barTime'], 'close':c})
         timeline.append(dict(barTime=t, confirmed=confirmed, status='ready' if i >= 21 else 'insufficient-data', levels=current))
     for event in events:
-        event['ruleVersion'] = RULE
-        event['eventId'] = revision([event['patternId'], event['eventType'], event['confirmedBarTime'], RULE])
-    return dict(symbol=symbol, timeframe='D', ruleVersion=RULE, levels=levels,
+        event['ruleVersion'] = rule
+        if timeframe != 'D': event['timeframe'] = timeframe
+        event['eventId'] = revision([event['patternId'], event['eventType'], event['confirmedBarTime'], rule])
+    return dict(symbol=symbol, timeframe=timeframe, ruleVersion=rule, levels=levels,
                 configId=config_id, confirmedThrough=confirmed_through, timeline=timeline, events=events)

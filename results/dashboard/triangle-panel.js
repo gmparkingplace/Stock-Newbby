@@ -28,10 +28,11 @@
   function tick(){if(signature(current())!==last)render();}
   function render(){const v=current();last=signature(v);$('trianglePanel').hidden=v.status==='disabled';
     if(v.status==='disabled'){FlagPanel.update();return;}
-    $('triangleState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'삼각수렴은 주식·코인 일봉/4시간봉에서 확인합니다.',paused:'자료 보류 · 이전 이력은 유지합니다.',error:'계산 오류 · 새 판단 보류','insufficient-data':'확정된 접촉점 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'돌파 방향을 확인하세요.':'확인된 삼각형 없음'}`;
+    $('triangleState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'삼각수렴은 주식·코인 일봉/4시간봉에서 확인합니다.',paused:'자료 보류 · 이전 이력은 유지합니다.',error:'계산 오류 · 새 판단 보류','insufficient-data':'확정된 접촉점 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'돌파 방향을 확인하세요.':v.pastPatterns?.length?'현재 유효 삼각형 없음 · 선택 목록에서 과거 구조 확인':'확인된 삼각형 없음'}`;
     if(v.status==='error')$('triangleState').textContent=errorText((S.tf==='H4'?frameOf(curSym()):curSym())?.triangleAnalysis?.errorCode)+' · 새 판단 보류';
     const select=$('triangleChoice');select.replaceChildren();const add=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);};
     add('auto','최근 유효 삼각형');for(const p of v.patterns)add(p.patternId,`${name(p)} · ${label(p)}`);
+    for(const p of v.pastPatterns||[])add('past:'+p.patternId,`과거 · ${PatternWindow.format(p.barTime)} · ${name(p)} · ${label(p)}`);
     if(choice!=='auto'&&!v.patterns.some(p=>p.patternId===choice))choice='auto';select.value=choice;
     const bounds=fitBounds(selected(),frameOf(curSym())?.candles||[]);
     $('triangleFit').disabled=!bounds;$('triangleFit').title=bounds?'시작점부터 예상 꼭짓점까지 가로·세로 범위를 맞춥니다.':'표시할 유효 삼각형이 없습니다.';
@@ -64,5 +65,7 @@
   }
   window.TrianglePanel={current,selected,render,tick,name,fit:fitSelected};
   document.addEventListener('DOMContentLoaded',()=>{
-    $('triangleFit').onclick=fitSelected;$('triangleChoice').onchange=e=>{choice=e.target.value;fitted=null;FlagPanel.selectArea('triangle');render();};document.addEventListener('visibilitychange',render);render();});
+    $('triangleFit').onclick=fitSelected;$('triangleChoice').onchange=e=>{const value=e.target.value;fitted=null;
+      if(value.startsWith('past:')){const p=current().pastPatterns?.find(p=>'past:'+p.patternId===value);if(!p)return;choice=p.patternId;window.__CF.select(p.barTime);FlagPanel.showArea('triangle');render();fitSelected();return;}
+      choice=value;FlagPanel.selectArea('triangle');render();};document.addEventListener('visibilitychange',render);render();});
 })();

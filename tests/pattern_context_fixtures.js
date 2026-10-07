@@ -49,5 +49,13 @@ for(const a of [frame.patternAnalysis,frame.flagAnalysis,frame.triangleAnalysis]
 }
 assert.deepEqual(statuses(),['confirmed','confirmed','confirmed'],'clock expiry must not erase confirmed source history');
 assert.equal(network,0);
+const archived=analysis('triangle');archived.timeline.push({barTime:'2026-10-07',confirmed:false,status:'ready',patterns:[]});
+const past=ctx.FlagPanel.view(archived,'D',null,false);
+assert.equal(past.patterns.length,0);assert.equal(past.pastPatterns.length,1,'only confirmed past geometry is selectable');
+assert.equal(past.pastPatterns[0].barTime,'2026-10-05');
+assert.equal(ctx.FlagPanel.view(archived,'D','2026-10-05',false).pastPatterns.length,0,'future structures cannot appear at an earlier selection');
+ctx.S.tf='H4';frame.patternAnalysis={...frame.patternAnalysis,timeframe:'H4'};
+assert.equal(ctx.PatternPanel.current().status,'ready','H4 panel must read the H4 frame');
+ctx.S.tf='D';frame.patternAnalysis.timeframe='D';
 const html=fs.readFileSync(require.resolve('../results/dashboard/chart-first.html'),'utf8');assert.match(html,/function renderSummary\(\)\s*\{\s*if \(window\.PatternPanel\) PatternPanel\.tick\(\)/);
 console.log('Pattern context: all three real panels, 89/90/91s, latest click, OFF/hidden/errors, historical retention and DOM expiry passed');

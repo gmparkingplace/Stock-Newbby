@@ -116,6 +116,8 @@ def test_yahoo_stock_h4_attaches_patterns_with_session_metadata(monkeypatch, tmp
         for name in ['flagAnalysis', 'triangleAnalysis']:
             assert payload[name]['sourceStatus'] == 'ready'
             assert payload[name]['timeline'][-1]['status'] == 'ready'
-        assert payload['patternAnalysis']['sourceStatus'] == 'unsupported'
+        assert payload['patternAnalysis']['sourceStatus'] == 'ready'
+        assert payload['patternAnalysis']['timeframe'] == 'H4'
+        assert len(payload['patternAnalysis']['timeline'][-1]['levels']) == 2
     finally:
         svc.close()

@@ -6,7 +6,7 @@
   const names={'prior-20-high':'직전 20봉 고점','prior-10-low':'직전 10봉 저점','user-resistance':'지정 저항','user-support':'지정 지지','bull-flag':'상승 플래그 (Bull)','bear-flag':'하락 플래그 (Bear)','ascending-triangle':'상승 삼각형','descending-triangle':'하락 삼각형','symmetrical-triangle':'대칭 삼각형'};
   function view(analysis, tf, asOf, blocked){
     if(!analysis?.enabled)return {status:'disabled',levels:[],events:[]};
-    if(tf!=='D')return {status:'unsupported',levels:[],events:[]};
+    if(!['D','H4'].includes(tf)||tf!==(analysis.timeframe||'D'))return {status:'unsupported',levels:[],events:[]};
     if(analysis.sourceStatus==='error'||analysis.sourceStatus==='unsupported')return {status:analysis.sourceStatus,levels:[],events:[]};
     const timeline=analysis.timeline||[];
     const selected=asOf?timeline.find(x=>x.barTime===asOf):timeline.at(-1);
@@ -29,16 +29,16 @@
     return labels[state]||state;
   }
   function number(n){return n==null?'—':Number(n).toLocaleString('ko-KR',{maximumFractionDigits:4});}
-  function current(){const f=frameOf(curSym()),analysis=curSym()?.patternAnalysis;
+  function current(){const f=frameOf(curSym()),analysis=S.tf==='H4'?f?.patternAnalysis:curSym()?.patternAnalysis;
     const context=ChartTiming.patternContext({frame:f,analysis,selectedAsOf:S.selectedAsOf,lastError:S.lastErr,enabled:S.autoRef&&!document.hidden});
     return {...view(analysis,S.tf,context.asOf,context.blocked),historical:context.historical};}
   function signature(v){return JSON.stringify([S.symbol,S.tf,S.selectedAsOf,v.status,v.barTime,v.levels.map(p=>p.status)]);}
   function tick(){if(signature(current())!==lastState)render();}
   function render(){
     const box=$('patternPanel');if(!box)return;
-    const f=frameOf(curSym()), analysis=curSym()?.patternAnalysis, state=current();lastState=signature(state);
+    const f=frameOf(curSym()), analysis=S.tf==='H4'?f?.patternAnalysis:curSym()?.patternAnalysis, state=current();lastState=signature(state);
     box.hidden=state.status==='disabled'; if(box.hidden)return;
-    const status=$('patternStatus');status.textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'패턴 분석은 주식 일봉에서 지원합니다.',error:'패턴 계산·저장 오류 · 새 사건 확인 보류',paused:'자료 보류 · 새 사건 확인을 중단했습니다.','insufficient-data':'비교 자료 부족 · 최소 22봉이 필요합니다.','not-collected':'아직 분석 자료가 없습니다.'})[state.status]||`${state.barTime} 기준 · ${state.historical?'당시 조건 비교':'종가 확인 / 장중 잠정 구분'}`;
+    const status=$('patternStatus');status.textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'지지·저항은 주식 일봉·4시간봉에서 지원합니다.',error:'패턴 계산·저장 오류 · 새 사건 확인 보류',paused:'자료 보류 · 새 사건 확인을 중단했습니다.','insufficient-data':'비교 자료 부족 · 최소 22봉이 필요합니다.','not-collected':'아직 분석 자료가 없습니다.'})[state.status]||`${PatternWindow.format(state.barTime)} 기준 · ${state.historical?'당시 조건 비교':'종가 확인 / 장중 잠정 구분'}`;
     const grid=$('patternLevels');grid.replaceChildren();
     for(const level of state.levels){
       const card=add(grid,'div','', 'patternCard');card.dataset.state=level.status;
@@ -47,13 +47,14 @@
       add(card,'div',`반대 방향 ${number(level.invalidationPrice)} 종가 통과 시 실패`);
       add(card,'small',`${level.volumeEvidence==='volume-confirmed'?'거래량 동반':'거래량 확인 부족'} · 직전 20봉 대비 ${number(level.rvol20Previous)}배`);
     }
-    if(inputSymbol!==S.symbol){inputSymbol=S.symbol;$('patternSupport').value=analysis?.levels?.support??'';$('patternResistance').value=analysis?.levels?.resistance??'';$('patternSaveStatus').textContent='';}
-    $('patternSave').disabled=S.tf!=='D'||!analysis?.enabled||state.status==='unsupported';
-    const latest=state.events[0];$('patternLastEvent').textContent=latest?`최근 기록: ${latest.confirmedBarTime} · ${names[latest.type]} · ${label(latest)}`:'최근 돌파 기록 없음';
+    const inputKey=S.symbol+'#'+S.tf;
+    if(inputSymbol!==inputKey){inputSymbol=inputKey;$('patternSupport').value=analysis?.levels?.support??'';$('patternResistance').value=analysis?.levels?.resistance??'';$('patternSaveStatus').textContent='';}
+    $('patternSave').disabled=!['D','H4'].includes(S.tf)||!analysis?.enabled||state.status==='unsupported';
+    const latest=state.events[0];$('patternLastEvent').textContent=latest?`최근 기록: ${PatternWindow.format(latest.confirmedBarTime)} · ${names[latest.type]} · ${label(latest)}`:'최근 돌파 기록 없음';
     const list=$('patternEvents');list.replaceChildren();
     if(!state.events.length)add(list,'p','저장된 사건이 없습니다.');
     for(const event of state.events){
-      const b=add(list,'button',`${event.confirmedBarTime} · ${names[event.type]} · ${label(event)} · 종가 ${number(event.close)}`);
+      const b=add(list,'button',`${PatternWindow.format(event.confirmedBarTime)} · ${names[event.type]} · ${label(event)} · 종가 ${number(event.close)}`);
       b.type='button';b.dataset.eventId=event.eventId;b.onclick=()=>openEvent(event);
     }
   }
@@ -83,17 +84,17 @@
     }catch(e){if(seq!==openSequence)return;if($('patternDialog').open)$('patternDialog').close();$('patternStatus').textContent='사건 자료를 열지 못했습니다. '+e.message;}
   }
   async function save(){
-    const symbol=S.symbol;const value=id=>$(id).value.trim()===''?null:Number($(id).value);
+    const symbol=S.symbol,tf=S.tf;const value=id=>$(id).value.trim()===''?null:Number($(id).value);
     const levels={support:value('patternSupport'),resistance:value('patternResistance')};
     if(Object.values(levels).some(n=>n!==null&&(!Number.isFinite(n)||n<=0))||(levels.support!==null&&levels.resistance!==null&&levels.support>=levels.resistance)){$('patternSaveStatus').textContent='양수 가격을 입력하고 지지는 저항보다 낮게 설정하세요.';return;}
     $('patternSave').disabled=true;
     try{
       const {sessionToken}=await read('/api/analysis-session');
-      const r=await fetch('/api/pattern-levels',{method:'POST',headers:{'Content-Type':'application/json','X-Chart-Session':sessionToken},body:JSON.stringify({symbol,levels}),signal:AbortSignal.timeout(8000)});
+      const r=await fetch('/api/pattern-levels',{method:'POST',headers:{'Content-Type':'application/json','X-Chart-Session':sessionToken},body:JSON.stringify({symbol,tf,levels}),signal:AbortSignal.timeout(8000)});
       if(!r.ok)throw new Error(`HTTP ${r.status}`);
-      if(symbol===S.symbol){$('patternSaveStatus').textContent='저장했습니다. 새로고침하면 지정선도 분석합니다.';inputSymbol=null;}
+      if(symbol===S.symbol&&tf===S.tf){$('patternSaveStatus').textContent='이 봉 주기에 저장했습니다. 새로고침하면 지정선도 분석합니다.';inputSymbol=null;}
     }catch(e){$('patternSaveStatus').textContent='저장 실패 · '+e.message;}
-    finally{$('patternSave').disabled=S.tf!=='D'||current().status==='unsupported';}
+    finally{$('patternSave').disabled=!['D','H4'].includes(S.tf)||current().status==='unsupported';}
   }
   window.PatternPanel={render,tick,current,view,openEvent,snapshot:()=>opened};
   document.addEventListener('DOMContentLoaded',()=>{

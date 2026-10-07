@@ -159,7 +159,7 @@ class MonitorService:
         with self.lock:
             items = {x['symbol']:x for x in self.state['items']}
         rows = self.store.pattern_events(cursor=cursor, limit=100, with_symbol=True)
-        events = [e for e in rows if e['symbol'] in items and ('triangle' if e.get('ruleVersion','').startswith('triangle-') else 'flag' if e.get('ruleVersion','').startswith('flag-') else 'horizontal') in items[e['symbol']]['rules']]
+        events = [e for e in rows if e.get('timeframe','D') == 'D' and e['symbol'] in items and ('triangle' if e.get('ruleVersion','').startswith('triangle-') else 'flag' if e.get('ruleVersion','').startswith('flag-') else 'horizontal') in items[e['symbol']]['rules']]
         from pattern_service import visible_events
         windows={};events=visible_events(self.store,events,windows,current_only=True)
         return dict(events=events,windowEnds=windows,nextCursor=rows[-1]['cursor'] if rows else cursor)

@@ -974,8 +974,10 @@ function syncObservationEmphasis(obs) {
   if (!S.showObs || !obs || !obs.st) return;
   const ev = obs.model.evidence.find(e => e.id === S.evCard);
   let src = ev ? ev.sourceField : LINE_BY_STATE[obs.model.statusId] || null;
+  const drawn = new Set();
   const line = (px, color, title) => {
-    if (px == null) return;
+    if (px == null || drawn.has(Number(px))) return;
+    drawn.add(Number(px));
     try { priceLines.push(candles.createPriceLine({ price: Number(px), color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title })); } catch (e) {}
   };
   if (src === "close") line(obs.st.close, "#1859C9", "종가");
@@ -983,6 +985,11 @@ function syncObservationEmphasis(obs) {
   else if (src === "don_lo") line(obs.st.don_lo, "#7A1F1F", "직전 저점");
   else if (src === "sma20") line(obs.st.sma20, "#2962FF", avgWord(20));
   else if (src === "sma60") line(obs.st.sma60, "#FF6D00", avgWord(60));
+  const horizontal=window.PatternPanel?.current();
+  if(horizontal?.status==='ready')for(const level of horizontal.levels){
+    const title={'prior-20-high':'20봉 저항','prior-10-low':'10봉 지지','user-resistance':'지정 저항','user-support':'지정 지지'}[level.type];
+    if(title)line(level.boundary,level.direction==='up'?'#B26A00':'#13795B',title);
+  }
 }
 
 /* ---------- state/summary ---------- */

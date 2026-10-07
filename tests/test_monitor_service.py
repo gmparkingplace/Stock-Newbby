@@ -158,11 +158,11 @@ def test_event_cursor_reads_do_not_collect_and_filters_unmonitored(rig):
     from pattern_service import result_key
     rig.config([dict(symbol='AAPL',rules=['flag'])])
     pairs=[]
-    for i,(symbol,rule) in enumerate([('AAPL','horizontal-d-v1'),('AAPL','flag-d-v1'),('MSFT','flag-d-v1')]):
-        event=dict(eventId=str(i),symbol=symbol,ruleVersion=rule,basisSnapshotId='s'+str(i),anchorTime='2026-09-01',confirmedBarTime='2026-09-07')
+    for i,(symbol,rule) in enumerate([('AAPL','horizontal-d-v1'),('AAPL','flag-d-v1'),('MSFT','flag-d-v1'),('AAPL','flag-h4-v3')]):
+        event=dict(eventId=str(i),symbol=symbol,timeframe='H4' if i==3 else 'D',ruleVersion=rule,basisSnapshotId='s'+str(i),anchorTime='2026-09-01',confirmedBarTime='2026-09-07')
         family='flag' if rule.startswith('flag-') else 'horizontal'
         rig.store.pattern_publish(result_key(symbol,{},family),dict(symbol=symbol,timeline=[dict(barTime='2026-09-07')]),[(event,dict(snapshotId=event['basisSnapshotId']))])
-    data=rig.svc.events();assert [e['eventId'] for e in data['events']]==['1'] and data['nextCursor']==3
+    data=rig.svc.events();assert [e['eventId'] for e in data['events']]==['1'] and data['nextCursor']==4
     assert not rig.svc.events(data['nextCursor'])['events'] and not rig.calls
 
 

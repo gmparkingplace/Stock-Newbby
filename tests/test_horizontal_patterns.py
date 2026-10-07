@@ -299,3 +299,39 @@ def test_removed_event_bar_revised_without_inventing_price(tmp_path):
     assert changed['after'] is None and changed['close'] is None
     assert not store.pattern_snapshot(changed['basisSnapshotId'])['basisBarAvailable']
     store.close()
+
+
+def h4_bars():
+    rows=bars()
+    base=int(datetime(2026,1,5,14,30,tzinfo=timezone.utc).timestamp())
+    for i,r in enumerate(rows):r.update(time=base+(i//2)*86400+(i%2)*14400,missingBarsBefore=0)
+    return rows
+
+
+def test_h4_crossing_provisional_gap_and_daily_identity():
+    rows=h4_bars()
+    out=analyze(rows,'TEST',rows[-1]['time'],timeframe='H4')
+    assert out['ruleVersion']=='horizontal-h4-v1' and out['timeframe']=='H4'
+    assert out['events'][0]['timeframe']=='H4' and out['events'][0]['boundary']==101
+    assert out['events'][0]['eventId']!=analyze(bars(),'TEST',bars()[-1]['time'])['events'][0]['eventId']
+    pending=analyze(rows,'TEST',rows[-2]['time'],True,timeframe='H4')
+    assert pending['events']==[] and pending['timeline'][-1]['levels'][0]['status']=='breakout-pending'
+    rows[-5]['missingBarsBefore']=1
+    gap=analyze(rows,'TEST',rows[-1]['time'],timeframe='H4')
+    assert gap['segmentCount']==2 and gap['events']==[] and gap['timeline'][-1]['levels']==[]
+
+
+def test_h4_settings_ledgers_and_frozen_snapshot_are_separate(tmp_path):
+    store=MarketStore(tmp_path/'h4.db')
+    p=payload(h4_bars());p['tf']='H4'
+    store.put(svc.settings_key('TEST'),{'levels':{'resistance':110},'dataRevision':'daily'})
+    store.put(svc.settings_key('TEST','H4'),{'levels':{'resistance':120},'dataRevision':'h4'})
+    assert svc.get_settings(store,'TEST')['resistance']==110
+    assert svc.get_settings(store,'TEST','H4')['resistance']==120
+    out=svc.evaluate(p,store,NOW)
+    assert out['levels']['resistance']==120 and out['sourceStatus']=='ready'
+    assert svc.result_key('TEST',{},timeframe='H4')!=svc.result_key('TEST',{})
+    e=out['recentEvents'][0];snap=store.pattern_snapshot(e['basisSnapshotId'])
+    assert snap['timeframe']=='H4' and snap['candles'][-1]['time']==e['confirmedBarTime']
+    assert snap['ruleVersion']=='horizontal-h4-v1'
+    store.close()

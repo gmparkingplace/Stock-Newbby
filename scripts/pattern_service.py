@@ -11,7 +11,7 @@ from secrets import compare_digest
 from urllib.parse import urlparse, parse_qs
 import market_cache
 from market_store import revision, epoch
-from horizontal_patterns import analyze, settings, RULE
+from horizontal_patterns import analyze, settings, RULE, rule_version as horizontal_rule
 from pattern_window import project, within
 from pattern_profiles import rule_version
 
@@ -55,8 +55,12 @@ def triangles_enabled():
     try:return json.loads((market_cache.ROOT/'.local.json').read_text()).get('trianglePatterns') is True
     except (OSError,ValueError):return False
 
-def get_settings(store, symbol):
-    value = store.get('pattern-levels|'+symbol)
+def settings_key(symbol, timeframe='D'):
+    return 'pattern-levels|'+symbol+('' if timeframe == 'D' else '|'+timeframe)
+
+
+def get_settings(store, symbol, timeframe='D'):
+    value = store.get(settings_key(symbol, timeframe))
     return settings(value.get('levels') if value else None)
 
 
@@ -64,7 +68,7 @@ def supported(symbol, timeframe, family):
     from universe import is_coin
     if symbol.startswith('^'):return False
     if is_coin(symbol):return timeframe in ('D','H4') and family in ('flag','triangle')
-    return timeframe=='D' or timeframe=='H4' and family in ('flag','triangle')
+    return timeframe in ('D', 'H4')
 
 
 def result_key(symbol, levels, family='horizontal', timeframe='D'):
@@ -74,7 +78,7 @@ def result_key(symbol, levels, family='horizontal', timeframe='D'):
     if family=='flag':
         from flag_patterns import RULE as flag_rule
         return '|'.join(('flag',symbol,timeframe,rule_version('flag',timeframe)))
-    return '|'.join(('horizontal', symbol, 'D', RULE, revision(settings(levels))[:16]))
+    return '|'.join(('horizontal', symbol, timeframe, horizontal_rule(timeframe), revision(settings(levels))[:16]))
 
 
 def semantic(event):
@@ -109,14 +113,14 @@ def evaluate(payload, store, now=None, family='horizontal'):
     if tf == 'H4' and not is_coin(symbol) and any('missingBarsBefore' not in r for r in payload['candles']):
         return dict(enabled=True, symbol=symbol, timeframe=tf, sourceStatus='unsupported',
                     reason='session-continuity-required')
-    engine,rule=analyze,RULE
+    engine,rule=analyze,horizontal_rule(tf)
     if family=='flag':
         from flag_patterns import analyze as engine, RULE as rule
     elif family=='triangle':
         from triangle_patterns import analyze as engine, RULE as rule
     if family in ('flag','triangle'):rule=rule_version(family,tf)
     with store.lock:
-        levels = get_settings(store, symbol) if family=='horizontal' else {}
+        levels = get_settings(store, symbol, tf) if family=='horizontal' else {}
         key = result_key(symbol, levels,family,tf)
         previous = store.pattern_result(key)
         session = payload.get('marketSession', {})
@@ -127,7 +131,7 @@ def evaluate(payload, store, now=None, family='horizontal'):
         age = now.timestamp()-epoch(payload['fetchedAt'])
         provisional = eligible and payload.get('snapshotEligible') and 0 <= age <= 90
         cutoff = payload.get('lastConfirmedTime') if eligible else None
-        result = engine(payload['candles'], symbol, cutoff, bool(provisional), levels,**({'timeframe':tf} if family!='horizontal' else {}))
+        result = engine(payload['candles'], symbol, cutoff, bool(provisional), levels, timeframe=tf)
         result.update(enabled=True, dataRevision=payload['dataRevision'], sourceFetchedAt=payload['fetchedAt'],
                       evaluatedAt=now.isoformat(), sourceStatus='ready' if eligible else 'paused',
                       provisionalEligible=bool(provisional), sessionPolicy=payload.get('confirmedPolicy', 'market-calendar'))
@@ -233,7 +237,7 @@ def handle(handler):
             if family not in ('horizontal','flag','triangle'):raise ValueError('invalid-kind')
             if not ({'horizontal':enabled,'flag':flags_enabled,'triangle':triangles_enabled}[family]()):return _reply(handler,503,{'kind':'feature-disabled'})
             if not supported(symbol,tf,family):return _reply(handler,200,dict(enabled=True,symbol=symbol,sourceStatus='unsupported',timeframe=tf))
-            levels=get_settings(store,symbol) if family=='horizontal' else {}
+            levels=get_settings(store,symbol,tf) if family=='horizontal' else {}
             result = store.pattern_result(result_key(symbol,levels,family,tf))
             if result:
                 # A read cannot renew source freshness or promote the cached unfinished bar.
@@ -271,8 +275,10 @@ def handle(handler):
             from universe import is_coin
             if not symbol or is_coin(symbol) or symbol.startswith('^'): raise ValueError('unsupported-symbol')
             levels = settings(body.get('levels'))
-            store.put('pattern-levels|'+symbol,dict(levels=levels,dataRevision=revision(levels)))
-            return _reply(handler,200,dict(symbol=symbol,levels=levels,requiresRefresh=True))
+            tf = body.get('tf', 'D')
+            if tf not in ('D', 'H4'): raise ValueError('invalid-timeframe')
+            store.put(settings_key(symbol,tf),dict(levels=levels,dataRevision=revision(levels)))
+            return _reply(handler,200,dict(symbol=symbol,timeframe=tf,levels=levels,requiresRefresh=True))
         return _reply(handler,405,{'kind':'method-not-allowed'})
     except (ValueError, TypeError, AttributeError, KeyError, OverflowError):
         return _reply(handler,400,{'kind':'invalid-request'})

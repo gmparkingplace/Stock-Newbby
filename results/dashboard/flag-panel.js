@@ -10,9 +10,18 @@
     const paused=blocked||analysis.sourceStatus==='paused';
     const reference=analysis.window?.end||(analysis.timeline||[]).at(-1)?.barTime;
     if(asOf&&asOf<windowed.start(reference))return {status:'out-of-window',patterns:[],events:[],window:{months:3,start:windowed.start(reference),end:reference}};
+    // Preserve the last confirmed valid geometry of older structures. Selecting
+    // one switches the whole chart to its historical bar, never today's verdict.
+    const past=new Map(),currentIds=new Set((t?.patterns||[]).filter(p=>!['failed','expired','paused'].includes(p.status)).map(p=>p.patternId));
+    for(const row of analysis.timeline||[]){
+      if(!row.confirmed||asOf&&row.barTime>asOf)continue;
+      for(const p of windowed.filter((row.patterns||[]).map(p=>({...p,barTime:row.barTime})),reference))
+        if(!['failed','expired','paused'].includes(p.status)&&!currentIds.has(p.patternId))past.set(p.patternId,p);
+    }
     return {status:analysis.sourceStatus==='error'?'error':paused?'paused':t?.status||'not-collected',barTime:t?.barTime,ruleVersion:analysis.ruleVersion,dataRevision:analysis.dataRevision,
       window:{months:3,start:windowed.start(reference),end:reference},
       patterns:windowed.filter((t?.patterns||[]).map(p=>({...p,barTime:p.barTime||t.barTime})),reference).map(p=>({...p,status:paused||!t.confirmed&&!analysis.provisionalEligible?'paused':p.status})),
+      pastPatterns:[...past.values()].reverse(),
       events:windowed.filter(analysis.recentEvents,reference).filter(e=>!asOf||e.confirmedBarTime<=asOf)};
   }
   if(typeof module!=='undefined'&&module.exports){module.exports={view,labels};return;}
@@ -30,10 +39,11 @@
   function render(){
     const v=current(),a=S.tf==='H4'?frameOf(curSym()):curSym();lastState=signature(v);$('flagPanel').hidden=v.status==='disabled';$('flagOverlayControls').hidden=v.status==='disabled'&&!a?.triangleAnalysis?.enabled;
     if(v.status==='disabled'){update();return;}
-    $('flagState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'플래그는 주식·코인 일봉/4시간봉에서 확인합니다.',error:'플래그 계산 오류 · 새 판단 보류',paused:'자료 보류 · 이전 이력은 유지합니다.','insufficient-data':'선행 가격과 확정 피벗 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'형성과 종가 돌파를 구분하세요.':'확인된 플래그 구조 없음'}`;
+    $('flagState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'플래그는 주식·코인 일봉/4시간봉에서 확인합니다.',error:'플래그 계산 오류 · 새 판단 보류',paused:'자료 보류 · 이전 이력은 유지합니다.','insufficient-data':'선행 가격과 확정 피벗 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'형성과 종가 돌파를 구분하세요.':v.pastPatterns?.length?'현재 유효 플래그 없음 · 선택 목록에서 과거 구조 확인':'확인된 플래그 구조 없음'}`;
     const select=$('flagChoice');select.replaceChildren();
     const addOption=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);};
     addOption('auto','최근 유효 패턴');for(const p of v.patterns)addOption(p.patternId,`${p.type.endsWith('-triangle')?TrianglePanel.name(p):name(p)} · ${labels[p.status]}`);
+    for(const p of v.pastPatterns||[])addOption('past:'+p.patternId,`과거 · ${PatternWindow.format(p.barTime)} · ${name(p)} · ${labels[p.status]}`);
     if(choice!=='auto'&&!v.patterns.some(p=>p.patternId===choice))choice='auto';select.value=choice;
     const cards=$('flagCards');cards.replaceChildren();
     for(const p of v.patterns){
@@ -52,7 +62,9 @@
   window.FlagPanel={view,selectArea,showArea:family=>{visible=true;$('flagOverlayToggle').setAttribute('aria-pressed','true');$('flagOverlayToggle').textContent='패턴 영역 ON';selectArea(family);},current,render,update,tick,selected,overlay:()=>overlay};
   document.addEventListener('DOMContentLoaded',()=>{
     overlay=PatternOverlay.create($('chart'),chart,candles,()=>frameOf(curSym())?.candles||[]);
-    $('flagChoice').onchange=e=>{choice=e.target.value;areaChoice='flag';$('patternAreaFamily').value='flag';update();};
+    $('flagChoice').onchange=e=>{const value=e.target.value;
+      if(value.startsWith('past:')){const p=current().pastPatterns?.find(p=>'past:'+p.patternId===value);if(!p)return;choice=p.patternId;areaChoice='flag';$('patternAreaFamily').value='flag';window.__CF.select(p.barTime);window.FlagPanel.showArea('flag');render();return;}
+      choice=value;areaChoice='flag';$('patternAreaFamily').value='flag';update();};
     $('patternAreaFamily').onchange=e=>{areaChoice=e.target.value;update();};
     $('flagOverlayToggle').onclick=()=>{visible=!visible;$('flagOverlayToggle').setAttribute('aria-pressed',String(visible));$('flagOverlayToggle').textContent=visible?'패턴 영역 ON':'패턴 영역 OFF';update();};
     document.addEventListener('visibilitychange',render);render();

@@ -87,6 +87,8 @@ python3 tools/verify-package.py
 
 화면: `results/dashboard/chart-first.html`, 서버: `scripts/serve_dashboard.py`, 저점 모델: `results/dashboard/low-structure-rules.js`, 기능 계약: [docs/FEATURES.md](docs/FEATURES.md). 차트 라이브러리 출처는 `results/dashboard/lib/SOURCE.txt`입니다.
 
+Yahoo 주식 4시간봉에서도 수평 지지·저항을 계산하고 차트에 표시합니다. 플래그·삼각수렴 목록의 `과거` 항목을 선택하면 확인 당시의 봉과 구조를 볼 수 있습니다. 최신 봉에 유효한 구조가 없는 경우에는 현재 구조 없음으로 표시합니다.
+
 ## 보안
 
 외부 웹사이트의 로컬 서버 요청과 폴더 밖 파일 접근을 차단합니다. 키·개인 자료는 저장소에 올리지 않습니다. 지원 범위와 신고 방법은 [보안 안내](SECURITY.md)를 확인하세요.

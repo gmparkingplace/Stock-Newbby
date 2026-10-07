@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6456,
-      "sha256": "ffa83318251dc6ce8cf1013a4b20706e4dbd8beabed3f0718ae1ffec3ad197f4"
+      "bytes": 6775,
+      "sha256": "11c6019f9371ad00b09b5d8862ff6977f572e86393f54e37454ecff9cd87f1f9"
     },
     {
       "path": "SECURITY.md",
@@ -55,8 +55,8 @@
     },
     {
       "path": "docs/FEATURES.md",
-      "bytes": 4392,
-      "sha256": "b2da4fdd03746a8ddafc6c197e643331aede8664c3e3075944f54a2124dfce82"
+      "bytes": 4930,
+      "sha256": "2a41617f6e04927635b6d4d7b6a19e687dbc16aa717fb1ba86db9b55a29dc3e3"
     },
     {
       "path": "docs/TOSS.md",
@@ -210,8 +210,8 @@
     },
     {
       "path": "results/dashboard/chart-first.html",
-      "bytes": 116322,
-      "sha256": "98de74c28dc2654d3e0dea7b2b732c4b5edf55a059c631fb69a80d3a0e832b33"
+      "bytes": 116770,
+      "sha256": "5a81da61ecc1d460c05c3b3ff3ebeb1085d9790a22be8c73927d522da47c2599"
     },
     {
       "path": "results/dashboard/chart-layout.js",
@@ -260,8 +260,8 @@
     },
     {
       "path": "results/dashboard/flag-panel.js",
-      "bytes": 6679,
-      "sha256": "85638a8312a9d55329e2b148176f23f67de91f8c4b4bfb973b15c1799b7fc2e3"
+      "bytes": 7918,
+      "sha256": "ca6a778daf781438c319786d2f8392ce8fea430a20a7f436566e72521f3daba9"
     },
     {
       "path": "results/dashboard/index.html",
@@ -330,8 +330,8 @@
     },
     {
       "path": "results/dashboard/pattern-panel.js",
-      "bytes": 10678,
-      "sha256": "845223a8b7a67f18eeeb16bb3b19597e2e9e0b9cfaa4a98875ed66759bd9580d"
+      "bytes": 10977,
+      "sha256": "f7ff2d9806b20ce5ead894e8e2d19844e0e0ca096e528dc84586dfe7338eef24"
     },
     {
       "path": "results/dashboard/pattern-window.js",
@@ -355,8 +355,8 @@
     },
     {
       "path": "results/dashboard/triangle-panel.js",
-      "bytes": 7775,
-      "sha256": "a661d9c59fbecc33513c6c041bda12f6014aac8a8305b68347d8bc59a8281afb"
+      "bytes": 8270,
+      "sha256": "94217ef9c0f38c60e3cb434f0d7f9131ed34784d4a040d650534af5eb724becd"
     },
     {
       "path": "results/dashboard/volume-profile-panel.js",
@@ -445,8 +445,8 @@
     },
     {
       "path": "scripts/horizontal_patterns.py",
-      "bytes": 5408,
-      "sha256": "f571a73f7d2db354d54d56e1ae0f54344de0a6ace4e10470b018e8caa70af585"
+      "bytes": 5952,
+      "sha256": "7b490ddfa745e4d1de4b9e18595331b8c00619349e6c27e6b3e5eebb72d1609c"
     },
     {
       "path": "scripts/indicators.py",
@@ -490,8 +490,8 @@
     },
     {
       "path": "scripts/monitor_service.py",
-      "bytes": 17936,
-      "sha256": "d10a9a71f2019ffe16cc80009c6d2b6b9d6edadc2ac1d3a0bc2d906808727d7e"
+      "bytes": 17970,
+      "sha256": "0edce9ee7d797970a3dc19475aca5705c231371d28e69a56123c35771ec024b6"
     },
     {
       "path": "scripts/ornith_check.py",
@@ -510,8 +510,8 @@
     },
     {
       "path": "scripts/pattern_service.py",
-      "bytes": 16992,
-      "sha256": "f870fb749556a5387615a4bc371d3eb9161857fdddfacab3ab85cecdd32eb271"
+      "bytes": 17263,
+      "sha256": "b64464acca7abebe8e9efd142938a63175cc5d5a203691e01ad9ffb27bfe7577"
     },
     {
       "path": "scripts/pattern_window.py",
@@ -845,8 +845,8 @@
     },
     {
       "path": "tests/pattern_context_fixtures.js",
-      "bytes": 4353,
-      "sha256": "8d4d7a854e6c2bab02bd3160db68af994d883ebb705ab1829ff49e03b4578c08"
+      "bytes": 5084,
+      "sha256": "9d8499b66fbd2ef6249438cc908103ae2036e278742fdb5f2d5388d06819f09e"
     },
     {
       "path": "tests/pattern_overlay_fixtures.js",
@@ -855,8 +855,8 @@
     },
     {
       "path": "tests/pattern_panel_fixtures.js",
-      "bytes": 1332,
-      "sha256": "e2b30be46b717ed414650eb36f9fc73b5eb1d8212daef70a8a8c29d4a7d5fdf3"
+      "bytes": 1776,
+      "sha256": "6d28b51b0d489f65b7d991cf1503d3ffa46cb278a8718832c7efe84d218c83e8"
     },
     {
       "path": "tests/pattern_window_fixtures.js",
@@ -930,8 +930,8 @@
     },
     {
       "path": "tests/test_horizontal_patterns.py",
-      "bytes": 15250,
-      "sha256": "7854a5dc80eba4830bbef65a62930766100b78eb79fb5dae9d2157ed856f175f"
+      "bytes": 17136,
+      "sha256": "275a6e634cffff8db2384c3ec1e21c6fb088281b82cd164780ba4ad3c623d746"
     },
     {
       "path": "tests/test_http_diagnostics.py",
@@ -965,8 +965,8 @@
     },
     {
       "path": "tests/test_monitor_service.py",
-      "bytes": 13307,
-      "sha256": "64003dd61e85c62a0ecac3cb828c0a1bddc9d899f118764bb8336fdf14ed4ec8"
+      "bytes": 13361,
+      "sha256": "3d19847c62729ebc533a91583425758b388703a8f5b99b7bea315f58b4dcbf61"
     },
     {
       "path": "tests/test_monthly.py",
@@ -1015,8 +1015,8 @@
     },
     {
       "path": "tests/test_stock_h4.py",
-      "bytes": 5474,
-      "sha256": "470519f4188a99db713fb9f730c9b99775f1a12f276cfa0a6c32b96c38ca00ab"
+      "bytes": 5609,
+      "sha256": "3ca26e98f6872bd97f4274f50161a6d38165dd8da8b0d795a50c9dd2bab9073a"
     },
     {
       "path": "tests/test_strategy_audit.py",

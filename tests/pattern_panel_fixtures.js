@@ -14,4 +14,8 @@ const historical=view(analysis,'D','2026-01-01',false);
 assert.deepEqual(historical.events.map(x=>x.eventId),['past']);
 assert.equal(historical.levels[0].status,'forming');
 assert.equal(analysis.timeline[1].levels[0].status,'breakout-pending');
+const h4={...analysis,timeframe:'H4',timeline:analysis.timeline.map((r,i)=>({...r,barTime:1791200000+i*14400,levels:r.levels.map(l=>({...l,barTime:1791200000+i*14400}))})),recentEvents:[]};
+assert.equal(view(h4,'H4',null,false).levels[0].status,'breakout-pending');
+assert.equal(view(analysis,'H4',null,false).status,'unsupported','daily results must not leak into H4');
+assert.equal(view(h4,'H4',1791200000,false).levels[0].status,'forming');
 console.log('Pattern panel fixtures passed');
