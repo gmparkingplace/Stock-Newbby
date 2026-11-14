@@ -32,13 +32,16 @@
     var v = window.Verdict.verdictFor({
       entry: st.entry, historical: st.historical,
       lastError: (typeof S !== 'undefined' && S.lastErr) || null,
-      market: typeof window.__marketContext === 'function' ? window.__marketContext() : null
+      market: typeof window.__marketContext === 'function' ? window.__marketContext() : null,
+      formatPrice: typeof fmtP === 'function' ? fmtP : null
     });
     var label = document.getElementById('verdictLabel');
     var reason = document.getElementById('verdictReason');
     var meta = document.getElementById('verdictMeta');
     if (label) label.textContent = v.label;
     if (reason) reason.textContent = v.reason;
+    var evidence = document.getElementById('verdictEvidence');
+    if (evidence) { evidence.textContent = v.evidenceText || ''; evidence.hidden = !v.evidenceText; }
     if (meta) meta.textContent = metaLine(obs, st.entry);
     panel.dataset.verdict = v.code;
     panel.dataset.tone = v.tone;

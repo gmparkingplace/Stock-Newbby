@@ -42,7 +42,8 @@ if(typeof window!=='undefined'&&typeof document!=='undefined')(() => {
   model=current();selected=model?.selected||null;
   $('lowStructurePanel').hidden=S.entryFamily!=='low';
   const legend=$('lowMarkerLegend');if(legend)legend.hidden=S.entryFamily!=='low';
-  $('lowStructureStatus').textContent=!model?'차트 자료 대기':model.status==='unsupported'?'일봉·4시간봉에서 지원합니다.':model.status==='invalid-data'?'봉 자료 오류 · 저점 판단 보류':model.status==='unconfirmed'?'확정봉 확인 대기':selected?`${model.manual?'과거 구조 · 현재 판단과 별도 · ':''}${LowEntryModel.names[selected.family]} · ${LowEntryModel.describe(selected,model.parameters).rowLabel}`:'선택한 전략의 구조 없음 · 최근 3개월';
+  const timeframeName={W:'주봉',M:'월봉',M5:'5분봉',M15:'15분봉',M30:'30분봉',H1:'1시간봉',H2:'2시간봉'}[S.tf]||'선택한 주기';
+  $('lowStructureStatus').textContent=!model?'차트 자료 대기':model.status==='unsupported'?`${timeframeName}에서는 저점 매수를 지원하지 않아요. 일봉·4시간봉에서 지원해요.`:model.status==='invalid-data'?'봉 자료 오류 · 저점 판단 보류':model.status==='unconfirmed'?'확정봉 확인 대기':selected?`${model.manual?'과거 구조 · 현재 판단과 별도 · ':''}${LowEntryModel.names[selected.family]} · ${LowEntryModel.describe(selected,model.parameters).rowLabel}`:'선택한 전략의 구조 없음 · 최근 3개월';
   const select=$('lowStructureChoice');select.replaceChildren();
   const add=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);};
   add('auto','판단 기준 구조');for(const s of model?.structures||[])add(s.id,`${LowEntryModel.names[s.family]} · ${fmtT(s.knownAt)} · ${LowEntryModel.describe(s,model.parameters).rowLabel}`);

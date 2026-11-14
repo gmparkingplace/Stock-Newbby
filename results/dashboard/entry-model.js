@@ -18,6 +18,25 @@
   };
   const line=(k,i)=>(frame?.lines?.[k]||[]).find(p=>String(p.time)===String(cs[i]?.time))?.value;
   const known=Number.isFinite;
+  // Evidence explains authoritative source exits; it never recomputes or changes a decision.
+  function sourceExitEvidence(k){
+    const st=states[index]||{},previous=states[index-1]||{};
+    const cross={id:'sma-cross-down',label:'20봉 평균이 직전 봉에서는 60봉 평균 이상이었다가 현재 봉에서 아래로 교차',operator:'cross_down',
+      observed:line('sma20',index),reference:line('sma60',index),previousObserved:line('sma20',index-1),previousReference:line('sma60',index-1)};
+    const rsi={id:'rsi-cross-down-70',label:'RSI가 직전 봉 70 이상에서 현재 봉 70 미만으로 하락',operator:'cross_down',
+      observed:st.rsi14,reference:70,previousObserved:previous.rsi14,previousReference:70};
+    const low={id:'prior-10-low',label:'종가가 현재 봉을 제외한 직전 10봉 저점 아래로 하락',operator:'<',
+      observed:cs[index]?.close,reference:st.don_lo,previousObserved:null,previousReference:null};
+    const candidates=k==='A'?[cross]:k==='B'?[rsi]:k==='C'?[low]:[low,cross];
+    const complete=e=>[e.observed,e.reference,...(e.operator==='cross_down'?[e.previousObserved,e.previousReference]:[])].every(known);
+    const met=e=>complete(e)&&e.observed<e.reference&&(e.operator!=='cross_down'||e.previousObserved>=e.previousReference);
+    const evidence=candidates.filter(met).map(e=>({...e,strategy:k,status:'met',met:true,basis:cs[index]?.time??null,
+      previousBasis:e.operator==='cross_down'?cs[index-1]?.time??null:null,source:'raw-signal'}));
+    // Transport rounding or legacy marks can prevent reconstruction. Do not invent a numeric cause.
+    return evidence.length?evidence:[{strategy:k,id:'raw-exit',label:`${k} 전략의 원천 이탈 신호 · 세부 수치 근거 미확인`,operator:'source-exit',
+      observed:null,reference:null,previousObserved:null,previousReference:null,status:candidates.every(complete)?'unverified':'unavailable',met:null,
+      basis:cs[index]?.time??null,previousBasis:null,source:'raw-signal'}];
+  }
   function readiness(k,i){
     const raw=signal(k,i);
     // Positive producer signals already passed the original common readiness gate.
@@ -68,6 +87,11 @@
   const chase=limit!==null&&Number.isFinite(price)&&price>limit;
   const age=anchor===null?null:index-anchor;
   const reviewLowExit=anchor!==null&&ids.some(k=>['A','B'].includes(k)&&signal(k,anchor)==='entry')&&age>0&&age<=3&&known(states[index]?.don_lo)&&price<states[index].don_lo;
+  const exitEvidence=ids.filter(k=>signal(k,index)==='exit').flatMap(sourceExitEvidence);
+  if(!exit&&reviewLowExit)for(const k of ids.filter(k=>['A','B'].includes(k)&&signal(k,anchor)==='entry'))exitEvidence.push({
+    strategy:k,id:'prior-10-low',label:'종가가 현재 봉을 제외한 직전 10봉 저점 아래로 내려가 신호 후 검토 중단',operator:'<',
+    observed:price,reference:states[index].don_lo,previousObserved:null,previousReference:null,status:'met',met:true,
+    basis:cs[index]?.time??null,previousBasis:null,source:'review-low'});
   for(const row of rows){
     const k=row.id;
     let recent=null;
@@ -80,8 +104,8 @@
   const setup=exit||reviewLowExit?'이탈 신호':continuation?`A/B 신호 후 검토 · ${index-reviewAnchor}/3봉`:matched?(provisional?'진입 조건 충족 · 잠정':'진입 조건 충족'):'진입 조건 대기';
   let code='wait',label='조건 대기',reason='선택한 전략의 진입 신호가 아직 충족되지 않았어요.';
   if(!allKnown||!cs[index]){code='blocked';label='자료 부족 · 판단 보류';reason=ids.length?`선택 전략 계산에 필요한 자료 부족: ${[...new Set(ids.flatMap(k=>readiness(k,index).missing))].join(' · ')||'기준 봉'}. 원래 전략의 공통 준비 조건은 유지합니다.`:'전략을 선택하세요.';}
-  else if(exit){code='avoid';label='진입 보류 · 이탈 신호';reason='선택한 전략 중 이탈 신호가 있어요. 진입 신호와 충돌하면 보수적으로 보류해요.';}
-  else if(reviewLowExit){code='avoid';label='진입 보류 · 저점 이탈';reason='최근 10봉 저점 아래로 내려가 A/B 신호 후 검토를 중단합니다.';}
+  else if(exit){code='avoid';label='진입 보류 · 이탈 신호';reason=exitEvidence.map(e=>e.id==='raw-exit'?`${e.strategy} 전략의 원천 이탈 신호가 있어요. 세부 수치 근거는 확인되지 않았어요.`:`${e.strategy} 전략: ${e.label}했어요.`).join(' ');}
+  else if(reviewLowExit){code='avoid';label='진입 보류 · 저점 이탈';reason=`${exitEvidence.map(e=>e.strategy).join('/')} 신호 후 검토 중 종가가 현재 봉을 제외한 직전 10봉 저점 아래로 내려가 검토를 중단합니다.`;}
   else if(chase){code='chase';label='추격 주의 · 진입 보류';reason='신호 발생봉 종가에서 설정한 가격 상한을 넘었어요. 현재 가격을 따라 진입하지 않고 새 조건을 기다려요.';}
   else if(age!==null&&age>3){reason='이전 신호에서 3봉 넘게 지났어요. 과거 진입 화살표를 지금의 진입 허가로 사용하지 않아요.';}
   else if(reviewMatched&&limit===null){code='blocked';label='판단 보류';reason='추격 여부를 확인할 ATR 자료가 부족해요.';}
@@ -90,7 +114,7 @@
   if(historical){code='historical';label='당시 조건 비교';reason='선택한 과거 봉의 결과예요. 현재 진입 안내가 아니에요.';}
   else if(!timing?.judgmentReady){code='blocked';label='진입 판단 보류';reason=timing?.message||'판단 자료를 확인하지 못했어요.';}
   else if(provisional&&code==='candidate'){code='wait';label='봉 확정 대기';reason='봉 마감 기반 전략이에요. 현재 조건은 잠정 충족이며 마감 전에 사라질 수 있어요.';}
-  return {version:'ENTRY-2026-10-06',basis:cs[index]?.time,selected:ids,mode,maxAtr,rows,setup,matched,continuation,reviewMatched,
+  return {version:'ENTRY-2026-10-06',basis:cs[index]?.time,selected:ids,mode,maxAtr,rows,setup,matched,continuation,reviewMatched,exitEvidence,
     setupDecision,code,label,reason,judgmentMode:timing?.judgmentMode||'blocked',modeMessage:timing?.message||'',anchorTime:anchor===null?null:cs[anchor].time,signalAge:age,
     referencePrice:ref,referenceType:ids.some(k=>k==='C'||k==='F')&&Number.isFinite(breakout)?'breakout':'signal-close',chaseLimit:limit,chase,provisional,
     combinationNote:ids.includes('C')&&ids.includes('F')?'F는 C 조건을 포함해요. 두 신호가 켜져도 독립적인 확인 두 번이나 높은 승률을 뜻하지 않아요.':null};

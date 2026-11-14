@@ -41,7 +41,7 @@
  function evaluate({analysis,selected=['R','H'],timing,historical=false,provisional=false}={}){
   const ids=[...new Set(selected)].filter(id=>names[id]),rows=ids.map(id=>{
    const s=analysis?.current?.[id],copy=describe(s,analysis?.parameters);let code='wait',label=copy.rowLabel;
-   if(!analysis||!['ready','insufficient-data'].includes(analysis.status)){code='blocked';label=analysis?.status==='unsupported'?'지원 준비 중':'자료 확인 필요';}
+   if(!analysis||!['ready','insufficient-data'].includes(analysis.status)){code='blocked';label=analysis?.status==='unsupported'?'저점 매수는 일봉·4시간봉만 지원해요.':'자료 확인 필요';}
    else if(s?.phase==='invalidated'){code='avoid';label=copy.rowLabel;}
    else if(s?.phase==='ready'){
     const index=analysis.confirmedIndex??analysis.series.findLastIndex(b=>b.confirmed),price=analysis.price;
@@ -60,11 +60,15 @@
   const best=ordered[0],s=best?.structure;let code=best?.code||'blocked';
   let label=code==='candidate'?`${best.name} · 진입 검토`:code==='chase'?'가격이 많이 올랐어요 · 매수 대기':code==='blocked'?best?.label||'전략을 선택하세요':best.description.label;
   let reason=code==='candidate'?best.description.reason:code==='chase'?'최초 신호에서 정한 매수 상한을 넘었어요. 가격을 따라가기보다 새 신호를 기다리세요.':code==='blocked'?best?.label||'저점 매수 방식을 하나 이상 선택하세요.':best.description.reason;
+  // Only the chosen final exit is relevant. Analysis omits event OHLC, so do not substitute today's price.
+  const exitEvidence=code==='avoid'&&s?[{strategy:best.id,id:'structure-invalidated',label:s.reason||'저점 구조 무효',operator:'source-exit',
+   observed:null,reference:null,previousObserved:null,previousReference:null,status:'unavailable',met:null,
+   basis:s.endedAt??s.phaseAt??null,previousBasis:null,source:'structure',structureId:s.id}]:[];
   const setupDecision={code,label,reason};
   if(historical){code='historical';label='당시 조건 비교';reason='선택한 과거 봉의 결과예요. 현재 진입 안내가 아니에요.';}
   else if(!timing?.judgmentReady){code='blocked';label='진입 판단 보류';reason=timing?.message||'자료 시각을 확인하지 못했습니다.';}
   else if(provisional&&code==='candidate'){code='wait';label='봉 확정 대기';reason='현재 봉은 잠정입니다. 확정된 가격을 확인하세요.';}
-  return {version:Rules.version,code,label,reason,setupDecision,rows,selected:ids,structureId:s?.id||null,
+  return {version:Rules.version,code,label,reason,setupDecision,rows,selected:ids,structureId:s?.id||null,exitEvidence,
    basis:analysis?.basis||null,setup:best?.label||'조건 대기',anchorTime:s?.signalAt||null,signalAge:s?.signalIndex!=null?(analysis.confirmedIndex??analysis.series.findLastIndex(b=>b.confirmed))-s.signalIndex:null,
    chaseLimit:s?.chaseLimit??null,maxAtr:analysis?.parameters?.maxAtr??.5,referenceType:'signal-close',provisional,
    family:'low',modeMessage:timing?.message||'',matched:best?.code==='candidate',combinationNote:'선택한 저점 매수 방식 중 하나만 충족해도 검토합니다. 같은 저점의 신호가 겹쳐도 확인 횟수를 더하지 않아요.'};

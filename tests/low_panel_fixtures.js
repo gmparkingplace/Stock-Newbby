@@ -84,4 +84,18 @@ ctx.MonitorPanel={row:s=>s==='TEST'?{label:'돌파 대기',basis:day(26)}:null,a
 assert.equal(row().dataset.family,'pattern-monitor');assert.equal(row().dataset.timeframe,'D');assert.match(row().querySelector('.wl-row-state').textContent,/일봉 패턴 감시/);
 ctx.S.symbol='TEST';ctx.S.tf='W';ctx.Watchlist.render();assert.match(row().querySelector('.wl-row-state').textContent,/지원|보류|확인/);
 assert.equal(networkCalls,0);
+// Unsupported views keep the chosen timeframe/family and never reuse daily structures or make requests.
+for(const [tf,name] of [['W','주봉'],['M','월봉'],['M5','5분봉'],['M15','15분봉'],['M30','30분봉'],['H1','1시간봉'],['H2','2시간봉']]){
+ ctx.S.tf=tf;frame.tf=tf;const before=JSON.stringify(frame),strategies=JSON.stringify(ctx.S.lowStrategies);
+ ctx.renderEntryPanel(ctx.currentObs());ctx.renderMarkers();flush();
+ const current=ctx.LowStructurePanel.current(),decision=ctx.entryEvaluation();
+ assert.equal(current.status,'unsupported');assert.equal(current.structures.length,0);assert.equal(current.selected,null);
+ assert.equal(decision.code,'blocked');assert.equal(decision.setupDecision.code,'blocked');assert.equal(decision.structureId,null);
+ assert.equal(get('entryPanel').dataset.decision,'blocked');assert.equal(get('entryReason').textContent,'저점 매수는 일봉·4시간봉만 지원해요.');
+ assert.equal(get('lowStructureStatus').textContent,`${name}에서는 저점 매수를 지원하지 않아요. 일봉·4시간봉에서 지원해요.`);
+ assert.equal(get('lowStructureChoice').children.length,1);assert.equal(markerOutput.length,0);assert.equal(overlay.children.length,0);
+ assert.equal(ctx.S.tf,tf);assert.equal(ctx.S.entryFamily,'low');assert.equal(JSON.stringify(ctx.S.lowStrategies),strategies);
+ assert.equal(JSON.stringify(frame),before);assert.equal(networkCalls,0);
+ const verdict=require('../results/dashboard/verdict').verdictFor({entry:decision});assert.equal(verdict.code,'blocked');assert.equal(verdict.reason,decision.reason);
+}
 console.log('Low UI DOM: family round-trip, past colors, one overlay/markers, fixed facts, zoom reuse and zero extra API calls passed');

@@ -136,7 +136,10 @@ test('cutoffs are explicit, existing and ordered',()=>{
  assert.equal(M.analyze({symbol:'TEST',timeframe:'D',candles:constant}).error.code,'cutoff-required');
 });
 test('unsupported timeframe/symbol and empty input have distinct states',()=>{
- assert.equal(run(constant,{timeframe:'M'}).status,'unsupported');assert.equal(run(constant,{timeframe:'W'}).status,'unsupported');
+ for(const timeframe of ['W','M','M5','M15','M30','H1','H2']){
+  const a=run(constant,{timeframe});assert.equal(a.status,'unsupported');assert.equal(a.reason,'timeframe-not-supported');
+  assert.deepEqual(a.structures,[]);assert.deepEqual(a.series,[]);assert.deepEqual(a.pivots,[]);
+ }
  assert.equal(run(constant,{timeframe:'H4',symbol:'005930.KS'}).error.code,'invalid-observed-cutoff');
  assert.equal(run([],{}).status,'unavailable');assert.equal(run([],{}).reason,'no-candles');
  assert.equal(run([],{confirmedThrough:day(0)}).error.code,'invalid-cutoff');

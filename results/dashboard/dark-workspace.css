@@ -113,6 +113,9 @@ textarea:focus-visible, summary:focus-visible, a:focus-visible { outline-color: 
 .vpPeak { color: var(--accent); }
 
 /* 가격색과 다른 판단 의미: 실제 data-verdict와 기존 data-tone을 함께 보존한다. */
+.verdictExplanation { min-width: 0; }
+#verdictEvidence { margin: 5px 0 0; font-size: 12px; line-height: 1.5; color: var(--sub); overflow-wrap: anywhere; }
+#verdictReason { overflow-wrap: anywhere; }
 #verdictPanel { background: var(--card); border-color: var(--line); box-shadow: none; --verdict-color: var(--sub); }
 #verdictPanel[data-tone="up"], #verdictPanel[data-verdict="buy"] { --verdict-color: var(--success); }
 #verdictPanel[data-tone="accent"], #verdictPanel[data-verdict="hold"] { --verdict-color: var(--hold); }

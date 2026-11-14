@@ -40,4 +40,25 @@ assert.equal(verdictFor({ entry: entry('candidate'), market: market('high', { ap
 assert.equal(verdictFor({ entry: entry('candidate'), market: market('high', { stale: true }) }).code, 'buy');
 assert.equal(verdictFor({ entry: entry('candidate'), market: null }).code, 'buy');
 
-console.log('Verdict: 20 assertions passed');
+const lowExit={strategy:'F',id:'prior-10-low',operator:'<',observed:67138.0938,reference:67653.07,status:'met'};
+const btc=entry('avoid',{selected:['F'],exitEvidence:[lowExit],provisional:true});
+const btcVerdict=verdictFor({entry:btc,formatPrice:n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})});
+assert.equal(btcVerdict.code,'sell');
+assert.equal(btcVerdict.evidenceText,'F 매도 조건: 종가 $67,138.09 < 직전 10봉 저점 $67,653.07 · 진행봉 잠정');
+assert(btcVerdict.reason.includes('기대가 깨져')&&btcVerdict.reason.includes('추가 하락 위험'),'관측 사실과 전략의 인과 해석을 함께 설명한다');
+assert(btcVerdict.reason.includes('마감 전에 회복하면'),'잠정 신호의 한계를 설명한다');
+assert(!btcVerdict.reason.includes('$67,'),'수치는 주 설명이 아닌 보조 근거다');
+assert(!btcVerdict.reason.includes('거래량'),'F 이탈에 거래량 조건을 만들어 넣지 않는다');
+assert(!verdictFor({entry:btc,historical:true}).reason.includes('67,'));
+assert(!verdictFor({entry:btc,lastError:{kind:'provider'}}).reason.includes('67,'));
+assert.equal(verdictFor({entry:{...btc,code:'blocked',reason:'원천 확인 필요'}}).reason,'원천 확인 필요');
+const both={...btc,selected:['C','F'],exitEvidence:[{...lowExit,strategy:'C'},lowExit],provisional:false};
+assert.equal((verdictFor({entry:both}).reason.match(/기대가 깨져/g)||[]).length,1,'공유 조건의 인과 설명을 중복하지 않는다');
+assert(verdictFor({entry:both}).evidenceText.startsWith('C/F 매도 조건:'));
+assert(!verdictFor({entry:{...btc,selected:['A']}}).evidenceText,'미선택 전략 근거로 설명하지 않는다');
+assert(!verdictFor({entry:{...btc,exitEvidence:[{...lowExit,status:'unverified'}]}}).evidenceText,'반올림으로 검증 불가한 값은 단정하지 않는다');
+const rsi={strategy:'B',id:'rsi-cross-down-70',observed:69.4,reference:70,previousObserved:72.1,previousReference:70,status:'met'};
+assert(verdictFor({entry:entry('avoid',{selected:['B'],exitEvidence:[rsi]})}).evidenceText.includes('72.10에서 69.40'));
+assert(verdictFor({entry:entry('avoid',{selected:['B'],exitEvidence:[rsi]})}).reason.includes('상승 속도가 둔화'));
+assert(verdictFor({entry:both}).reason.includes('하락을 보장하지는 않아요'));
+console.log('종합판단·실제 매도 조건/수치·전략 선택·잠정/과거/오류 격리 검사 통과');

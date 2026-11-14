@@ -26,7 +26,13 @@ for(const k of ['A','B']){
  const chase=structuredClone(f);chase.candles[62].close=106.01;assert.equal(run(chase,62,[k]).code,'chase');
  const boundary=structuredClone(f);boundary.candles[63].close=106;assert.equal(run(boundary,63,[k]).code,'candidate');
  const exited=structuredClone(f);exited.state[61]['sig'+k]='exit';assert.equal(run(exited,62,[k]).code,'wait');assert.equal(run(exited,61,[k]).code,'avoid');
- const low=structuredClone(f);low.candles[61].close=89;assert.equal(run(low,61,[k]).code,'avoid');assert.equal(run(low,62,[k]).code,'wait','invalidated review resumed after rebound');
+ const low=structuredClone(f);low.candles[61].close=89;const lowExit=run(low,61,[k]);assert.equal(lowExit.code,'avoid');assert.equal(run(low,62,[k]).code,'wait','invalidated review resumed after rebound');
+ assert.equal(low.state[61]['sig'+k],'none','review stop must not invent an original source exit');
+ assert.deepEqual(lowExit.exitEvidence,[{strategy:k,id:'prior-10-low',label:'종가가 현재 봉을 제외한 직전 10봉 저점 아래로 내려가 신호 후 검토 중단',operator:'<',observed:89,reference:90,previousObserved:null,previousReference:null,status:'met',met:true,basis:62,previousBasis:null,source:'review-low'}]);
+ assert.match(lowExit.reason,new RegExp(k+' 신호 후 검토'));assert.equal(run(low,62,[k]).exitEvidence.length,0);
+ const pastLow=run(low,61,[k],{historical:true,timing:{judgmentReady:false}});assert.equal(pastLow.code,'historical');assert.equal(pastLow.setupDecision.code,'avoid');assert.deepEqual(pastLow.exitEvidence,lowExit.exitEvidence);
+ const futureLow=structuredClone(low);futureLow.candles[64].close=1;futureLow.state[64].don_lo=2;
+ assert.deepEqual(run(futureLow,61,[k],{historical:true,timing:{judgmentReady:false}}),pastLow);
  const lost=structuredClone(f);if(k==='A')lost.lines.sma20[61].value=99;else lost.state[61].rsi14=30;
  assert.equal(run(lost,62,[k]).code,'wait','maintenance break resumed old review');
  const missing=structuredClone(f);missing.lines.sma60.splice(62,1);assert.equal(run(missing,62,[k]).code,'blocked');

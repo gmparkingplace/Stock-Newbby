@@ -479,7 +479,10 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
       <span id="verdictLabel" aria-live="polite">판단 보류</span>
       <span id="verdictTag">종합판단 · 보유와 무관한 차트 신호</span>
     </div>
-    <p id="verdictReason">자료를 불러오는 중이에요.</p>
+    <div class="verdictExplanation">
+      <p id="verdictReason">자료를 불러오는 중이에요.</p>
+      <p id="verdictEvidence" hidden></p>
+    </div>
     <p id="verdictMeta"></p>
   </section>
 
@@ -1200,7 +1203,7 @@ function initChart() {
     timeScale: { timeVisible: isIntraTF(S.tf), rightOffset: 2 },
   });
   candles = chart.addSeries(LightweightCharts.CandlestickSeries,
-    { upColor: UP, downColor: DOWN, wickUpColor: UP, wickDownColor: DOWN });
+    { upColor: UP, downColor: DOWN, wickUpColor: UP, wickDownColor: DOWN, borderUpColor: UP, borderDownColor: DOWN });
   volS = chart.addSeries(LightweightCharts.HistogramSeries, { priceScaleId: "vol", priceFormat: { type: "volume" }, lastValueVisible: false, priceLineVisible: false });
   chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
   candles.priceScale().applyOptions({ scaleMargins: { top: .12, bottom: .25 } });
@@ -2160,5 +2163,6 @@ document.addEventListener("DOMContentLoaded", () => {
 <script src="watchlist-search.js"></script>
 <script src="ui-icons.js"></script>
 <script src="pattern-async.js"></script>
+<script src="price-scale-guard.js"></script>
 </body>
 </html>

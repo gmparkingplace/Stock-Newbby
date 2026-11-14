@@ -86,6 +86,21 @@ test('freshness, confirmation and historical color gates preserve setup decision
  const past=entry(a,['H'],{historical:true,timing:{judgmentReady:false}});assert.equal(past.code,'historical');assert.equal(past.setupDecision.code,'candidate');
  assert.match(past.reason,/현재 진입 안내가 아니/);assert.equal(entry(a,[]).code,'blocked');
 });
+test('unsupported timeframes remain blocked with explicit support limits and no structures',()=>{
+ const b=sample('H'),before=JSON.stringify(b);
+ for(const timeframe of ['W','M','M5','M15','M30','H1','H2']){
+  const a=run(b,26,{timeframe}),snapshot=JSON.stringify(a),e=entry(a);
+  assert.equal(a.status,'unsupported');assert.equal(a.reason,'timeframe-not-supported');assert.equal(a.version,R.version);
+  assert.deepEqual(a.structures,[]);assert.deepEqual(a.events,[]);assert.deepEqual(a.current,{R:null,H:null});
+  assert.equal(e.code,'blocked');assert.equal(e.setupDecision.code,'blocked');assert.equal(e.structureId,null);
+  assert.equal(e.label,'저점 매수는 일봉·4시간봉만 지원해요.');assert.equal(e.reason,e.label);
+  assert(e.rows.every(r=>r.code==='blocked'&&r.label===e.label&&r.structure===null&&r.signal==='none'));
+  assert.deepEqual(e.selected,['R','H']);assert.equal(JSON.stringify(a),snapshot);
+  const past=entry(a,['R','H'],{historical:true});assert.equal(past.code,'historical');assert.equal(past.setupDecision.code,'blocked');
+  assert.equal(entry(a,['R','H'],{timing:{judgmentReady:false,message:'조회 실패'}}).reason,'조회 실패');
+ }
+ assert.equal(JSON.stringify(b),before);
+});
 test('support is known before breach; current/future low is not retroactive support',()=>{
  const b=sample('R');const a=run(b,30),r=a.current.R;
  assert(r.supportKnownAt<r.breachTime);assert.equal(r.supportPrice,95);assert.equal(r.springTime,day(24));
@@ -164,5 +179,23 @@ test('expiry stages explain separate deadlines using the actual parameters',()=>
   const description=E.describe({phase:'expired',reason},p);assert.equal(description.label,'새 매수 신호를 기다리세요');assert(description.reason.includes(count+'봉'));
  }
  assert.equal(new Set(['회복 기한 초과','재시험 확인 기한 초과','반등 돌파 대기 기한 초과','신호 후 검토 기한 초과'].map(reason=>E.describe({phase:'expired',reason},p).rowLabel)).size,4);
+});
+test('exit evidence follows only the chosen invalidated structure and its original event basis',()=>{
+ const bars=sample('H'),first=run(bars,26).current.H;bars[27].low=first.invalidationLevel-1e-8;
+ const a=run(bars,28),before=JSON.stringify(a),e=entry(a,['H']),item=e.exitEvidence[0];
+ assert.equal(e.code,'avoid');assert.equal(e.exitEvidence.length,1);assert.equal(item.strategy,'H');assert.equal(item.structureId,e.structureId);
+ assert.equal(item.label,'고정 무효선 이탈');assert.equal(item.basis,day(27));assert.notEqual(item.basis,e.basis);
+ assert.equal(item.id,'structure-invalidated');assert.equal(item.source,'structure');assert.equal(item.status,'unavailable');
+ assert.equal(item.observed,null);assert.equal(item.reference,null);assert.equal(JSON.stringify(a),before);
+ const past=entry(a,['H'],{historical:true,timing:{judgmentReady:false}});assert.equal(past.code,'historical');assert.equal(past.setupDecision.code,'avoid');assert.deepEqual(past.exitEvidence,e.exitEvidence);
+ const stale=entry(a,['H'],{timing:{judgmentReady:false,message:'자료 지연'}});assert.equal(stale.code,'blocked');assert.equal(stale.reason,'자료 지연');assert.deepEqual(stale.exitEvidence,e.exitEvidence);
+ const future=structuredClone(bars);future[40].low=-999;assert.deepEqual(entry(run(future,28),['H'],{historical:true,timing:{judgmentReady:false}}),past);
+});
+test('non-chosen and non-selected low failures cannot add exit evidence',()=>{
+ const a=run(sample('R'),30);a.current.R={...a.current.R,phase:'invalidated',reason:'고정 무효선 이탈',endedAt:day(29)};
+ assert.equal(entry(a).code,'candidate');assert.deepEqual(entry(a).exitEvidence,[]);
+ assert.deepEqual(entry(a,['H']).exitEvidence,[]);const e=entry(a,['R']);assert.equal(e.code,'avoid');assert.equal(e.exitEvidence[0].strategy,'R');assert.equal(e.exitEvidence[0].basis,day(29));
+ const two={...a,current:{R:a.current.R,H:{...a.current.H,phase:'invalidated',reason:'반등 기준 아래로 종가 복귀',endedAt:day(30)}}};
+ const chosen=entry(two);assert.equal(chosen.exitEvidence.length,1);assert.equal(chosen.exitEvidence[0].structureId,chosen.structureId);assert.equal(chosen.exitEvidence[0].strategy,'H');
 });
 console.log(`Low entry P1: ${count} cases passed (R/H states, fixed risk, evidence, time gates, OR and future isolation)`);

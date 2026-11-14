@@ -55,8 +55,8 @@
     },
     {
       "path": "distribution/FEATURES.md",
-      "bytes": 5906,
-      "sha256": "5fbf3d7c5c6b2bf23cc5534062937c0b25be19def13f7bb6aaef93cce9305c16"
+      "bytes": 7637,
+      "sha256": "bce11b8cea45b41b26ced51ac01e3c5d6e013964dc53f91b9eaa95f45faa1f6c"
     },
     {
       "path": "distribution/README.md",
@@ -70,8 +70,8 @@
     },
     {
       "path": "docs/FEATURES.md",
-      "bytes": 5906,
-      "sha256": "5fbf3d7c5c6b2bf23cc5534062937c0b25be19def13f7bb6aaef93cce9305c16"
+      "bytes": 7637,
+      "sha256": "bce11b8cea45b41b26ced51ac01e3c5d6e013964dc53f91b9eaa95f45faa1f6c"
     },
     {
       "path": "docs/TOSS.md",
@@ -195,8 +195,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 1867,
-      "sha256": "5066118cd81c6daf2e4bce69cb1812923217d5c023b0cf8d8745a3ea85695f58"
+      "bytes": 1911,
+      "sha256": "b8bb0941cd972c782ec05ff1aa79f4d2c0d44fcd7dddf6f6bdeb1fe932b52d03"
     },
     {
       "path": "requirements-desktop.txt",
@@ -235,8 +235,8 @@
     },
     {
       "path": "results/dashboard/chart-first.html",
-      "bytes": 149410,
-      "sha256": "3cc164e64a7556ab7b5792af4ad08c3f5777502e85d27e1227f220c661cc41d9"
+      "bytes": 149589,
+      "sha256": "48731a07e75f0ecb4ac5320e91aa8222ec456647e3bb2cadaf2aded013c4e32a"
     },
     {
       "path": "results/dashboard/chart-layout.js",
@@ -270,8 +270,8 @@
     },
     {
       "path": "results/dashboard/dark-workspace.css",
-      "bytes": 15201,
-      "sha256": "11dcc8b1b6bace21b59fa6e566646eaa367d633cf88f865711791088a8589c2e"
+      "bytes": 15400,
+      "sha256": "ae4da8a64136022dc3540f104446c5e4b28e471bdeeced425cb623580e3f2d1e"
     },
     {
       "path": "results/dashboard/data.js",
@@ -285,8 +285,8 @@
     },
     {
       "path": "results/dashboard/entry-model.js",
-      "bytes": 8530,
-      "sha256": "2a6a06e91938b5eee5d2260adab59ff84abbcfe75024e44db6ec4c7d34c96d37"
+      "bytes": 11297,
+      "sha256": "39828e8590bed0c7d7ecd27dc4b635e5980b64c6c0b5610393af1935e5494367"
     },
     {
       "path": "results/dashboard/entry-panel.js",
@@ -340,8 +340,8 @@
     },
     {
       "path": "results/dashboard/low-entry-model.js",
-      "bytes": 8453,
-      "sha256": "c52ed3563eee32c5d0d48921dcf41ca3e0c991d05a836152f07e4538774dacee"
+      "bytes": 8962,
+      "sha256": "d1523981a4ae17e78b7c585592caf6bbe03c75c91755ba967db96dc4c95ec827"
     },
     {
       "path": "results/dashboard/low-structure-cache.js",
@@ -355,8 +355,8 @@
     },
     {
       "path": "results/dashboard/low-structure-panel.js",
-      "bytes": 9296,
-      "sha256": "43ca099b68bdbf7cde4dd125d891f4b38e65113df1c3f764714059cc51dfa92f"
+      "bytes": 9508,
+      "sha256": "52da717d44e9e482b9e8a32b186bb16399ef2a784c414bc1fa7f93337a104cad"
     },
     {
       "path": "results/dashboard/low-structure-rules.js",
@@ -397,6 +397,11 @@
       "path": "results/dashboard/price-indicators.js",
       "bytes": 6713,
       "sha256": "c58968cc40e6a48eeb48e69863e39c2787840ca209744fa85dc342b1d16e46ac"
+    },
+    {
+      "path": "results/dashboard/price-scale-guard.js",
+      "bytes": 3248,
+      "sha256": "5ab1937b7b2aae93dd23d76d1212763b9ed4428f29be9a472e5061ea0446183b"
     },
     {
       "path": "results/dashboard/price-zones-panel.js",
@@ -445,13 +450,13 @@
     },
     {
       "path": "results/dashboard/verdict-panel.js",
-      "bytes": 2551,
-      "sha256": "1429df7db4052291130726bb75e1cc3ebab7af079ceb7ccde5fadbdabe3af4f4"
+      "bytes": 2777,
+      "sha256": "c7414042570aa8c4c8156c9d2e9f0213f6e308c471e230ce78f749d079b47281"
     },
     {
       "path": "results/dashboard/verdict.js",
-      "bytes": 4040,
-      "sha256": "bddf079216db274eeb91e2e449c8c1b40c41288487903381d999c3cbd396462e"
+      "bytes": 7701,
+      "sha256": "a51ca7036236e122625091af03aba65aa95a77340060427fe4e41ce424591c49"
     },
     {
       "path": "results/dashboard/volume-profile-panel.js",
@@ -890,8 +895,8 @@
     },
     {
       "path": "tests/browser_current/test.js",
-      "bytes": 123345,
-      "sha256": "90038b6922bb0ed3eac99c1abe5efc4786e3f35c4211e1ea7db9fdec76c3ce63"
+      "bytes": 128953,
+      "sha256": "1a7dfd8c5c54e44e70836c21bd5df9517d49b900b349cfd9c4a3fe9ae61cee17"
     },
     {
       "path": "tests/chart_api_fixtures.js",
@@ -940,13 +945,13 @@
     },
     {
       "path": "tests/entry_model_fixtures.js",
-      "bytes": 2187,
-      "sha256": "4be8af90fb6d152c1fb36397114e0d4ce799bae5ea98ce9e5704cb222317c6b4"
+      "bytes": 5955,
+      "sha256": "8cc0b0a052e839d93aff2acf5a25e850507d115a54806404dee5aa3daad93c37"
     },
     {
       "path": "tests/entry_review_fixtures.js",
-      "bytes": 9162,
-      "sha256": "cf6cec2957c557bb52553378d92f590a5c263698a01b3d5d1c44be7a28b86ca3"
+      "bytes": 10159,
+      "sha256": "3cf7785707a527305ac4ff9c9741de89db0e0069473979889c7b2767f6c7dc59"
     },
     {
       "path": "tests/extended_indicators_fixtures.js",
@@ -980,8 +985,8 @@
     },
     {
       "path": "tests/low_entry_fixtures.js",
-      "bytes": 13427,
-      "sha256": "c6403a095282208ebbf6da49f6c4669b4a9df2a6d19d13d38333aa09284d3b84"
+      "bytes": 16841,
+      "sha256": "1c8627ab2dbb5c97c9530a0a393c68a9c8b7feea05ea274af340f0cf60e954e9"
     },
     {
       "path": "tests/low_entry_sample.js",
@@ -990,13 +995,13 @@
     },
     {
       "path": "tests/low_panel_fixtures.js",
-      "bytes": 11932,
-      "sha256": "d4ff17deb3d15c53d29dd8ab47810a50999d490cf086bd5f54a39ddab0a06c92"
+      "bytes": 13520,
+      "sha256": "0fa154b163f87bcb6eae82ab689cabec470a9e066777b3186debc4bf28209132"
     },
     {
       "path": "tests/low_structure_fixtures.js",
-      "bytes": 13406,
-      "sha256": "7bcd3bcc089c996661c5245a07cbb05ac9f7caa2f581e14d748f2b35e6cfc415"
+      "bytes": 13560,
+      "sha256": "87c438ddfe260bf6ff3f465a2ea2784dae0bc20a958fd59e9a133c2e65ddb21e"
     },
     {
       "path": "tests/monitor_panel_fixtures.js",
@@ -1032,6 +1037,11 @@
       "path": "tests/pattern_window_fixtures.js",
       "bytes": 2115,
       "sha256": "17ecc2c35df39af5f76819211c84af4dc85a83594ab52ce6369ccaa65c6bc488"
+    },
+    {
+      "path": "tests/price_scale_guard_fixtures.js",
+      "bytes": 2045,
+      "sha256": "b136c5d4fe2474c36d7b9bc5f68f35fd03e0d61c1759e6adb3075fa56259bf6f"
     },
     {
       "path": "tests/price_zones_fixtures.js",
@@ -1315,8 +1325,8 @@
     },
     {
       "path": "tests/verdict_fixtures.js",
-      "bytes": 2733,
-      "sha256": "b8417578a4bb5d7f5fac0d30c8458c8b82dbf839f6b818e1710a729add805344"
+      "bytes": 5154,
+      "sha256": "6750344f4d65a2db6f55c9094b6c220256bf4ae0fbbe7f2aa9ccefb134185070"
     },
     {
       "path": "tests/volume_profile_fixtures.js",

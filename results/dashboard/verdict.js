@@ -30,7 +30,7 @@
     if (input.lastError) {
       return make('blocked', '최근 조회에 문제가 있어 판단을 보류해요.', '조회 오류');
     }
-    return withMarket(baseVerdict(entry), market);
+    return withMarket(baseVerdict(entry, input.formatPrice), market);
   }
 
   /* VIX 위험 국면은 매수·홀드를 관망으로 낮춘다. 매도를 매수로 뒤집거나
@@ -50,7 +50,52 @@
     return base;
   }
 
-  function baseVerdict(entry) {
+  function sellNumbers(entry, formatPrice) {
+    var selected = entry.selected || [];
+    var evidence = (entry.exitEvidence || []).filter(function (e) {
+      return selected.includes(e.strategy) && e.status === 'met' &&
+        (e.basis == null || entry.basis == null || e.basis === entry.basis) &&
+        Number.isFinite(e.observed) && Number.isFinite(e.reference);
+    });
+    var seen = new Set();
+    var parts = evidence.filter(function (e) {
+      var key = [e.id, e.observed, e.reference, e.previousObserved, e.previousReference].join('|');
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    }).map(function (e) {
+      var fmt = function (v) {
+        if (e.id === 'rsi-cross-down-70') return Number(v).toFixed(2).replace(/\.00$/, '');
+        return typeof formatPrice === 'function' ? formatPrice(v) : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 4 });
+      };
+      if (e.id === 'prior-10-low') return '종가 ' + fmt(e.observed) + ' < 직전 10봉 저점 ' + fmt(e.reference);
+      if (e.id === 'sma-cross-down') return '20봉 평균 ' + fmt(e.observed) + '이 60봉 평균 ' + fmt(e.reference) + ' 아래로 교차';
+      if (e.id === 'rsi-cross-down-70') return 'RSI가 ' + fmt(e.previousObserved) + '에서 ' + fmt(e.observed) + '로 내려와 70 하향 이탈';
+      return e.label + ' · ' + fmt(e.observed) + ' ' + (e.operator || '<') + ' ' + fmt(e.reference);
+    });
+    if (!parts.length) return '';
+    var triggered = Array.from(new Set(evidence.map(function (e) { return e.strategy; }))).join('/');
+    return triggered + ' 매도 조건: ' + parts.join(' · ') + (entry.provisional ? ' · 진행봉 잠정' : ' · 확정봉 기준');
+  }
+
+  function sellExplanation(entry) {
+    var evidence = (entry.exitEvidence || []).filter(function(e) {
+      return (entry.selected || []).includes(e.strategy) && e.status === 'met' &&
+        (e.basis == null || entry.basis == null || e.basis === entry.basis);
+    });
+    var ids = new Set(evidence.map(function(e) { return e.id; }));
+    var parts = [];
+    if (ids.has('prior-10-low')) parts.push('최근 10개 봉의 최저가보다 가격이 낮아졌어요. 최근 저점을 지키며 반등할 것이라는 기대가 깨져, 이 전략은 추가 하락 위험을 줄이는 쪽으로 매도 신호를 내요.');
+    if (ids.has('sma-cross-down')) parts.push('최근 20개 봉의 평균 가격이 60개 봉의 평균 아래로 내려왔어요. 단기 흐름이 장기 흐름보다 약해지는 전환이라, 이 전략은 상승 흐름을 따라 보유할 근거가 약해졌다고 봐요.');
+    if (ids.has('rsi-cross-down-70')) parts.push('RSI가 과열 기준인 70 이상에서 그 아래로 내려왔어요. 강했던 상승 속도가 둔화된 것으로 보고, 이 전략은 반등 수익을 지키는 쪽으로 매도 신호를 내요.');
+    if (!parts.length) {
+      if (entry.family === 'low') return entry.reason + ' 이 전략에서 해당 저점 구조를 매수 근거로 더 이상 사용하지 않는다는 뜻이에요. 실제 보유 여부를 확인한 주문 지시는 아니에요.';
+      return (entry.reason || '선택한 전략에서 원천 이탈 신호가 나왔어요.') + ' 세부 조건을 검증할 자료가 없어 매도 이유를 더 구체적으로 단정할 수 없어요.';
+    }
+    parts.push(entry.provisional ? '다만 진행 중인 봉이라 마감 전에 회복하면 이 신호가 사라질 수 있어요.' : '확정봉에서 확인된 조건이지만, 이후 가격의 하락을 보장하지는 않아요.');
+    return parts.join(' ');
+  }
+
+  function baseVerdict(entry, formatPrice) {
     var code = entry.code;
     if (code === 'blocked') {
       return make('blocked', entry.reason || '판단 자료를 확인하지 못했어요.', '자료 확인 필요');
@@ -59,7 +104,7 @@
       return make('blocked', '과거 봉의 조건 비교예요. 현재 판단이 아니에요.', '과거 봉');
     }
     if (code === 'avoid') {
-      return make('sell', entry.reason || '선택한 전략의 이탈 신호가 있어요.', '이탈 신호');
+      return Object.assign(make('sell', sellExplanation(entry), '이탈 신호'), { evidenceText: sellNumbers(entry, formatPrice) });
     }
     if (code === 'candidate') {
       if (entry.continuation) {

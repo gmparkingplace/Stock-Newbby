@@ -1065,6 +1065,48 @@ async function uiScenario(){
   console.log('PASS verdict header, detail group collapse, price zone listing and toggles');
 }
 
+async function sellReasonScenario(){
+  await config({reset:true});await navigate();await view('AAPL','3M','latest','D');
+  let payload;
+  if(process.env.SELL_REASON_REPLAY)payload=JSON.parse(fs.readFileSync(process.env.SELL_REASON_REPLAY,'utf8'));
+  else payload=await ev(`(()=>{const f=JSON.parse(JSON.stringify(curSym()));f.symbol='BTC-USD';f.name='비트코인';const n=f.candles.length-1;f.candles[n].close=67138.0938;f.candles[n].low=66535;f.candles[n].open=68238;f.candles[n].high=68360;f.state[n].don_lo=67653.07;f.state[n].sigF='exit';f.state[n].sigC='exit';f.lastConfirmedTime=f.candles[n].time;f.confirmed=true;f.snapshotEligible=true;return f;})()`);
+  const at=payload.fetchedAt||'2026-09-07T12:00:00+00:00';
+  await config({now:at});
+  await ev(`__setClock(${JSON.stringify(at)});S.autoRef=true;LIVE_D['BTC-USD']=${JSON.stringify(payload)};S.symbol='BTC-USD';S.tf='D';S.entryFamily='legacy';S.entryStrategies=['F'];S.selectedAsOf=null;S.lastErr=null;S.preset='3M';buildSymList('');renderAll(true);void 0`);
+  await until(()=>ev('document.getElementById("verdictPanel").dataset.verdict==="sell"'),'bitcoin sell verdict');
+  const actual=await ev('entryEvaluation(currentObs())'),reason=await ev('document.getElementById("verdictReason").textContent');
+  assert(reason.includes('기대가 깨져')&&reason.includes('추가 하락 위험'),'매도 조건이 전략의 기대를 왜 깨는지 설명한다');
+  const evidence=await ev('document.getElementById("verdictEvidence").textContent');
+  assert(evidence.includes('F 매도 조건:')&&evidence.includes('직전 10봉 저점')&&evidence.includes('<'),'수치 비교는 보조 근거로 표시한다');
+  assert(!reason.includes('충돌')&&!reason.includes('거래량'),'not generic collision or invented volume exit');
+  const e=actual.exitEvidence.find(x=>x.id==='prior-10-low'&&x.status==='met');assert(e);assert(e.observed<e.reference);
+  assert(evidence.includes(await ev(`fmtP(${e.observed})`))&&evidence.includes(await ev(`fmtP(${e.reference})`)),'same price formatter and actual evidence');
+  await screenshot('bitcoin-sell-reason-1280');
+  const before=await ev('JSON.stringify(frameOf(curSym()))'),range=await ev('chart.timeScale().getVisibleLogicalRange()');
+  await ev('VerdictPanel.render(currentObs());void 0');assert.equal(await ev('JSON.stringify(frameOf(curSym()))'),before);assert.deepEqual(await ev('chart.timeScale().getVisibleLogicalRange()'),range);
+  await ev('S.lastErr={kind:"provider"};renderAll(false);void 0');assert.equal(await ev('document.getElementById("verdictPanel").dataset.verdict'),'blocked');assert(!(await ev('document.getElementById("verdictReason").textContent')).includes('매도 조건:'));assert(await ev('document.getElementById("verdictEvidence").hidden && !document.getElementById("verdictEvidence").textContent'));
+  console.log('PASS Bitcoin sell explains selected exit logic and actual values with blocked-state isolation',JSON.stringify({basis:actual.basis,reason}));await checkErrors();
+}
+
+async function lowPriceScenario(){
+  await config({reset:true});await navigate();await view('AAPL','3M','latest','D');
+  let payload;
+  if(process.env.LOW_PRICE_REPLAY)payload=JSON.parse(fs.readFileSync(process.env.LOW_PRICE_REPLAY,'utf8'));
+  else payload=await ev(`(()=>{const f=JSON.parse(JSON.stringify(curSym()));for(const frame of [f,f.weekly,f.monthly].filter(Boolean)){const n=frame.candles.length;frame.candles.forEach((c,i)=>{const k=(n-i)/n*8+.1;c.open=k;c.close=k*.9;c.high=k*1.2;c.low=k*.7;});for(const points of Object.values(frame.lines||{}))if(Array.isArray(points))points.forEach((p,i)=>{if(Number.isFinite(p.value))p.value=10-i/Math.max(1,points.length)*2;});}return f;})()`);
+  await ev(`S.autoRef=false;LIVE_D[${JSON.stringify(payload.symbol)}]=${JSON.stringify(payload)};S.symbol=${JSON.stringify(payload.symbol)};S.tf='W';S.entryFamily='low';S.selectedAsOf=null;S.preset='3M';S.lastErr=null;buildSymList('');renderAll(true);void 0`);
+  await until(()=>ev('candles.priceScale().options().scaleMargins.bottom<.25'),'adaptive low-price padding');
+  assert((await ev('document.getElementById("verdictReason").textContent')).includes('일봉·4시간봉'),'unsupported timeframe explains supported periods');
+  const before=await ev('JSON.stringify(frameOf(curSym()))'),range=await ev('chart.timeScale().getVisibleLogicalRange()');
+  const result=await ev(`(()=>{const H=chart.panes()[0].getHeight(),o=candles.options();return {bottom:candles.coordinateToPrice(H-1),margins:candles.priceScale().options().scaleMargins,auto:candles.priceScale().options().autoScale,borders:[o.upColor===o.borderUpColor,o.downColor===o.borderDownColor],tf:S.tf,close:frameOf(curSym()).candles.at(-1).close};})()`);
+  assert(result.auto);assert(result.borders.every(Boolean));assert.equal(result.tf,'W');
+  assert(result.margins.bottom>=0&&result.margins.bottom<.25);
+  await ev('PriceScaleGuard.current.sync();void 0');await pause(200);
+  assert.equal(await ev('JSON.stringify(frameOf(curSym()))'),before);assert.deepEqual(await ev('chart.timeScale().getVisibleLogicalRange()'),range);
+  await ev('document.getElementById("chart").scrollIntoView({block:"start"});void 0');await screenshot('low-price-weekly-display');
+  console.log('PASS low-price weekly display, source immutability, adaptive padding, candle borders and unsupported explanation',JSON.stringify(result));
+  await checkErrors();
+}
+
 async function darkStyleScenario(){
   await config({reset:true});await navigate();await view('AAPL','3M','latest','D');
   await ev('S.autoRef=false;Watchlist.reset();Watchlist.addSymbol("AAPL","Apple");Watchlist.addSymbol("005930.KS","삼성전자");void 0');
@@ -1389,7 +1431,9 @@ async function main() {
     const value=(await wd('/session','POST',{capabilities:{alwaysMatch:{browserName:'firefox','moz:firefoxOptions':{args:['-headless']}}}})).value;
     session=value.sessionId;assert(session);evidence.push({scenario:'session',browser:value.capabilities.browserName,version:value.capabilities.browserVersion,driverPid:driver.pid,browserPid:value.capabilities['moz:processID'],serverPid:server.pid});
     await cmd('/timeouts','POST',{script:20000,pageLoad:30000,implicit:0});
-      if(process.env.DARK_ONLY==='1')await darkStyleScenario();
+      if(process.env.SELL_REASON_ONLY==='1')await sellReasonScenario();
+       else if(process.env.LOW_PRICE_ONLY==='1')await lowPriceScenario();
+       else if(process.env.DARK_ONLY==='1')await darkStyleScenario();
        else if(process.env.ASYNC_PATTERN_ONLY==='1')await asyncPatternScenario();
        else if(process.env.APPLE_ONLY==='1')await appleStyleScenario();
        else if(process.env.TOPBAR_ONLY==='1')await topbarStability();
@@ -1403,7 +1447,7 @@ async function main() {
        else if(process.env.FAMILY_ONLY==='1')await strategyFamilyScenario();
        else if(process.env.UI_ONLY==='1')await uiScenario();
       else if(process.env.PATTERN_ONLY==='1')await patternScenario();
-      else {await topbarStability(); await config({reset:true}); await navigate(); await scenarios(); await patternScenario(); await flagScenario(); await monitorScenario(); await triangleScenario(); await indicatorScenario(); await technicalScenario(); await uiScenario(); await strategyFamilyScenario(); await watchlistQuickAddScenario(); await refinementScenario(); await appleStyleScenario(); await asyncPatternScenario(); await darkStyleScenario();}
+      else {await topbarStability(); await config({reset:true}); await navigate(); await scenarios(); await patternScenario(); await flagScenario(); await monitorScenario(); await triangleScenario(); await indicatorScenario(); await technicalScenario(); await uiScenario(); await strategyFamilyScenario(); await watchlistQuickAddScenario(); await refinementScenario(); await appleStyleScenario(); await asyncPatternScenario(); await darkStyleScenario(); await lowPriceScenario(); await sellReasonScenario();}
       if(process.env.CACHED_TRIANGLE_REPLAY)await cachedTriangleReplay();
   } catch(error) {
     cleanupDeadline=Date.now()+45000;
