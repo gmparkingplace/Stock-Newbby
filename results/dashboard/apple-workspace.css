@@ -1,0 +1,383 @@
+/* 마지막 시각 계층. 기존 배치·차트 높이·숨김 속성·체크박스 동작은 보존한다. */
+:root {
+  color-scheme: light;
+  --bg: #f5f5f7;
+  --card: #fff;
+  --ink: #1d1d1f;
+  --sub: #65656d;
+  --line: #e2e2e7;
+  --accent: #007aff;
+  --focus: #007aff;
+  --pass: #24824b;
+  --fail: #9a5a10;
+  --apple-hover: #eeeef2;
+  --apple-pressed: #e2e2e9;
+  --apple-selected: #eaf3ff;
+  --apple-border: #d2d2d8;
+  --apple-radius: 12px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font-family: inherit; }
+h1, h2, h3, strong { letter-spacing: -.02em; }
+.hint, .sub, .symbolCode { color: var(--sub); }
+
+/* 조작 상태: 선택·누름·가리킴·키보드 초점을 별도로 읽을 수 있게 한다. */
+button {
+  border: 1px solid var(--apple-border);
+  border-radius: 10px;
+  background: var(--card);
+  color: #45454d;
+  font-weight: 500;
+  box-shadow: 0 1px 1px #1d1d1f04;
+}
+button:hover:not(:disabled) {
+  background: var(--apple-hover);
+  border-color: #bcbcc5;
+  color: var(--ink);
+}
+button[aria-pressed="true"] {
+  background: var(--apple-selected);
+  border-color: #a5ccff;
+  color: #0066d6;
+  box-shadow: inset 0 0 0 1px #007aff08;
+}
+button[aria-pressed="true"]:hover:not(:disabled) {
+  background: #daebff;
+  border-color: #7cb6ff;
+  color: #005ec7;
+}
+button:active:not(:disabled) {
+  background: var(--apple-pressed);
+  border-color: #a9a9b5;
+  color: var(--ink);
+  box-shadow: inset 0 1px 2px #1d1d1f12;
+}
+button[aria-pressed="true"]:active:not(:disabled) {
+  background: #c8e1ff;
+  border-color: #559efa;
+  color: #004fa8;
+}
+button:disabled {
+  color: #85858e;
+  border-color: var(--line);
+  background: #f2f2f5;
+  box-shadow: none;
+}
+button:focus-visible, select:focus-visible, input:focus-visible,
+summary:focus-visible, a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+button[aria-busy="true"] { cursor: progress; }
+
+/* 아이콘은 부모가 넣은 SVG 주소와 현재 글자색만 사용한다. 숨김을 덮지 않는다. */
+button[data-ui-icon]:not([hidden]),
+.watchTitle h2[data-ui-icon]:not([hidden]),
+.watchManage > summary[data-ui-icon]:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+button[data-ui-icon]:not([hidden]) { justify-content: center; }
+button[data-ui-icon]::before,
+.watchTitle h2[data-ui-icon]::before,
+.watchManage > summary[data-ui-icon]::before {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background: currentColor;
+  -webkit-mask: var(--ui-icon) center / contain no-repeat;
+  mask: var(--ui-icon) center / contain no-repeat;
+}
+button.uiIconOnly[data-ui-icon] { font-size: 0; gap: 0; }
+button.uiIconOnly[data-ui-icon]::before { margin: 0; }
+button.uiIconOnly .ui-icon-label { display: none; }
+
+/* 상단은 기존 가로 폭 계약을 유지한다. */
+.topbar { border-bottom-color: #dddde3; }
+.topbar select, .topbar input[type="search"] {
+  border: 1px solid var(--apple-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 2px #1d1d1f03;
+}
+.topbar input::placeholder { color: #777780; }
+.topbar input[type="search"]:focus, .topbar select:focus { border-color: var(--accent); }
+.symbolControls > label { color: var(--sub); }
+.symbolControls #btnLookup {
+  width: 32px;
+  min-width: 32px;
+  flex: 0 0 32px;
+  padding: 0;
+  font-size: 0;
+  gap: 0;
+  color: var(--accent);
+}
+#btnLookup .ui-icon-label { display: none; }
+.toolbarActions #btnRefresh, .toolbarActions #btnAuto {
+  flex: 0 0 auto;
+  padding: 5px 4px;
+  gap: 4px;
+  font-size: 11px;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+.toolbarActions #btnRefresh { width: 76px; }
+.toolbarActions #btnAuto { width: 100px; }
+#btnRefresh[data-ui-icon]::before, #btnAuto[data-ui-icon]::before {
+  width: 14px;
+  height: 14px;
+  flex-basis: 14px;
+}
+#btnRefresh .ui-icon-label, #btnAuto .ui-icon-label { font-size: 11px; }
+.toolbarActions #btnHelp {
+  width: 36px;
+  min-width: 36px;
+  flex: 0 0 36px;
+  padding: 0;
+  font-size: 0;
+  gap: 0;
+}
+#btnHelp::after { content: none; }
+#btnHelp[data-ui-icon]::before { width: 18px; height: 18px; flex-basis: 18px; }
+#btnHelp .ui-icon-label { display: none; }
+.workspaceActions { border-color: #dddde3; }
+.workspaceActions button { padding: 6px 10px; font-size: 13px; gap: 6px; white-space: nowrap; }
+.brandLine h1 { color: #74747e; }
+.brandLine .symbolHeading .sym { color: var(--ink); font-weight: 600; }
+.symbolPrice { color: var(--ink); font-weight: 600; }
+.quoteHeading .priceChange { font-weight: 500; }
+.dataHealth { color: var(--sub); }
+.dataHealth[data-warning="true"] { color: #93550d; font-weight: 500; }
+.lookupFeedback, .banner {
+  background: #fff8eb;
+  border-color: #ead4ae;
+  color: #87500d;
+  border-radius: 10px;
+}
+
+#patternComputeStatus { margin: 0; padding: 2px 0; font-size: 12px; line-height: 20px; color: var(--sub); }
+#patternComputeStatus[data-state="error"] { color: #93550d; }
+
+/* 주요 작업 영역. 열 너비·종목명 경계·차트 높이는 앞선 스타일이 소유한다. */
+.workspaceSide { border-left-color: #dddde3; }
+.statusbox, .card, .hist, details.src, #evDetail { border-radius: var(--apple-radius); }
+#verdictPanel {
+  border-radius: 14px;
+  border-top-color: #e4e4e9;
+  border-right-color: #e4e4e9;
+  border-bottom-color: #e4e4e9;
+  background: #fff;
+  box-shadow: 0 2px 6px #1d1d1f03;
+}
+#verdictLabel { letter-spacing: -.035em; }
+#verdictTag { color: var(--sub); }
+#verdictReason { color: #393940; }
+#verdictPanel .verdictDetails { border-radius: 8px; color: #0069dc; }
+#verdictPanel .verdictDetails:hover:not(:disabled) { background: var(--apple-selected); }
+#verdictPanel .verdictDetails:active:not(:disabled) { background: #c8e1ff; }
+.strategyFamilySwitch {
+  border: 1px solid #dddde4;
+  border-radius: 11px;
+  background: #eaeaf0;
+  padding: 3px;
+}
+.strategyFamilySwitch button { border-radius: 8px; color: #62626b; box-shadow: none; }
+.strategyFamilySwitch button[aria-pressed="true"] {
+  color: var(--ink);
+  background: #fff;
+  border-color: #d7d7df;
+  box-shadow: 0 1px 3px #1d1d1f12;
+}
+.strategyFamilySwitch button:hover:not(:disabled) { background: #f6f6f9; border-color: #d7d7df; }
+.strategyFamilySwitch button[aria-pressed="true"]:hover:not(:disabled) { background: #fff; color: #0069dc; }
+.strategyFamilySwitch button:active:not(:disabled) { background: #dcdce5; }
+.chartToolbar { border-bottom-color: var(--line); }
+.mainTfBar { border-right-color: #dddde3; }
+.mainTfBar button, .chartToolbar .periodbar button, .intradayTfBar button {
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: #62626c;
+}
+.mainTfBar button[aria-pressed="true"], .chartToolbar .periodbar button[aria-pressed="true"],
+.intradayTfBar button[aria-pressed="true"] {
+  background: #fff;
+  color: #0069dc;
+  border-color: #d5e6fb;
+  box-shadow: 0 1px 3px #1d1d1f08;
+}
+.mainTfBar button:hover:not(:disabled), .chartToolbar .periodbar button:hover:not(:disabled),
+.intradayTfBar button:hover:not(:disabled) { background: #e9edf4; border-color: #d5dce7; }
+.mainTfBar button:active:not(:disabled), .chartToolbar .periodbar button:active:not(:disabled),
+.intradayTfBar button:active:not(:disabled) { background: #cfe4ff; color: #005fc7; }
+#chartWrap, #chart, #indicatorChart, #patternSnapshotChart {
+  background: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  filter: none;
+}
+#chartWrap { border-radius: 12px; }
+#indicatorPanel { background: transparent; border-top-color: #dddde3; }
+#indicatorChoice { background: #fff; border-color: var(--apple-border); border-radius: 8px; color: var(--ink); }
+#indicatorReadout .key, #indicatorComponents .key { color: var(--sub); }
+
+/* 관심종목: 행의 의미·줄임표·개별 상태를 유지하고 선택 배경을 분명하게 한다. */
+.watchTitle h2 { color: var(--ink); font-weight: 600; }
+.watchTitle h2[data-ui-icon]::before { color: #73737d; }
+.watchManage > summary { border-radius: 8px; color: #63636d; padding: 4px 6px; }
+.watchManage > summary:hover, .watchManage[open] > summary { color: #0069dc; background: #e7eef8; }
+.watchManage[open] > .wl-actions {
+  background: #fff;
+  border: 1px solid #dcdce3;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #1d1d1f16, 0 1px 3px #1d1d1f08;
+}
+.watchManage .wl-actions button { border-radius: 8px; color: var(--ink); box-shadow: none; justify-content: flex-start; }
+#watchlistPanel .wl-groupstrip button { border-radius: 8px; color: #62626d; }
+#watchlistPanel .wl-groupstrip button[aria-pressed="true"] {
+  color: #0066d6;
+  background: #e7f1ff;
+  border-color: #a5ccff;
+}
+#watchlistPanel > #wlAddSymbol {
+  border: 1px solid #d0e1f9;
+  border-radius: 10px;
+  color: #0069dc;
+  background: #f9fbff;
+  justify-content: flex-start;
+}
+#watchlistPanel > #wlAddSymbol:hover { background: #eaf3ff; border-color: #9dc7ff; }
+#watchlistPanel > #wlAddSymbol:active { background: #d5e8ff; }
+#watchlistPanel .wl-row { border-radius: 10px; border-bottom-color: var(--line); color: var(--ink); box-shadow: none; }
+#watchlistPanel .wl-row:hover { background: #ededf2; border-left-color: #b8b8c3; }
+#watchlistPanel .wl-row[aria-current="true"] {
+  background: #e8f2ff;
+  border-left-color: var(--accent);
+  border-bottom-color: #d3e5fc;
+}
+#watchlistPanel .wl-row[aria-current="true"]:hover { background: #daebff; }
+#watchlistPanel .wl-row:active { background: #d5e6fc; }
+#watchlistPanel .wl-row-code { color: #71717b; }
+#watchlistPanel .wl-row-state, #wlInfo, #wlEmpty { color: var(--sub); }
+
+/* 설정·상세·사건·도움말·그룹 창은 같은 표면·경계·입력 상태를 공유한다. */
+.workspaceDialog, #helpDlg, #patternDialog, #wlSymbolDlg, #wlGroupDlg, #wlManageDlg {
+  border: 1px solid #d9d9e1;
+  border-radius: 16px;
+  color: var(--ink);
+  box-shadow: 0 24px 80px #1d1d1f26, 0 3px 12px #1d1d1f0b;
+}
+.workspaceDialog { background: var(--bg); }
+#helpDlg, #patternDialog, #wlSymbolDlg, #wlGroupDlg, #wlManageDlg { background: #fff; }
+#helpDlg { padding: 24px; max-height: calc(100dvh - 64px); overflow-y: auto; }
+#helpDlg h2 { margin: 0 0 16px; font-size: 18px; }
+.workspaceDialog::backdrop, #helpDlg::backdrop, #patternDialog::backdrop,
+#wlSymbolDlg::backdrop, #wlGroupDlg::backdrop, #wlManageDlg::backdrop { background: #1d1d1f38; }
+.dialogHead { background: #fff; border-bottom-color: #dddde5; }
+.dialogHead h2 { margin: 0; font-weight: 600; }
+.dialogHead button { border-radius: 9px; font-size: 12px; }
+.workspaceDialog .statusbox, .workspaceDialog .detailGroup { border-radius: 12px; background: #fff; }
+.workspaceDialog .detailGroup > summary { border-radius: 11px; color: var(--ink); }
+.workspaceDialog .detailGroup > summary:hover { background: #f4f4f7; }
+.workspaceDialog .detailGroup[open] > summary { border-bottom: 1px solid var(--line); border-radius: 11px 11px 0 0; }
+.workspaceDialog .detailGroup > summary::before { color: #74747f; }
+.workspaceDialog .detailGroup > .dgBody { padding-top: 10px; }
+.workspaceDialog .detailGroup .statusbox { border-radius: 0; }
+.workspaceDialog #priceIndicatorPanel { border-radius: 12px; }
+.workspaceDialog .readout, .lowFact, .patternCard, .termFocus {
+  background: #f7f7f9;
+  border-color: var(--line);
+  border-radius: 10px;
+}
+.workspaceDialog .entryOption, .workspaceDialog .entryBreakoutGroup, .monitorRow { border-radius: 10px; }
+.workspaceDialog :is(select, input:not([type="checkbox"]):not([type="radio"])),
+#helpQ, #wlSymbolQ, #wlGroupName, #wlManageName {
+  border: 1px solid var(--apple-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+.workspaceDialog :is(select, input:not([type="checkbox"]):not([type="radio"])):focus,
+#helpQ:focus, #wlSymbolQ:focus, #wlGroupName:focus, #wlManageName:focus { border-color: var(--accent); }
+.workspaceDialog .settingsRow, .workspaceDialog .controlField, .sourceGrid dt { color: var(--sub); }
+.workspaceDialog .sourceStatusRow { color: var(--sub); }
+#obsOverlay { border-color: var(--line); border-radius: 10px; background: #f7f7f9; }
+#entryPanel[data-decision="candidate"] { background: #f1faf4; }
+#entryPanel[data-decision="chase"], #entryPanel[data-decision="avoid"] { background: #fff8ee; }
+.patternCard[data-state="confirmed"] { border-color: #78b792; }
+.patternCard[data-state="breakout-pending"] { border-color: #d6ab69; }
+#patternEvents button, #flagEvents button, #triangleEvents button { justify-content: flex-start; }
+#patternSnapshotMeta { color: var(--sub); }
+#wlSymbolList .wl-symbol-add { border-radius: 9px; color: #0069dc; background: #edf5ff; border-color: #bcd8ff; }
+#wlSymbolList .wl-symbol-add:hover:not(:disabled) { background: #dcecff; border-color: #87baff; }
+#wlSymbolList .wl-symbol-add:active:not(:disabled) { background: #c5dfff; }
+#wlSymbolList .wl-symbol-add:disabled { background: #f2f2f5; color: #777782; border-color: var(--line); }
+#wlGroupOk, #wlManageOk { color: #fff; background: var(--accent); border-color: var(--accent); }
+#wlGroupOk:hover:not(:disabled), #wlManageOk:hover:not(:disabled) { color: #fff; background: #006be0; border-color: #006be0; }
+#wlGroupOk:active:not(:disabled), #wlManageOk:active:not(:disabled) { background: #0058bd; }
+#wlManageDelete { color: #b63434; border-color: #e6c7c7; }
+#wlManageDelete:hover:not(:disabled) { color: #a02424; background: #fff0f0; }
+#wlSymbolErr, #wlGroupErr, #wlManageErr { color: #a14821; }
+
+/* 작은 도움말은 불투명 기본값. 유리 효과는 메뉴와 대화상자 머리글만 허용한다. */
+.helpTrigger {
+  color: #6b6b76;
+  background: #fff;
+  border-color: #dcdce4;
+  border-radius: 50%;
+  box-shadow: none;
+}
+.helpTrigger[data-ui-icon]::before { width: 15px; height: 15px; flex-basis: 15px; }
+.helpTrigger:hover:not(:disabled), .helpTrigger[aria-expanded="true"] {
+  background: #eaf3ff;
+  border-color: #a5ccff;
+  color: #0069dc;
+}
+.helpContent {
+  background: #fff;
+  border-color: #dcdce4;
+  border-radius: 12px;
+  color: var(--ink);
+  box-shadow: 0 8px 28px #1d1d1f1a, 0 1px 3px #1d1d1f08;
+}
+.helpContent .helpClose { border-radius: 8px; color: var(--sub); background: #f1f1f5; }
+.helpContent .helpClose:hover { background: #e4e4ec; color: var(--ink); }
+#helpList dt { color: var(--ink); font-weight: 600; }
+#helpList dd { color: var(--sub); line-height: 1.7; }
+@supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
+  .watchManage[open] > .wl-actions, .workspaceDialog > .dialogHead {
+    background: rgb(255 255 255 / 94%);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .watchManage[open] > .wl-actions, .workspaceDialog > .dialogHead {
+    background: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (max-width: 1180px) {
+  .workspaceActions { gap: 4px; padding-left: 7px; margin-left: 2px; }
+  .workspaceActions button { gap: 4px; padding: 5px 7px; }
+}
+@media (max-width: 1024px) {
+  .topbar { gap: 8px; }
+  .symbolControls { gap: 5px; }
+  .symbolControls > label { gap: 4px; }
+  .toolbarActions, .workspaceActions { gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, button::before, summary { transition: none; animation: none; }
+}

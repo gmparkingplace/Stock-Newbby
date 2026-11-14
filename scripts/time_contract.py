@@ -8,9 +8,11 @@ from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from threading import RLock
 import toss_market
+from intraday_timeframes import is_intraday, minutes as intraday_minutes
 
 _CALENDAR_CACHE = {}
 _CALENDAR_LOCK = RLock()
+_CALENDAR_TZ = {'KR': 'Asia/Seoul', 'US': 'America/New_York'}
 
 
 def _aware(value):
@@ -28,19 +30,40 @@ def _market(code):
     return "US", "America/New_York"
 
 
-def calendar_days(market, query_date):
-    """Toss first; local regular exchange sessions when Toss is unconfigured."""
+def _calendar_ttl(market, query_date):
+    # Historical exchange sessions are immutable; keep them much longer than the
+    # live "today" window so H4 backfill annotation does not refetch every day.
+    today = datetime.fromtimestamp(_now(), timezone.utc).astimezone(ZoneInfo(_CALENDAR_TZ[market])).date().isoformat()
+    return 60 if query_date >= today else 86400
+
+
+def _calendar_source(source=None):
+    """명시 원천을 우선하고 생략한 기존 호출만 설정 기반으로 선택한다."""
+    if source is None:
+        return 'toss' if toss_market.enabled() else 'exchange-calendar'
+    if source in ('yfinance', 'yahoo', 'exchange-calendar'):
+        return 'exchange-calendar'
+    if source == 'toss':
+        return 'toss'
+    raise ValueError('unsupported-session-source')
+
+
+def calendar_days(market, query_date, source=None):
+    """Yahoo는 정규장, Toss는 통합 세션이며 원천 간 대체하지 않는다."""
     date.fromisoformat(query_date)
+    selected = _calendar_source(source)
     with _CALENDAR_LOCK:
-        configured = toss_market.enabled()
-        key = (market, query_date, 'toss' if configured else 'exchange-calendar')
+        # 명시 Toss 요청은 미설정 상태에서 이전 캐시나 정규장을 재사용하지 않는다.
+        if selected == 'toss' and not toss_market.enabled():
+            raise ValueError('toss-calendar-unconfigured')
+        key = (market, query_date, selected)
         hit = _CALENDAR_CACHE.get(key)
-        if hit and 0 <= _now() - hit[0] < 60:
+        if hit and 0 <= _now() - hit[0] < _calendar_ttl(market, query_date):
             return hit[1]
-        if not configured:
+        if selected == 'exchange-calendar':
             from exchange_sessions import calendar_days as regular_days
             days = regular_days(market, query_date)
-            if len(_CALENDAR_CACHE) >= 256:
+            if len(_CALENDAR_CACHE) >= 1024:
                 _CALENDAR_CACHE.pop(next(iter(_CALENDAR_CACHE)))
             _CALENDAR_CACHE[key] = (_now(), days)
             return days
@@ -70,25 +93,27 @@ def calendar_days(market, query_date):
             raise ValueError("calendar-date-mismatch")
         if not reply["previousBusinessDay"]["date"] < query_date < reply["nextBusinessDay"]["date"]:
             raise ValueError("calendar-date-order")
-        if len(_CALENDAR_CACHE) >= 256:
+        if len(_CALENDAR_CACHE) >= 1024:
             _CALENDAR_CACHE.pop(next(iter(_CALENDAR_CACHE)))
         _CALENDAR_CACHE[key] = (_now(), days)
         return days
 
 
-def market_session(code, now=None):
+def market_session(code, now=None, source=None):
+    """원천별 시장 상태. source 생략 시에만 기존 설정 기반 동작을 유지한다."""
     now = _aware(now or datetime.now(timezone.utc))
     market, tz = _market(code)
     today = now.astimezone(ZoneInfo(tz)).date().isoformat()
     result = dict(state="unknown", market=market, sessionDate=None,
                   checkedAt=now.isoformat(), nextTransitionAt=None, lastSessionEnd=None,
-                  source='toss' if toss_market.enabled() else 'exchange-calendar',
-                  scope='integrated' if toss_market.enabled() else 'regular')
+                  source='unknown', scope='unknown')
     if market == "continuous":
         return {**result, "state": "open", "sessionDate": today,
                 "source": "continuous", "scope": "continuous"}
     try:
-        days = calendar_days(market, today)
+        selected = _calendar_source(source)
+        result.update(source=selected, scope='integrated' if selected == 'toss' else 'regular')
+        days = calendar_days(market, today, source=selected)
         boundaries = sorted({t for intervals in days.values() for pair in intervals for t in pair})
         result["nextTransitionAt"] = next((t.isoformat() for t in boundaries if t > now), None)
         completed = [max(end for _, end in intervals) for intervals in days.values()
@@ -135,12 +160,12 @@ def _utcnow_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def confirmation_at(code, tz, candle_time, tf):
+def confirmation_at(code, tz, candle_time, tf, source=None):
     """Earliest time candidate may be used, subject to a later source fetch."""
     market, _ = _market(code)
-    if tf == "H4":
+    if is_intraday(tf):
         start = datetime.fromtimestamp(float(candle_time), timezone.utc)
-        end = start + timedelta(hours=4)
+        end = start + timedelta(minutes=intraday_minutes(tf))
         day = start.astimezone(ZoneInfo(tz)).date()
     else:
         day = date.fromisoformat(str(candle_time)[:10])
@@ -157,7 +182,7 @@ def confirmation_at(code, tz, candle_time, tf):
         if not (tf == "M" and market == "continuous"):
             end = datetime.combine(day + timedelta(days=1), datetime.min.time(), timezone.utc)
     if market != "continuous":
-        days = calendar_days(market, day.isoformat())
+        days = calendar_days(market, day.isoformat(), source=source)
         if tf == "W":
             monday = day - timedelta(days=4)
             candidates = [d for d, intervals in days.items()
@@ -165,7 +190,7 @@ def confirmation_at(code, tz, candle_time, tf):
             if not candidates:
                 raise ValueError("weekly-session-unknown")
             intervals = days[max(candidates)]
-        elif tf == "H4":
+        elif is_intraday(tf):
             # Extended sessions may cross midnight; use the containing trading day.
             matching = [v for v in days.values() if any(s <= start < e for s, e in v)]
             if not matching:
@@ -186,14 +211,14 @@ def confirmation_at(code, tz, candle_time, tf):
         if not intervals:
             raise ValueError("no-trading-session")
         session_end = max(e for _, e in intervals)
-        end = min(end, session_end) if tf == "H4" else session_end
+        end = min(end, session_end) if is_intraday(tf) else session_end
     return end + timedelta(minutes=CONFIRM_BUFFER_MIN)
 
 
-def bar_confirmed(code: str, tz: str, last_t, tf: str, now=None) -> bool:
+def bar_confirmed(code: str, tz: str, last_t, tf: str, now=None, source=None) -> bool:
     """Time candidate only; judgment_metadata additionally requires source refresh."""
     try:
-        return _aware(now or datetime.now(timezone.utc)) >= confirmation_at(code, tz, last_t, tf)
+        return _aware(now or datetime.now(timezone.utc)) >= confirmation_at(code, tz, last_t, tf, source=source)
     except (ValueError, TypeError, KeyError, OverflowError, OSError, toss_market.TossError):
         return False
 
@@ -202,7 +227,16 @@ def judgment_metadata(out, code, tz, tf, now=None, session=None):
     """Shallow-copy frame metadata; never mutate cached payload or candle arrays."""
     result = dict(out)
     now = _aware(now or datetime.now(timezone.utc))
-    session = session if session is not None else market_session(code, now)
+    source = out.get('source')
+    if session is not None and source is not None:
+        # 외부에서 재사용한 세션도 명시 원천과 일치해야 한다.
+        try:
+            expected = 'continuous' if _market(code)[0] == 'continuous' else _calendar_source(source)
+        except ValueError:
+            expected = None
+        if expected is None or session.get('source') != expected:
+            session = None
+    session = session if session is not None else market_session(code, now, source=source)
     candles = out.get("candles", [])
     last = candles[-1]["time"] if candles else None
     result.update(marketSession=session, snapshotEligible=False, lastConfirmedTime=None,
@@ -212,16 +246,16 @@ def judgment_metadata(out, code, tz, tf, now=None, session=None):
         if fetched > now:
             return result
         data_date = out.get("sourceDate", last)
-        if tf == "H4" and last is not None:
+        if is_intraday(tf) and last is not None:
             data_date = datetime.fromtimestamp(float(last), timezone.utc).astimezone(ZoneInfo(tz)).date().isoformat()
         result["snapshotEligible"] = bool(candles and session["state"] in ("open", "break")
                                           and str(data_date)[:10] == session["sessionDate"]
-                                          and not out.get("lastError"))
+                                          and not out.get("lastError") and not out.get("stale"))
         if session["state"] == "unknown" or out.get("lastError"):
             return result
         for candle in reversed(candles):
             try:
-                threshold = confirmation_at(code, tz, candle["time"], tf)
+                threshold = confirmation_at(code, tz, candle["time"], tf, source=source)
             except (ValueError, TypeError, KeyError, toss_market.TossError):
                 # Do not fan a failed calendar request out across the entire history.
                 break

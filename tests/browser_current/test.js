@@ -69,6 +69,38 @@ const trace = () => request(URL,'/api/test/state');
 async function checkErrors() {
   assert.deepEqual(await ev('[window.__jsErrors,window.__jsRejections]'),[[],[]]);
 }
+async function clickElement(selector) {
+  const element=(await cmd('/element','POST',{using:'css selector',value:selector})).value;
+  await cmd(`/element/${element['element-6066-11e4-a52e-4f735466cecf']}/click`,'POST',{});
+}
+async function closeWorkspaceDialog(escape=false) {
+  const id=await ev('document.querySelector("dialog.workspaceDialog[open]")?.id || null');
+  if(!id)return;
+  if(escape) {
+    await cmd('/actions','POST',{actions:[{type:'key',id:'keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]});
+    await cmd('/actions','DELETE');
+  } else await clickElement('#'+id+' .dialogHead button');
+  await until(()=>ev(`!document.getElementById(${JSON.stringify(id)}).open`),'workspace dialog closed');
+}
+async function openWorkspaceDialog(id) {
+  if(await ev(`document.getElementById(${JSON.stringify(id)}).open`))return;
+  await closeWorkspaceDialog();
+  await clickElement(id==='settingsDialog'?'#openSettings':'#openAnalysis');
+  await until(()=>ev(`document.getElementById(${JSON.stringify(id)}).open`),'workspace dialog opened');
+}
+async function reveal(id) {
+  const dialog=await ev(`document.getElementById(${JSON.stringify(id)}).closest('dialog.workspaceDialog')?.id || null`);
+  if(dialog)await openWorkspaceDialog(dialog);else await closeWorkspaceDialog();
+  await ev(`(()=>{const el=document.getElementById(${JSON.stringify(id)});for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;el.scrollIntoView({block:'center'});})()`);
+}
+async function clickControl(id) {
+  await reveal(id);await clickElement('#'+id);await closeWorkspaceDialog();
+}
+async function captureSection(id,name) {
+  await reveal(id);await pause(200);
+  assert(await ev(`document.getElementById(${JSON.stringify(id)}).getBoundingClientRect().height>0`),'capture target is visible: '+id);
+  await screenshot(name);await closeWorkspaceDialog();
+}
 async function navigate() {
   if(await ev('Boolean(window.__CF)').catch(()=>false)) await checkErrors();
   await ev('if(window.__CF) S.autoRef=false;void 0');
@@ -93,7 +125,8 @@ async function navigate() {
   await cmd('/window','POST', {handle: next});
   assert.equal((await cmd('/window/handles')).value.length,1,'one chart window');
   await cmd('/window/rect','POST',{width:1280,height:900});
-  await until(()=>ev('Boolean(window.__CF && serverMode && !S.refreshing && S.sourceKind === "live")'),'chart fixture loaded',30000);
+  await until(()=>ev('Boolean(window.__CF && window.WorkspaceUI && serverMode && !S.refreshing && S.sourceKind === "live")'),'chart fixture loaded',30000);
+  await until(()=>ev('document.fonts.status === "loaded" && chart.options().layout.fontFamily.includes("Pretendard")'),'workspace font layout settled');
   await until(async()=>{const r=await cli(['tabs']);return r.code===0 && r.data.tabs.some(t=>t.snapshot?.sourceKind==='live');},'mailbox registration');
 }
 
@@ -247,7 +280,7 @@ async function scenarios() {
   // No SSE and no direct EntryModel/quote injection: mutate source OHLCV, wait for polling.
   const firstClose=await ev('__CF.frameNow().candles.at(-1).close');
   await config({priceMode:'wait'});
-  await setClock('2026-09-07T06:00:31+00:00'); // production interval is 30s; advance the fixture clock
+  await setClock('2026-09-07T06:01:01+00:00'); // 일봉 자동 조회 60초 경계를 넘긴다.
   await until(()=>ev('entryEvaluation().code==="wait"&&!entryEvaluation().matched'),'automatic OHLCV wait transition',16000);
   assert.notEqual(await ev('__CF.frameNow().candles.at(-1).close'),firstClose);
   for(const mode of ['avoid','chase','candidate']){
@@ -264,7 +297,7 @@ async function scenarios() {
   await ev('document.getElementById("btnAuto").click();void 0');
   assert.equal((await inspect()).entry.code,'blocked');
   await ev('document.getElementById("btnAuto").click();void 0');await until(()=>ev('!S.refreshing'),'auto resume');
-  await config({keepSource:true,holdSymbol:'005930.KS'});await setClock('2026-09-07T06:02:00+00:00');
+  await config({keepSource:true,holdSymbol:'005930.KS'});await setClock('2026-09-07T06:03:00+00:00');
   await until(()=>ev('document.getElementById("entryPanel").dataset.state==="blocked"&&currentObs().model.timeliness.reason==="snapshot-expired"'),'one-second expiry without completed lookup');
   await config({release:true});state=await reload();
   assert.equal(state.entry.code,'blocked');assert.equal(state.observation.timeliness.reason,'snapshot-expired');
@@ -291,9 +324,9 @@ async function scenarios() {
   assert.deepEqual(state.entry,(await screen()).entry);
   assert.match(await ev('document.getElementById("entrySetup").textContent'),/2026-09-04.*2026-09-11/);
   evidence.push({scenario:'Wednesday closed weekly CLI and panel',entry:state.entry});
-  await ev('document.getElementById("entryPanel").scrollIntoView();void 0');
-  await screenshot('firefox-weekly-confirmed');
+  await captureSection('entryPanel','firefox-weekly-confirmed');
   await config({reset:true});await setClock('2026-09-07T06:00:00+00:00');await view('005930.KS','3M','latest');await reload();
+  await reveal('signalStrategy');
   for(const k of 'ABCF') {
     const element=(await cmd('/element','POST',{using:'css selector',value:'#signalStrategy'})).value;
     const id=element['element-6066-11e4-a52e-4f735466cecf'];assert(id,JSON.stringify(element));
@@ -309,6 +342,7 @@ async function scenarios() {
     }
     assert.match(await ev('document.getElementById("readSignalKey").textContent'),new RegExp(k));
   }
+  await closeWorkspaceDialog();
   console.log('PASS production OHLCV transitions, freshness/failure gates, closed daily and weekly CLI agreement');
 
   // Watchlist scenarios
@@ -433,8 +467,8 @@ async function scenarios() {
       if(c.clientWidth<200||c.clientHeight<100)continue;
       const p=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
       for(let i=0;i<p.length;i+=4){if(p[i+3]<100)continue;
-        if(p[i]>160&&p[i+1]<100&&p[i+2]<100)red++;
-        if(p[i]<70&&p[i+1]>50&&p[i+1]<140&&p[i+2]>150)blue++;
+        if(p[i]>190&&p[i+1]<170&&p[i+2]<180&&p[i]-p[i+1]>60)red++;
+        if(p[i]<170&&p[i+1]>90&&p[i+1]<210&&p[i+2]>200&&p[i+2]-p[i]>65)blue++;
       }
     }return red>50&&blue>50;
   })()`),'rendered main-pane pixels');
@@ -459,17 +493,35 @@ async function scenarios() {
 
   for(const width of [1280]) {
     await cmd('/window/rect','POST',{width,height:900});
-    await until(()=>ev('Math.abs(document.querySelector("#chart > div").getBoundingClientRect().height-document.getElementById("chart").clientHeight)<2'),'chart follows aspect ratio');
-    await ev('paintSelLine();document.getElementById("selline").scrollIntoView();void 0');
-    const getGeometry=()=>ev(`Array.from(document.querySelectorAll('.readout,.chartTools button'),el=>{const r=el.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})`);
+    await until(()=>ev('Math.abs(document.querySelector("#chart > div").getBoundingClientRect().height-document.getElementById("chart").clientHeight)<2'),'chart canvas fills its box');
+    await ev('paintSelLine();void 0');await reveal('selline');
+    assert(await ev('document.getElementById("selline").getBoundingClientRect().height>0'),'readout is actually visible');
+    const getGeometry=()=>ev(`Array.from(document.querySelectorAll('#selline .readout'),el=>{const r=el.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})`);
     const geometry=await getGeometry();
     const state=await ev('({observation:document.getElementById("readObservation").textContent,signal:document.getElementById("readSignal").textContent,asOf:S.selectedAsOf})');
     await ev('paintCandleReadout({time:"2026-09-01",open:999999999,high:9999999999,low:1,close:99999999,volume:9999999999999},"미리보기");void 0');
     assert.deepEqual(await getGeometry(),geometry,'text length cannot move price cells or controls');
     assert.deepEqual(await ev('({observation:document.getElementById("readObservation").textContent,signal:document.getElementById("readSignal").textContent,asOf:S.selectedAsOf})'),state,'hover preserves fixed observation and signal');
-    await ev('paintSelLine();zoom(1.8);void 0');await pause(200);
-    const layout=await ev('({boxes:markerLayout.boxes,icons:markerLayout.icons,width:chart.timeScale().width(),ratio:document.getElementById("chart").clientWidth/document.getElementById("chart").clientHeight,signal:document.getElementById("readSignal").textContent,asOf:S.selectedAsOf})');
-    assert(Math.abs(layout.ratio-1.5)<.02,'stable chart aspect ratio');
+    await screenshot('chart-readout-dialog-'+width);await closeWorkspaceDialog();
+    await ev('paintSelLine();document.getElementById("chart").scrollIntoView();zoom(1.8);void 0');await pause(200);
+    const layout=await ev(`({boxes:markerLayout.boxes,icons:markerLayout.icons,width:chart.timeScale().width(),
+      ratio:document.getElementById("chart").clientWidth/document.getElementById("chart").clientHeight,
+      signal:document.getElementById("readSignal").textContent,asOf:S.selectedAsOf,
+      primary:document.querySelector(".workspacePrimary").getBoundingClientRect().width,
+      side:document.querySelector(".workspaceSide").getBoundingClientRect().width,
+      sideLeft:document.querySelector(".workspaceSide").getBoundingClientRect().left,
+      chartRight:document.getElementById("chartWrap").getBoundingClientRect().right,
+      chartTop:document.getElementById("chartWrap").getBoundingClientRect().top,
+      indicatorTop:document.getElementById("indicatorPanel").getBoundingClientRect().top,
+      watchInSide:document.querySelector(".workspaceSide").contains(document.getElementById("watchlistPanel")),
+      settingsInSide:document.querySelector(".workspaceSide").contains(document.getElementById("settingsPanel"))})`);
+    assert(layout.ratio>1.5&&layout.ratio<3,'wide chart fills its row');
+    assert(Math.abs(layout.side-260)<2,'fixed desktop watchlist width');
+    assert(layout.sideLeft>=layout.chartRight-1,'side column starts after chart');
+    assert(layout.indicatorTop>layout.chartTop,'indicators below chart');
+    assert.equal(layout.watchInSide,true,'watchlist stays in side column');
+    assert.equal(layout.settingsInSide,false,'settings leave the side column');
+    assert(await ev('document.getElementById("settingsDialog").contains(document.getElementById("settingsPanel")) && document.getElementById("settingsDialog").contains(document.getElementById("monitorPanel"))'),'settings and monitor move to settings dialog');
     assert.equal(layout.signal,state.signal);assert.equal(layout.asOf,state.asOf);
     for(const b of layout.boxes){
       assert(b.left>=4 && b.right<=layout.width-4);
@@ -478,7 +530,7 @@ async function scenarios() {
     assert.equal(await ev('document.documentElement.scrollWidth<=window.innerWidth'),true,'desktop page fits');
     await screenshot('chart-readout-'+width);
   }
-  evidence.push({scenario:'fixed readout and proportional chart',widths:[1280],aspectRatio:1.5});
+  evidence.push({scenario:'visible dialog readout and fixed watchlist column',widths:[1280]});
   console.log('PASS fixed readout geometry, preview isolation, zoom collision spacing, desktop viewport');
 
   // Use WebDriver window rect as the source of truth, then verify DOM overflow.
@@ -488,8 +540,7 @@ async function scenarios() {
   assert.equal(await ev('document.documentElement.scrollWidth <= window.innerWidth && document.body.scrollWidth <= window.innerWidth'),true,'unmodified page fits viewport');
   assert.equal(await ev('window.innerWidth'), 1280, 'actual desktop viewport');
   await checkErrors();
-  await ev('document.getElementById("entryPanel").scrollIntoView();void 0');
-  await screenshot('firefox-final');
+  await captureSection('entryPanel','firefox-final');
   console.log('PASS initial-script errors, actual desktop viewport, decoded PNG');
 }
 async function screenshot(name) {
@@ -530,6 +581,8 @@ async function stopChild(p) {
   assert(p.exitCode!==null||p.signalCode!==null,'owned child still running');
 }
 async function patternScenario() {
+  // 이전 관심목록 시나리오의 저장 목록이 사건 읽기 전용 검사 중 수집하지 않게 격리한다.
+  await ev('if(window.Watchlist)Watchlist.reset();void 0').catch(()=>{});
   await config({reset:true,patterns:true,priceMode:'chase',now:'2026-09-07T06:00:00+00:00'});
   await navigate();
   await ev('S.symbol="005930.KS";S.tf="D";S.selectedAsOf=null;S.autoRef=true;void __CF.refreshLive({reason:"manual"})');
@@ -575,9 +628,7 @@ async function patternScenario() {
     await cmd('/window/rect','POST',{width,height:1000});
     await ev('PatternPanel.render();void 0');
     assert.equal(await ev('document.documentElement.scrollWidth<=window.innerWidth'),true,'P2 page overflow');
-    await ev('document.getElementById("patternPanel").scrollIntoView({block:"start"});void 0');
-    await pause(200);
-    await screenshot('pattern-panel-'+width);
+    await captureSection('patternPanel','pattern-panel-'+width);
   }
   await checkErrors();
   evidence.push({scenario:'P2 provisional/confirmed UI, CLI frozen snapshot, zoom and historical guards',eventId:event.eventId});
@@ -606,7 +657,7 @@ async function flagScenario(){
   await until(()=>ev('!S.refreshing && FlagPanel.current().patterns.some(p=>p.status==="confirmed")'),'Flag confirmed');
   const model=await ev('FlagPanel.current()');assert.equal(model.patterns[0].type,'bull-flag');
   sameComputedModel(done(await cli(['inspect'])).flags,model);
-  await until(()=>ev('document.querySelector("#chart .patternUnderlay polygon[data-pattern]")?.getAttribute("fill")==="#dbeafe"'),'opaque flag area');
+  await until(()=>ev('document.querySelector("#chart .patternUnderlay polygon[data-pattern]")?.getAttribute("fill")===ChartTheme.colors.patternUpFill'),'opaque flag area');
   assert.equal(await ev('getComputedStyle(document.querySelector("#chart .patternUnderlay")).pointerEvents'),'none');
   const before=await ev('FlagPanel.overlay().element.querySelector("polygon[data-pattern]").getAttribute("points")');
   await ev('__CF.setRange("2026-08-17","2026-09-07");void 0');
@@ -614,10 +665,10 @@ async function flagScenario(){
   assert.deepEqual(await ev('FlagPanel.current()'),model,'zoom changed flag evidence');
   await ev('document.getElementById("chart").scrollIntoView({block:"start"});void 0');await pause(300);
   await screenshot('flag-channel-overlay');
-  await ev('document.getElementById("flagOverlayToggle").click();void 0');
+  await clickControl('flagOverlayToggle');
   await until(()=>ev('!document.querySelector("#chart .patternUnderlay polygon[data-pattern]")'),'overlay off');
   assert.deepEqual(await ev('FlagPanel.current()'),model,'hide changed model');
-  await ev('document.getElementById("flagOverlayToggle").click();void 0');
+  await clickControl('flagOverlayToggle');
   const event=model.events.find(e=>e.eventType==='confirmed');assert(event);
   const shown=await cli(['events','show','--id',event.eventId]);assert.equal(shown.code,0,shown.error);
   await ev(`void PatternPanel.openEvent(${JSON.stringify(event)})`);
@@ -637,12 +688,12 @@ async function flagScenario(){
   await ev('__setClock("2026-09-08T01:00:00+00:00");void 0');
   await view('AAPL','3M','latest','D');await ev('void __CF.refreshLive({reason:"manual"})');
   await until(()=>ev('!S.refreshing && FlagPanel.current().patterns.some(p=>p.type==="bear-flag")'),'bear flag');
-  await until(()=>ev('document.querySelector("#chart polygon[data-pattern]")?.getAttribute("fill")=="#fee2e2"'),'bear area rendered');
+  await until(()=>ev('document.querySelector("#chart polygon[data-pattern]")?.getAttribute("fill")===ChartTheme.colors.patternDownFill'),'bear area rendered');
   for(const width of [1280]){
     await cmd('/window/rect','POST',{width,height:1000});
-    await ev('FlagPanel.render();document.getElementById("flagPanel").scrollIntoView({block:"start"});void 0');await pause(200);
+    await ev('FlagPanel.render();void 0');await reveal('flagPanel');
     assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'),true,'Flag overflow');
-    await screenshot('flag-panel-'+width);
+    await captureSection('flagPanel','flag-panel-'+width);
   }
   await checkErrors();evidence.push({scenario:'Bull/Bear causal Flag with opaque channel, triangle renderer, zoom/TF/as-of guards and frozen snapshot'});
 }
@@ -668,8 +719,8 @@ async function monitorScenario(){
   await ev('void MonitorPanel.poll();if(S.autoRef)document.getElementById("btnAuto").click();void 0');
   assert.equal((await request(URL,'/api/monitor/status')).enabled,true,'screen auto disabled server monitoring');
   for(const width of [1280]){
-    await cmd('/window/rect','POST',{width,height:1000});await ev('document.getElementById("monitorPanel").scrollIntoView({block:"start"});void 0');await pause(200);
-    assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'),true,'monitor overflow');await screenshot('monitor-panel-'+width);
+    await cmd('/window/rect','POST',{width,height:1000});await reveal('monitorPanel');
+    assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'),true,'monitor overflow');await captureSection('monitorPanel','monitor-panel-'+width);
   }
   // Navigate away: server still receives a close job and stores an event.
   await cmd('/url','POST',{url:URL+'/api/health'});
@@ -691,7 +742,7 @@ async function triangleScenario(){
   // fixture time. Select the KR session explicitly for provisional assertions.
   await view('005930.KS','3M','latest','D');
   await until(()=>ev('TrianglePanel.current().patterns.some(p=>p.status==="forming")'),'neutral forming triangle');
-  await until(()=>ev('document.querySelector("#chart polygon[data-pattern]")?.getAttribute("fill")=="#e2e8f0"'),'neutral triangle fill');
+  await until(()=>ev('document.querySelector("#chart polygon[data-pattern]")?.getAttribute("fill")===ChartTheme.colors.patternNeutralFill'),'neutral triangle fill');
   await config({reset:true,triangles:true,now:'2026-09-07T06:00:00+00:00'});await ev('void __CF.refreshLive({reason:"manual"})');
   await until(()=>ev('TrianglePanel.current().patterns.some(p=>p.status==="breakout-pending")'),'provisional triangle');
   assert.equal(await ev('TrianglePanel.current().events.length'),0,'provisional event');
@@ -703,14 +754,14 @@ async function triangleScenario(){
   let model=await ev('TrianglePanel.current()');assert.equal(model.patterns[0].type,'ascending-triangle');assert.equal(model.patterns[0].direction,'up');
   sameComputedModel(done(await cli(['inspect'])).triangles,model);
   const cached=await cli(['patterns','--symbol','005930.KS','--kind','triangle']);assert.equal(cached.code,0,cached.error);assert.equal(cached.data.ruleVersion,'triangle-d-v2');
-  await ev('document.getElementById("triangleFit").click();document.getElementById("chart").scrollIntoView({block:"start"});void 0');
+  await clickControl('triangleFit');await ev('document.getElementById("chart").scrollIntoView({block:"start"});void 0');
   await until(()=>ev('document.querySelector("#chart polygon[data-pattern]")?.getAttribute("points").split(" ").length===3'),'three projected vertices');
   assert.equal(await ev('document.querySelectorAll("#chart .patternUnderlay").length'),1,'multiple chart overlays');
   const before=await ev('document.querySelector("#chart polygon[data-pattern]").getAttribute("points")');
   await ev('__CF.setRange("2026-08-10","2026-09-07");void 0');
   await until(()=>ev(`document.querySelector('#chart polygon[data-pattern]')?.getAttribute('points')!==${JSON.stringify(before)}`),'triangle zoom coordinates');
   assert.deepEqual(await ev('TrianglePanel.current()'),model,'zoom changed triangle evidence');
-  await ev('document.getElementById("triangleFit").click();void 0');await pause(250);
+  await clickControl('triangleFit');await pause(250);
   const diag=await ev('({model:TrianglePanel.selected(),range:chart.timeScale().getVisibleLogicalRange(),bars:frameOf(curSym()).candles.length,points:document.querySelector("#chart polygon[data-pattern]").getAttribute("points")})');
   fs.writeFileSync(path.join(LOGS,'triangle-coordinates.json'),JSON.stringify(diag,null,2));
   const vertices=diag.points.split(' ').map(p=>p.split(',').map(Number));
@@ -748,8 +799,8 @@ async function triangleScenario(){
     await until(()=>ev(`!S.refreshing&&TrianglePanel.current().patterns.some(p=>p.type==='${kind}-triangle'&&p.direction==='down')`),'actual '+kind);
   }
   for(const width of [1280]){
-    await cmd('/window/rect','POST',{width,height:1000});await ev('document.getElementById("trianglePanel").scrollIntoView({block:"start"});void 0');await pause(200);
-    assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'),true,'triangle overflow');await screenshot('triangle-panel-'+width);
+    await cmd('/window/rect','POST',{width,height:1000});await reveal('trianglePanel');
+    assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'),true,'triangle overflow');await captureSection('trianglePanel','triangle-panel-'+width);
   }
   await checkErrors();evidence.push({scenario:'Actual ascending/descending/symmetrical triangle, both directions, fractional apex, one overlay, historical/TF/freshness guards and immutable UI/CLI basis'});
 }
@@ -759,7 +810,7 @@ async function indicatorScenario(){
   await ev('Watchlist.reset();if(S.autoRef)document.getElementById("btnAuto").click();void 0');
   await cmd('/window/rect','POST',{width:1280,height:1100});
   assert.equal(await ev('document.querySelectorAll("#chartLegend [data-status]").length'),7);
-  assert(await ev('document.getElementById("chartLegend").getBoundingClientRect().bottom<document.getElementById("chart").getBoundingClientRect().top'),'legend above chart');
+  assert(await ev('document.getElementById("analysisDialog").contains(document.getElementById("chartLegend"))'),'legend belongs to analysis dialog');
   assert.match(await ev('document.getElementById("chartLegend").textContent'),/상승 흐름.*최근 10봉 저점 아래.*고점 접근/);
   let baseline=await ev('IndicatorPanel.current()');assert.equal(baseline.kind,'rsi');
   assert.equal(baseline.value,await ev('frameOf(curSym()).state[asOfIdx()].rsi14'));assert.equal(baseline.status,'ready');
@@ -785,18 +836,19 @@ async function indicatorScenario(){
   // Old structure must not reappear on a six-month chart, even from an older server.
   await ev('window.__triSaved=structuredClone(curSym().triangleAnalysis);curSym().triangleAnalysis.timeline.at(-1).patterns[0].structureStartTime="2026-06-06";TrianglePanel.render();void 0');
   assert.equal(await ev('TrianglePanel.current().patterns.length'),0);await until(()=>ev('!document.querySelector("#chart polygon[data-pattern]")'),'old geometry cleared');
-  await ev('curSym().triangleAnalysis=__triSaved;TrianglePanel.render();document.getElementById("triangleFit").click();void 0');
+  await ev('curSym().triangleAnalysis=__triSaved;TrianglePanel.render();void 0');await clickControl('triangleFit');
   for(const width of [1280]){
-    await cmd('/window/rect','POST',{width,height:1100});await ev('document.getElementById("chartLegend").scrollIntoView({block:"start"});void 0');await pause(300);
+    await cmd('/window/rect','POST',{width,height:1100});await captureSection('chartLegend','indicator-legend-detail-'+width);await pause(300);
     await until(()=>ev('Math.abs(IndicatorPanel.chart().timeScale().getVisibleLogicalRange().from-chart.timeScale().getVisibleLogicalRange().from)<.001'),'responsive indicator period');
     fs.writeFileSync(path.join(LOGS,'indicator-range-'+width+'.json'),JSON.stringify(await ev('({main:chart.timeScale().getVisibleLogicalRange(),indicator:IndicatorPanel.chart().timeScale().getVisibleLogicalRange(),mainX:chart.timeScale().logicalToCoordinate(66),indicatorX:IndicatorPanel.chart().timeScale().logicalToCoordinate(66)})'),null,2));
     assert(await ev('document.documentElement.scrollWidth<=innerWidth'),'indicator/legend overflow');
-    const ratio=await ev('document.getElementById("chart").clientWidth/document.getElementById("chart").clientHeight');assert(Math.abs(ratio-1.5)<.03);
+    const ratio=await ev('document.getElementById("chart").clientWidth/document.getElementById("chart").clientHeight');assert(ratio>1.5&&ratio<3,'wide chart row');
     await screenshot('indicator-legend-'+width);
     await ev('document.getElementById("indicatorPanel").scrollIntoView({block:"start"});void 0');await screenshot('indicator-panel-'+width);
   }
   await ev('document.getElementById("indicatorChoice").value="none";document.getElementById("indicatorChoice").dispatchEvent(new Event("change"));void 0');
   assert.equal(await ev('IndicatorPanel.current().status'),'hidden');assert(await ev('document.getElementById("indicatorBody").hidden'));
+  assert.equal(await ev('getComputedStyle(document.getElementById("indicatorBody")).display'),'none','hidden wins over flex layout');
   await ev('document.getElementById("indicatorChoice").value="rsi";document.getElementById("indicatorChoice").dispatchEvent(new Event("change"));__CF.setTF("W");void 0');
   assert.equal((await ev('IndicatorPanel.current()')).basisTime,await ev('frameOf(curSym()).candles.at(-1).time'));
   await ev('__CF.setTF("M");void 0');assert.equal((await ev('IndicatorPanel.current()')).status,'insufficient-data');assert.equal((await ev('IndicatorPanel.current()')).value,null);
@@ -815,6 +867,7 @@ async function technicalScenario(){
     await choosePrice(kind);const s=await ev('PriceIndicators.current()');assert.equal(s.kind,kind);assert.equal(s.status,kind==='none'?'hidden':kind==='bollinger'?'ready':'partial-data');
     sameComputedModel(done(await cli(['inspect'])).priceIndicators,s);
     if(kind!=='none')assert.equal(await ev('PriceIndicators.series().filter(s=>s.options().visible).length'),kind==='bollinger'?3:4);
+    else assert.equal(await ev('getComputedStyle(document.getElementById("priceIndicatorReadout")).display'),'none','hidden price values stay hidden in the new layout');
   }
   await chooseAux('macd');const macd=await ev('IndicatorPanel.current()');assert.equal(macd.status,'ready');
   sameComputedModel(done(await cli(['inspect'])).indicator,macd);
@@ -842,14 +895,15 @@ async function technicalScenario(){
   for(const width of [1280]){
     await cmd('/window/rect','POST',{width,height:1100});
     for(const kind of ['ema','bollinger']){
-      await choosePrice(kind);await ev('document.getElementById("priceIndicatorPanel").scrollIntoView({block:"start"});void 0');await pause(250);
-      assert(await ev('document.documentElement.scrollWidth<=innerWidth'),'price indicator overflow');await screenshot('technical-'+kind+'-'+width);
+      await choosePrice(kind);await reveal('priceIndicatorPanel');await pause(250);
+      assert(await ev('document.documentElement.scrollWidth<=innerWidth'),'price indicator overflow');await captureSection('priceIndicatorPanel','technical-'+kind+'-'+width);
+      await captureSection('priceIndicatorReadout','technical-readout-'+kind+'-'+width);
     }
     await ev('document.getElementById("indicatorPanel").scrollIntoView({block:"start"});void 0');await pause(200);
     await until(()=>ev('Math.abs(IndicatorPanel.chart().timeScale().getVisibleLogicalRange().from-chart.timeScale().getVisibleLogicalRange().from)<.001'),'MACD responsive range');
     assert(await ev('document.documentElement.scrollWidth<=innerWidth'),'MACD overflow');
     const g=await ev('({main:chart.timeScale().getVisibleLogicalRange(),aux:IndicatorPanel.chart().timeScale().getVisibleLogicalRange(),mainX:chart.timeScale().logicalToCoordinate(50),auxX:IndicatorPanel.chart().timeScale().logicalToCoordinate(50),ratio:document.getElementById("chart").clientWidth/document.getElementById("chart").clientHeight})');
-    assert(Math.abs(g.mainX-g.auxX)<.1,'MACD candle alignment: '+JSON.stringify(g));assert(Math.abs(g.ratio-1.5)<.03);geometry.push({width,...g});await screenshot('technical-macd-'+width);
+    assert(Math.abs(g.mainX-g.auxX)<.1,'MACD candle alignment: '+JSON.stringify(g));assert(g.ratio>1.5&&g.ratio<3,'wide chart row');geometry.push({width,...g});await screenshot('technical-macd-'+width);
   }
   fs.writeFileSync(path.join(LOGS,'technical-ranges.json'),JSON.stringify(geometry,null,2));
   for(const kind of ['rsi','volume','atr','macd']){await chooseAux(kind);assert.equal(await ev('IndicatorPanel.series().signal.options().visible'),kind==='macd');}
@@ -883,11 +937,358 @@ async function cachedTriangleReplay(){
   evidence.push({scenario:'Cached real bars: interior fractional apex and bounded stable observation dots',...result});
 }
 
+async function uiScenario(){
+  await config({reset:true,now:'2026-09-07T12:00:00+00:00'});await navigate();
+  await view('AAPL','3M','latest','D');
+  await ev('S.autoRef=false;void 0');
+  await until(()=>ev('!S.refreshing'),'initial requests settled');
+  // 종합판단: 허용된 다섯 상태 중 하나이고, 사유와 기준이 함께 표시된다.
+  const verdict=await ev(`(()=>{const p=document.getElementById('verdictPanel');
+    return {code:p.dataset.verdict,tone:p.dataset.tone,label:document.getElementById('verdictLabel').textContent.trim(),
+      reason:document.getElementById('verdictReason').textContent.trim(),
+      meta:document.getElementById('verdictMeta').textContent.trim(),
+      inPrimary:document.querySelector('.workspacePrimary').contains(p),
+      aboveChart:document.getElementById('verdictPanel').getBoundingClientRect().top<document.getElementById('chartWrap').getBoundingClientRect().top};})()`);
+  assert(['buy','sell','hold','wait','blocked'].includes(verdict.code),'verdict code');
+  assert(['매수','매도','홀드','관망','판단 보류'].includes(verdict.label),'verdict label');
+  assert(verdict.reason.length>0,'verdict reason');
+  assert(verdict.meta.includes('확정봉')||verdict.meta.includes('잠정'),'verdict meta');
+  assert.equal(verdict.inPrimary,true,'verdict lives in the primary column');
+  assert.equal(verdict.aboveChart,true,'verdict sits above the chart');
+  await until(()=>ev('document.fonts.status==="loaded" && document.fonts.check("14px Pretendard")'),'local font ready');
+  const fonts=await ev(`({body:getComputedStyle(document.body).fontFamily,main:chart.options().layout.fontFamily,
+    aux:IndicatorPanel.chart().options().layout.fontFamily,
+    faces:Array.from(document.fonts).filter(f=>f.family.replaceAll('"','')==='Pretendard').map(f=>f.status),
+    local:performance.getEntriesByType('resource').filter(r=>/Pretendard.*\\.woff2/.test(r.name)).map(r=>r.name)})`);
+  assert(fonts.body.includes('Pretendard')&&fonts.main.includes('Pretendard')&&fonts.aux.includes('Pretendard'),'UI and both charts use Pretendard');
+  assert(fonts.faces.includes('loaded')&&fonts.local.length>0,'actual local font loaded');
+  assert(fonts.local.every(url=>new globalThis.URL(url).origin===URL),'font stays on local origin');
+  assert(await ev('!document.getElementById("analysisDialog").open && !document.getElementById("settingsDialog").open'),'dialogs start closed');
+  assert.equal(await ev('document.getElementById("entryPanel").getBoundingClientRect().height'),0,'analysis stays out of the default screen');
+  for(const width of [1280,1440]) {
+    await cmd('/window/rect','POST',{width,height:900});await ev('window.scrollTo(0,0);void 0');await pause(250);
+    assert(await ev('document.documentElement.scrollWidth<=innerWidth'),'clean desktop width');
+    await screenshot('ui-after-'+width);
+  }
+  await cmd('/window/rect','POST',{width:1280,height:900});
+  const roundtripBefore=await screen(),requestsBefore=(await trace()).events.filter(e=>e.kind==='received').length;
+  const inputBefore=await ev('document.getElementById("q").value');
+  const settingsBefore=await ev('JSON.stringify({auto:S.autoRef,signal:S.signalStrategy,strategies:S.entryStrategies,mode:S.entryMode,showObs:S.showObs,showSig:S.showSig,watchlist:localStorage.getItem("cf_watchlists_v1")})');
+  await openWorkspaceDialog('settingsDialog');
+  assert(await ev('document.getElementById("settingsDialog").contains(document.activeElement)'),'focus enters settings');
+  await reveal('signalStrategy');
+  await clickElement('#signalStrategy');
+  const selection=await ev('document.getElementById("signalStrategy").value');
+  const select=(await cmd('/element','POST',{using:'css selector',value:'#signalStrategy'})).value['element-6066-11e4-a52e-4f735466cecf'];
+  await cmd(`/element/${select}/value`,'POST',{text:selection,value:[selection]});
+  await cmd(`/element/${select}/value`,'POST',{text:'\uE007',value:['\uE007']});
+  await screenshot('ui-after-settings-1280');await closeWorkspaceDialog(true);
+  assert.equal(await ev('document.activeElement.id'),'openSettings','Escape restores settings trigger');
+  await openWorkspaceDialog('analysisDialog');
+  assert(await ev('document.getElementById("analysisDialog").contains(document.activeElement)'),'focus enters analysis');
+
+  // 세부항목은 기본으로 접혀 있고, 펼치면 내용이 보인다.
+  const collapsed=await ev(`Array.from(document.querySelectorAll('details.detailGroup')).map(d=>({id:d.id,open:d.open}))`);
+  assert(collapsed.length>=3,'detail groups exist');
+  assert(collapsed.every(d=>d.open===false),'detail groups start collapsed');
+  assert(await ev(`['groupEntry','groupPatterns','groupEvidence'].every(id=>{const el=document.getElementById(id);return el.parentElement===document.querySelector('#analysisDialog > .dialogBody')&&!el.parentElement.closest('details');})`),'detail groups are independent siblings');
+  await ev(`document.querySelectorAll('details.detailGroup').forEach(d=>{d.open=true});void 0`);
+  await pause(300);
+  const expanded=await ev(`(()=>{const box=document.getElementById('priceZonesBody');
+    return {open:Array.from(document.querySelectorAll('details.detailGroup')).every(d=>d.open),
+      entryVisible:document.getElementById('entryPanel').getBoundingClientRect().height>0,
+      zonesText:document.getElementById('priceZonesSummary').textContent,
+      zoneItems:box.querySelectorAll('.zoneList li').length,
+      groups:box.querySelectorAll('.zoneGroup').length,
+      overflow:document.documentElement.scrollWidth>window.innerWidth};})()`);
+  assert.equal(expanded.open,true,'all detail groups open');
+  assert.equal(expanded.entryVisible,true,'entry detail renders when opened');
+  const zones=await ev(`(()=>{const f=frameOf(curSym()),o=currentObs();
+    let built=null,err=null;try{built=PriceZones.build(f.candles,o?o.oi:f.candles.length-1);}catch(e){err=String(e);}
+    return {summary:document.getElementById('priceZonesSummary').textContent,
+      obsIndex:o?o.oi:null,candles:f.candles.length,built:built?{gaps:built.gaps.length,levels:built.levels.length,clusters:built.clusters.length}:null,err};})()`);
+  assert(expanded.zonesText.length>0,'price zones summary');
+  assert(expanded.groups>=1,'price zone groups '+JSON.stringify(zones));
+  // 합성 봉으로 실제 브라우저에서 갭·지지저항 계산까지 확인한다(모의 자료는 추세가 매끄러워 0건일 수 있다).
+  const synth=await ev(`(()=>{const cs=[];for(let i=0;i<60;i++){const t=Date.UTC(2026,0,1)/1000+i*86400;
+      let c=100+Math.sin(i/2.4)*5;if(i===20)c=118;if(i===21)c=120;
+      cs.push({time:t,open:c-1,high:c+1.5,low:c-1.5,close:c,volume:i===5?8000:1000});}
+    const out=PriceZones.build(cs,59);const g=out.gaps.find(x=>x.dir==='up');
+    return {gaps:out.gaps.length,levels:out.levels.length,clusters:out.clusters.length,
+      gapLow:g?g.low:null,gapHigh:g?g.high:null};})()`);
+  assert(synth.gaps>=1&&synth.levels>=1&&synth.clusters>=1,'synthetic zones '+JSON.stringify(synth));
+  assert(synth.gapHigh>synth.gapLow,'gap bounds ordered');
+  assert.equal(expanded.overflow,false,'expanded page fits desktop width');
+  await ev('document.getElementById("priceZonesPanel").scrollIntoView({block:"start"});void 0');
+  await pause(200);
+  await screenshot('ui-after-details-1280');
+
+  // 표시 선택이 실제 목록에 반영되고, 끄면 계산 결과는 유지된다.
+  const before=await ev('document.querySelectorAll("#priceZonesBody .zoneList li").length');
+  await reveal('zoneShowGaps');await clickElement('#zoneShowGaps');
+  const after=await ev(`({items:document.querySelectorAll('#priceZonesBody .zoneList li').length,groups:document.querySelectorAll('#priceZonesBody .zoneGroup').length})`);
+  assert(after.items<before||after.groups<expanded.groups,'turning off gaps changes the list');
+  await clickElement('#zoneShowGaps');
+  assert.equal(await ev('document.querySelectorAll("#priceZonesBody .zoneGroup").length'),expanded.groups,'toggling back restores groups');
+  await closeWorkspaceDialog(true);
+  assert.equal(await ev('document.activeElement.id'),'openAnalysis','Escape restores analysis trigger');
+  const roundtripAfter=await screen();sameSnapshot(stable(roundtripAfter),stable(roundtripBefore));
+  assert.deepEqual(roundtripAfter.entry,roundtripBefore.entry,'dialog roundtrip preserves judgment');
+  assert.deepEqual(roundtripAfter.visibleRange,roundtripBefore.visibleRange,'dialog roundtrip preserves chart range');
+  assert.equal(roundtripAfter.period,roundtripBefore.period,'dialog roundtrip preserves period');
+  assert.equal(await ev('JSON.stringify({auto:S.autoRef,signal:S.signalStrategy,strategies:S.entryStrategies,mode:S.entryMode,showObs:S.showObs,showSig:S.showSig,watchlist:localStorage.getItem("cf_watchlists_v1")})'),settingsBefore,'dialog roundtrip preserves settings and saved watchlist');
+  assert.equal(await ev('document.getElementById("q").value'),inputBefore,'dialog roundtrip preserves search input');
+  assert.equal((await trace()).events.filter(e=>e.kind==='received').length,requestsBefore,'dialogs do not collect prices');
+  const duplicateIds=await ev('(()=>{const ids=Array.from(document.querySelectorAll("[id]"),el=>el).filter(el=>!el.closest(".tv-lightweight-charts")).map(el=>el.id);return ids.filter((id,i)=>ids.indexOf(id)!==i);})()');
+  assert.deepEqual(duplicateIds,[],'moved controls have unique IDs');
+  await ev('paintNet("종목 검색 실패 · 잠시 후 다시 조회하세요");void 0');
+  assert(await ev('!document.getElementById("lookupFeedback").hidden && document.getElementById("lookupFeedback").textContent.includes("검색 실패")'),'lookup failure stays visible on the main screen');
+  await ev('paintNet("서버 연결됨");void 0');
+  assert(await ev('document.getElementById("lookupFeedback").hidden'),'routine connection prose stays off the main screen');
+  await clickElement('#openAnalysis');await closeWorkspaceDialog();
+  assert.equal(await ev('document.activeElement.id'),'openAnalysis','close button restores analysis trigger');
+  await ev('document.getElementById("chartWrap").focus();void 0');
+  await cmd('/actions','POST',{actions:[{type:'key',id:'keyboard',actions:[{type:'keyDown',value:'\uE007'},{type:'keyUp',value:'\uE007'}]}]});
+  await cmd('/actions','DELETE');
+  const keyboardGrounds=await ev('({open:document.getElementById("analysisDialog").open,group:document.getElementById("groupEvidence").open,focus:document.activeElement.id})');
+  assert(keyboardGrounds.open&&keyboardGrounds.group,'chart Enter opens visible analysis grounds '+JSON.stringify(keyboardGrounds));
+  await closeWorkspaceDialog(true);
+  assert.equal(await ev('document.activeElement.id'),'chartWrap','chart Enter then Escape restores chart focus');
+  await openWorkspaceDialog('settingsDialog');
+  await clickElement('#priceIndicatorPanel [data-help="priceHelp"]');
+  assert(await ev('document.getElementById("priceHelp").classList.contains("isOpen") && document.getElementById("priceHelp").getBoundingClientRect().height>0'),'moved price help is visible in settings');
+  await cmd('/actions','POST',{actions:[{type:'key',id:'keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]});await cmd('/actions','DELETE');
+  assert(await ev('document.getElementById("settingsDialog").open && !document.getElementById("priceHelp").classList.contains("isOpen")'),'Escape closes help before its parent dialog');
+  await closeWorkspaceDialog();
+  await checkErrors();
+  evidence.push({scenario:'verdict header, collapsed detail groups and price zone toggles',verdict:{code:verdict.code,label:verdict.label},zoneItems:expanded.zoneItems});
+  console.log('PASS verdict header, detail group collapse, price zone listing and toggles');
+}
+
+async function darkStyleScenario(){
+  await config({reset:true});await navigate();await view('AAPL','3M','latest','D');
+  await ev('S.autoRef=false;Watchlist.reset();Watchlist.addSymbol("AAPL","Apple");Watchlist.addSymbol("005930.KS","삼성전자");void 0');
+  const before=await screen(),range=await ev('chart.timeScale().getVisibleLogicalRange()');
+  const contrast=(fg,bg)=>{const rgb=s=>s.match(/[\d.]+/g).slice(0,3).map(Number).map(n=>{n/=255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}),lum=s=>rgb(s).reduce((v,n,i)=>v+n*[.2126,.7152,.0722][i],0),a=lum(fg),b=lum(bg);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);};
+  for(const width of [1024,1280,1440]){
+    await cmd('/window/rect','POST',{width,height:1000});await pause(150);
+    const style=await ev(`(()=>{const s=getComputedStyle(document.body),p=chart.options(),i=IndicatorPanel.chart().options();return {scheme:s.colorScheme,fg:s.color,bg:s.backgroundColor,sub:getComputedStyle(document.getElementById('symbolCode')).color,overflow:document.documentElement.scrollWidth>innerWidth,chart:p.layout.background.color,chartHost:getComputedStyle(document.getElementById('chart')).backgroundColor,grid:p.grid.vertLines.color,indicator:i.layout.background.color,hasIcon:!!document.getElementById('openSettings').dataset.uiIcon};})()`);
+    assert.equal(style.scheme,'dark');assert.equal(style.overflow,false);assert(style.hasIcon);assert(contrast(style.fg,style.bg)>=7,'body contrast');assert(contrast(style.sub,style.bg)>=4.5,'secondary contrast');assert(['#151a22','rgba(0,0,0,0)','rgba(255,255,255,0)','rgba(21,26,34,0)'].includes(style.chart));assert.equal(style.chartHost,'rgb(21, 26, 34)');assert.equal(style.indicator,'#151a22');assert.notEqual(style.grid,'#E5EAF0');
+    assert(await ev(`['chartWrap','indicatorChart','patternSnapshotChart'].every(id=>{const e=document.getElementById(id),s=getComputedStyle(e),edge=getComputedStyle(e,'::after');return s.borderRadius==='14px'&&s.overflow==='hidden'&&edge.pointerEvents==='none'&&edge.borderTopWidth==='1px';})`),'rounded clipped chart boundaries with non-interactive outline');
+    assert.equal(await ev('getComputedStyle(document.getElementById("chart")).borderRadius'),'14px','main canvas host inherits rounded clipping');
+    if(width===1280||width===1440)await screenshot('dark-workspace-'+width);
+  }
+  await cmd('/window/rect','POST',{width:1280,height:1000});
+  for(const [id,shot] of [['settingsDialog','dark-settings-1280'],['analysisDialog','dark-analysis-1280']]){
+    await openWorkspaceDialog(id);
+    const colors=await ev(`(()=>{const e=document.getElementById(${JSON.stringify(id)}),s=getComputedStyle(e);return {fg:s.color,bg:s.backgroundColor};})()`);assert(contrast(colors.fg,colors.bg)>=7,'dialog contrast');await screenshot(shot);await closeWorkspaceDialog();
+  }
+  await clickElement('#wlAddSymbol');await screenshot('dark-search-1280');await clickElement('#wlSymbolClose');
+  await clickElement('#btnHelp');await screenshot('dark-help-1280');await clickElement('#helpClose');
+  const states=await ev(`(()=>{const p=document.getElementById('verdictPanel'),out={};for(const c of ['buy','hold','sell','wait','blocked']){p.dataset.verdict=c;p.dataset.tone=({buy:'up',hold:'accent',sell:'down',wait:'neutral',blocked:'warn'})[c];out[c]=getComputedStyle(document.getElementById('verdictLabel')).color;}VerdictPanel.render(currentObs());return out;})()`);
+  assert.equal(new Set(Object.values(states)).size,5,'five semantic verdict states are distinct');
+  sameSnapshot(stable(await screen()),stable(before));assert.deepEqual(await ev('chart.timeScale().getVisibleLogicalRange()'),range);
+  await checkErrors();console.log('PASS dark desktop surfaces, live chart palette, contrast, semantic verdict colors and unchanged chart');
+}
+
+async function asyncPatternScenario(){
+  await config({reset:true,asyncPatterns:true,holdPatterns:true});await navigate();
+  await until(()=>ev('!S.refreshing && curSym()?.patternJob?.state==="pending"'),'chart response before pattern completion');
+  await ev('if(S.autoRef)document.getElementById("btnAuto").click();void 0');
+  assert(await ev('frameOf(curSym()).candles.length>100 && document.querySelector("#chart canvas")'),'candles visible while worker held');
+  await until(()=>ev('document.getElementById("patternComputeStatus")?.textContent.includes("계산")'),'visible computing status');
+  const first=await screen(),range=await ev('chart.timeScale().getVisibleLogicalRange()');
+  const job=await ev('curSym().patternJob.id');
+  assert.equal(await ev('PatternPanel.current().status'),'computing');
+  assert.equal(await ev('PatternPanel.current().levels.length'),0);
+  await screenshot('async-pattern-chart-first-1280');
+  await config({releasePatterns:true});
+  await until(()=>ev('curSym()?.patternJob?.state==="ready" && curSym()?.patternAnalysis?.timeline?.length>0'),'patterns arrive independently');
+  assert.equal(await ev('curSym().patternJob.id'),job);
+  sameSnapshot(stable(await screen()),stable(first));assert.deepEqual(await ev('chart.timeScale().getVisibleLogicalRange()'),range);
+  // 새 소스는 다른 작업이며 이전 작업 결과로 덮이지 않는다.
+  await config({holdPatterns:true});
+  await ev('requestNewTicker("AAPL");void 0');await until(()=>ev('S.symbol==="AAPL"&&!S.refreshing&&curSym()?.patternJob?.state==="pending"'),'new symbol pending');
+  const nextJob=await ev('curSym().patternJob.id');assert.notEqual(nextJob,job);
+  await config({releasePatterns:true});await until(()=>ev('curSym()?.patternJob?.state==="ready"'),'new symbol async ready');
+  assert.equal(await ev('curSym().patternAnalysis.symbol'),'AAPL');
+  // 계산 실패는 가격 오류로 바꾸지 않고, 과거 패턴도 재사용하지 않는다.
+  await config({patternJobError:true});await ev('requestNewTicker("AAPL");void 0');
+  await until(()=>ev('!S.refreshing&&curSym()?.patternJob?.state==="error"'),'separate calculation error');
+  assert(await ev('S.lastErr===null && frameOf(curSym()).candles.length>100 && curSym().patternAnalysis.sourceStatus==="error"'),'chart remains usable after pattern error');
+  assert.equal(await ev('PatternPanel.current().levels.length'),0);
+  await screenshot('async-pattern-error-1280');
+  await config({patternJobError:false,asyncPatterns:false});
+  await checkErrors();console.log('PASS chart-first response, async ready without chart reset and isolated calculation errors');
+}
+
+async function appleStyleScenario(){
+  await config({reset:true});await navigate();await view('AAPL','3M','latest','D');
+  await ev('S.autoRef=false;Watchlist.reset();Watchlist.addSymbol("AAPL","Apple");Watchlist.addSymbol("005930.KS","삼성전자");void 0');
+  const before=await screen(),calls=(await trace()).events.filter(e=>e.kind==='received').length;
+  for(const width of [1024,1280,1440]){
+    await cmd('/window/rect','POST',{width,height:1000});await pause(200);
+    const style=await ev(`(()=>{const ids=['btnLookup','btnRefresh','btnAuto','btnHelp','openSettings','openAnalysis','wlAddSymbol','zoomIn','zoomOut'];return {theme:document.documentElement.dataset.uiStyle,overflow:document.documentElement.scrollWidth>innerWidth,icons:ids.map(id=>{const el=document.getElementById(id),p=getComputedStyle(el,'::before');return {id,icon:el.dataset.uiIcon,mask:p.maskImage||p.webkitMaskImage,width:parseFloat(p.width),name:el.getAttribute('aria-label')||el.textContent,bounded:el.scrollWidth<=el.clientWidth+2};}),font:getComputedStyle(document.body).fontFamily};})()`);
+    assert.equal(style.theme,'apple');assert.equal(style.overflow,false,'no desktop overflow '+width);assert(style.font.includes('Pretendard'));
+    for(const icon of style.icons){assert(icon.icon&&icon.mask.includes('data:image/svg+xml')&&icon.width>0&&icon.name,'local labeled icon '+JSON.stringify(icon));assert(icon.bounded,'icon control fits '+width+' '+JSON.stringify(icon));}
+    if(width===1280||width===1440)await screenshot('apple-workspace-'+width);
+  }
+  await cmd('/window/rect','POST',{width:1280,height:1000});
+  await ev('setBusy(true);void 0');assert.equal(await ev('document.getElementById("btnRefresh").dataset.uiIcon'),'refresh');
+  assert(await ev('getComputedStyle(document.getElementById("btnRefresh"),"::before").maskImage.includes("data:image/svg+xml")'),'icon survives dynamic text');
+  await ev('setBusy(false);void 0');
+  await clickElement('#openSettings');await screenshot('apple-settings-1280');await closeWorkspaceDialog();
+  await clickElement('#openAnalysis');await screenshot('apple-analysis-1280');await closeWorkspaceDialog();
+  await clickElement('#wlAddSymbol');await screenshot('apple-search-1280');await clickElement('#wlSymbolClose');
+  await clickElement('.watchManage>summary');await screenshot('apple-management-1280');await clickElement('#symTitle');
+  const same=stable(await screen());sameSnapshot(same,stable(before));
+  assert.equal((await trace()).events.filter(e=>e.kind==='received').length,calls,'styling and dialogs do not collect prices');
+  assert(await ev('!performance.getEntriesByType("resource").some(e=>/https?:/.test(e.name)&&new URL(e.name).origin!==location.origin)'),'no external icon or font requests');
+  await checkErrors();console.log('PASS Apple desktop surfaces, local icons, dynamic labels, dialog states and unchanged chart');
+}
+
+async function refinementScenario(){
+  await config({reset:true});await navigate();await view('AAPL','3M','latest','D');
+  await ev('S.autoRef=false;Watchlist.reset();void 0');
+  const original=await screen();
+  for(const width of [1024,1280,1440]){
+    await cmd('/window/rect','POST',{width,height:1000});
+    await ev(`window.__refineName=curSym().name;window.__refineClose=frameOf(curSym()).candles.at(-1).close;curSym().name='매우긴종목이름'.repeat(35);frameOf(curSym()).candles.at(-1).close=123456789.123;paintBasis();void 0`);
+    const g=await ev(`(()=>{const p=document.getElementById('symbolPrice'),n=document.getElementById('symTitle'),r=p.getBoundingClientRect();return {price:p.textContent,expected:fmtP(123456789.123),full:p.scrollWidth<=p.clientWidth+1,nameFull:n.title===curSym().name,nameClipped:n.scrollWidth>n.clientWidth,inside:r.right<=innerWidth,overflow:document.documentElement.scrollWidth>innerWidth};})()`);
+    assert.equal(g.price,g.expected);assert(g.full&&g.inside&&g.nameFull&&g.nameClipped&&!g.overflow,'large price and long name '+width+' '+JSON.stringify(g));
+    if(width===1280)await screenshot('ui-refined-long-name-1280');
+    await ev('curSym().name=__refineName;frameOf(curSym()).candles.at(-1).close=__refineClose;paintBasis();void 0');
+  }
+  await cmd('/window/rect','POST',{width:1280,height:1000});
+  await ev(`Watchlist.addGroup('반도체');Watchlist.addSymbol('AAPL','Apple');Watchlist.addSymbol('LONG','아주 긴 관심종목 이름 '.repeat(25));Watchlist.render();void 0`);
+  assert(await ev('document.querySelector(".wl-row[data-symbol=AAPL]").getAttribute("aria-current")==="true"'),'selected row distinguished');
+  assert.equal(await ev('document.querySelector(".wl-row[data-symbol=LONG] .wl-row-code").textContent'),'LONG');
+  assert(await ev('document.documentElement.scrollWidth<=innerWidth'),'long row stays bounded');
+  await screenshot('ui-refined-watchlist-1280');
+  await ev(`window.__refineGroup=Watchlist.state.activeGroupId;for(let i=0;i<18;i++)Watchlist.addGroup('아주 긴 카테고리 이름 '+i+' '.repeat(2)+'카테고리'.repeat(8));Watchlist.state.activeGroupId=__refineGroup;Watchlist.render();void 0`);
+  assert(await ev('document.getElementById("wlGroupStrip").clientHeight<=112 && document.getElementById("wlGroupStrip").scrollHeight>112 && document.documentElement.scrollWidth<=innerWidth'),'many long categories stay in bounded scroll');
+  await clickElement('.watchManage>summary');
+  await cmd('/actions','POST',{actions:[{type:'key',id:'keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]});await cmd('/actions','DELETE');
+  assert(await ev('!document.querySelector(".watchManage").open && document.activeElement===document.querySelector(".watchManage>summary")'),'menu Escape and focus');
+  await clickElement('.watchManage>summary');await clickElement('#symTitle');
+  assert(await ev('!document.querySelector(".watchManage").open'),'menu outside click');
+  await clickElement('#wlAddSymbol');
+  assert(await ev('document.getElementById("wlSymbolGroup").textContent.includes("반도체")'),'search identifies target group');
+  const input=async text=>ev(`document.getElementById('wlSymbolQ').value=${JSON.stringify(text)};document.getElementById('wlSymbolQ').dispatchEvent(new Event('input'));void 0`);
+  await input('AAPL');
+  await until(()=>ev('document.querySelector("#wlSymbolList button")?.disabled'),'existing result is disabled');
+  await input('삼성');await until(()=>ev('Array.from(document.querySelectorAll("#wlSymbolList li")).some(x=>x.textContent.includes("005930.KS"))'),'new symbol result');
+  await screenshot('ui-refined-search-1280');
+  const result=await ev('Array.from(document.querySelectorAll("#wlSymbolList li")).findIndex(x=>x.textContent.includes("005930.KS"))');
+  await clickElement('#wlSymbolList li:nth-child('+(result+1)+') button');
+  assert(await ev('document.querySelectorAll("#wlSymbolList button:disabled").length>0 && document.getElementById("wlSymbolStatus").textContent.includes("추가")'),'added status and duplicate guard');
+  await ev(`window.__refineFetch=window.fetch;window.fetch=(url,opts)=>String(url).includes('api/search?')?Promise.resolve({ok:true,json:async()=>({results:[]})}):__refineFetch(url,opts);void 0`);
+  await input('AAPL');await until(()=>ev('document.getElementById("wlSymbolStatus").dataset.state==="results"'),'local result survives empty remote response');
+  assert(await ev('document.getElementById("wlSymbolList").textContent.includes("AAPL")'),'local candidate retained');
+  await input('ZZZZ_NOT_FOUND');await until(()=>ev('document.getElementById("wlSymbolStatus").dataset.state!=="searching"'),'empty search settled');
+  const emptySearch=await ev('({status:document.getElementById("wlSymbolStatus").textContent,error:document.getElementById("wlSymbolErr").textContent,items:document.getElementById("wlSymbolList").textContent})');
+  assert(emptySearch.status.includes('없'),'empty result feedback '+JSON.stringify(emptySearch));
+  // 실패·늦은 응답은 시세 API가 아닌 검색 응답만 모의한다.
+  await ev(`window.fetch=(url,opts)=>String(url).includes('api/search?')?Promise.reject(new Error('fixture search failure')):__refineFetch(url,opts);void 0`);
+  await input('FAIL_TEST');await until(()=>ev('!document.getElementById("wlSymbolErr").hidden && document.getElementById("wlSymbolErr").textContent.includes("실패")'),'search error feedback');
+  await ev(`window.fetch=(url,opts)=>String(url).includes('api/search?')?new Promise(resolve=>{window.__lateSearch=()=>resolve({ok:true,json:async()=>({results:[{symbol:'LATE',name:'늦은 검색 결과'}]})});}):__refineFetch(url,opts);void 0`);
+  await input('LATE_TEST');await until(()=>ev('typeof window.__lateSearch==="function"'),'delayed search received');
+  await clickElement('#wlSymbolClose');await clickElement('#wlAddSymbol');
+  await ev('window.__lateSearch();window.fetch=__refineFetch;void 0');await pause(200);
+  assert.equal(await ev('document.getElementById("wlSymbolQ").value'),'');
+  assert(await ev('!Array.from(document.querySelectorAll("#wlSymbolList li")).some(x=>x.textContent.includes("LATE"))'),'closed search response cannot overwrite new session');
+  await clickElement('#wlSymbolClose');
+  sameSnapshot(stable(await screen()),stable(original));
+  await checkErrors();console.log('PASS separate full price, long names, selected rows, management keyboard and search feedback');
+}
+
+async function watchlistQuickAddScenario(){
+  await config({reset:true});await navigate();await ev('S.autoRef=false;Watchlist.reset();Watchlist.addGroup("반도체");void 0');
+  await ev('window.scrollTo(0,0);void 0');
+  const layout=await ev(`(()=>{const add=document.getElementById('wlAddSymbol'),groups=document.getElementById('wlGroupStrip');
+    return {count:document.querySelectorAll('#wlAddSymbol').length,after:groups.nextElementSibling===add,
+    visible:add.getBoundingClientRect().height>0,managed:Boolean(add.closest('.watchManage')),open:document.querySelector('.watchManage').open,
+    group:Watchlist.state.activeGroupId,chart:JSON.stringify([S.symbol,S.tf,S.selectedAsOf,__CF.visible()])};})()`);
+  assert.equal(layout.count,1);assert(layout.after&&layout.visible&&!layout.managed&&!layout.open,'add is visible below categories without management');
+  await screenshot('watchlist-quick-add-1280');
+  await clickElement('#wlAddSymbol');
+  assert(await ev('document.getElementById("wlSymbolDlg").open && document.activeElement.id==="wlSymbolQ"'),'direct click opens focused search');
+  const input=(await cmd('/element','POST',{using:'css selector',value:'#wlSymbolQ'})).value['element-6066-11e4-a52e-4f735466cecf'];
+  await cmd(`/element/${input}/value`,'POST',{text:'삼성',value:Array.from('삼성')});
+  await until(()=>ev('Array.from(document.querySelectorAll("#wlSymbolList li")).some(li=>li.textContent.includes("005930.KS"))'),'symbol search results');
+  const result=await ev('Array.from(document.querySelectorAll("#wlSymbolList li")).findIndex(li=>li.textContent.includes("005930.KS"))');
+  await clickElement('#wlSymbolList li:nth-child('+(result+1)+') button');
+  assert(await ev(`Watchlist.state.groups.find(g=>g.id===${JSON.stringify(layout.group)}).symbols.some(s=>s.symbol==='005930.KS')`),'added to selected category');
+  assert(await ev(`JSON.parse(localStorage.getItem('cf_watchlists_v1')).groups.find(g=>g.id===${JSON.stringify(layout.group)}).symbols.some(s=>s.symbol==='005930.KS')`),'saved to existing watchlist key');
+  await clickElement('#wlSymbolClose');
+  await until(()=>ev('document.activeElement.id==="wlAddSymbol"'),'focus returns to direct add');
+  assert.equal(await ev('JSON.stringify([S.symbol,S.tf,S.selectedAsOf,__CF.visible()])'),layout.chart,'adding does not switch chart');
+  await clickElement('#wlAddSymbol');
+  await cmd('/actions','POST',{actions:[{type:'key',id:'keyboard',actions:[{type:'keyDown',value:'\uE00C'},{type:'keyUp',value:'\uE00C'}]}]});await cmd('/actions','DELETE');
+  await until(()=>ev('!document.getElementById("wlSymbolDlg").open && document.activeElement.id==="wlAddSymbol"'),'Escape returns to add');
+  await clickElement('.watchManage>summary');
+  assert(await ev('document.querySelector(".watchManage").contains(document.getElementById("wlAddGroup")) && document.querySelector(".watchManage").contains(document.getElementById("wlManageGroup"))'),'group administration stays in management');
+  await checkErrors();console.log('PASS direct category symbol add, search, selected-group persistence, unchanged chart and focus return');
+}
+
+async function strategyFamilyScenario(){
+  await config({reset:true,now:'2026-09-07T12:00:00+00:00'});await navigate();
+  await view('AAPL','3M','latest','D');await ev('S.autoRef=false;Watchlist.reset();void 0');
+  const before=await screen(),calls=(await trace()).events.filter(e=>e.kind==='received').length;
+  const baseline=await ev('JSON.stringify({marks:frameOf(curSym()).marks,strategies:S.entryStrategies,low:S.lowStrategies,signal:S.signalStrategy,mode:S.entryMode,showObs:S.showObs,showSig:S.showSig})');
+  const selection=()=>ev(`({family:S.entryFamily,select:document.getElementById('entryFamily').value,
+    buttons:Array.from(document.querySelectorAll('[data-entry-family]'),b=>[b.dataset.entryFamily,b.getAttribute('aria-pressed')]),
+    verdict:document.getElementById('verdictPanel').dataset.family,tag:document.getElementById('verdictTag').textContent,
+    entry:entryEvaluation().family,settings:document.getElementById('settingsDialog').open,
+    above:document.getElementById('strategyFamilySwitch').getBoundingClientRect().bottom<=document.getElementById('verdictPanel').getBoundingClientRect().top,
+    markers:markerLayout.markers.map(m=>m.text||'')})`);
+  assert.deepEqual((await selection()).buttons,[['legacy','true'],['low','false']]);
+  await clickElement('[data-entry-family="low"]');
+  let current=await selection();assert.equal(current.family,'low');assert.equal(current.select,'low');assert.equal(current.entry,'low');assert.equal(current.verdict,'low');
+  assert.deepEqual(current.buttons,[['legacy','false'],['low','true']]);assert(current.tag.includes('저점 매수'));assert(current.above&&!current.settings);
+  assert(!current.markers.some(t=>/^[ABCF] (진입|이탈)/.test(t)),'legacy arrows do not mix into low-entry chart');
+  assert.equal(await ev('document.getElementById("legacyStrategies").hidden && !document.getElementById("lowStrategies").hidden'),true);
+  const low=await screen();sameSnapshot(stable(low),stable(before));assert.deepEqual(low.visibleRange,before.visibleRange);
+  await screenshot('strategy-low-1280');
+  await clickElement('[data-entry-family="legacy"]');
+  assert.deepEqual((await selection()).buttons,[['legacy','true'],['low','false']]);
+  assert.deepEqual((await screen()).entry,before.entry,'strategy roundtrip restores exact entry judgment');
+  assert.equal(await ev('JSON.stringify({marks:frameOf(curSym()).marks,strategies:S.entryStrategies,low:S.lowStrategies,signal:S.signalStrategy,mode:S.entryMode,showObs:S.showObs,showSig:S.showSig})'),baseline,'strategy details and raw marks preserved');
+  assert.equal((await trace()).events.filter(e=>e.kind==='received').length,calls,'switch does not fetch prices');
+  await screenshot('strategy-trend-1280');
+  // 기존 설정 경로에서 바꿔도 상단 선택 상태는 같은 값을 가리킨다.
+  await ev('document.getElementById("entryFamily").value="low";document.getElementById("entryFamily").dispatchEvent(new Event("change"));void 0');
+  assert.equal((await selection()).buttons[1][1],'true');
+  await ev('__CF.select(frameOf(curSym()).candles[80].time);void 0');
+  const historical=await screen();await clickElement('[data-entry-family="legacy"]');await clickElement('[data-entry-family="low"]');
+  assert.equal((await screen()).selectedAsOf,historical.selectedAsOf);assert.equal(await ev('entryEvaluation().code'),'historical');
+  assert.equal(await ev('document.getElementById("verdictPanel").dataset.verdict'),'blocked','historical stays blocked');
+  await ev('__CF.select(null);S.lastErr={kind:"provider"};renderEntryPanel(currentObs());void 0');
+  await clickElement('[data-entry-family="legacy"]');await clickElement('[data-entry-family="low"]');
+  assert.equal(await ev('document.getElementById("verdictPanel").dataset.verdict'),'blocked','lookup error stays blocked');
+  await ev('S.lastErr=null;__CF.setTF("W");void 0');
+  await clickElement('[data-entry-family="legacy"]');await clickElement('[data-entry-family="low"]');
+  assert.equal(await ev('entryEvaluation().code'),'blocked','unsupported low weekly remains blocked');
+  // 알려진 저점 상승 표본으로 실제 선/표식과 근거의 전환을 확인한다. 공급처는 호출하지 않는다.
+  const bars=require('../low_entry_sample').sample('H').slice(0,27);
+  await ev(`(()=>{const bars=${JSON.stringify(bars)},f=LIVE_D.AAPL;
+    window.__familyFrame=structuredClone(f);Object.assign(f,{candles:bars,state:[],lines:{},marks:{F:[{time:bars[26].time,side:'entry'}]},
+    marketSession:{state:'closed'},lastConfirmedTime:bars[26].time,confirmed:true});S.tf='D';S.selectedAsOf=null;__CF.render(true);})()`);
+  await until(()=>ev('LowStructurePanel.markers().length>0 && document.querySelector(".lowStructureOverlay polyline")'),'low-entry structure rendered');
+  assert.equal(await ev('entryEvaluation().family'),'low');
+  assert.equal(await ev('document.getElementById("readSignalKey").textContent'),'저점 매수 판단 · 선택 기준');
+  await clickElement('[data-entry-family="legacy"]');
+  await until(()=>ev('!document.querySelector(".lowStructureOverlay polyline")'),'low geometry hidden in trend mode');
+  assert(await ev('markerLayout.markers.some(m=>m.shape==="arrowUp" && m.time===frameOf(curSym()).candles[26].time)'),'trend arrows restored');
+  await ev('LIVE_D.AAPL=__familyFrame;S.entryFamily="legacy";__CF.render(true);void 0');
+  await checkErrors();console.log('PASS visible strategy switch, exact roundtrip, historical/error/unsupported guards, family markers and zero extra price requests');
+}
+
 async function topbarStability(){
   await config({reset:true});await navigate();
   await ev('if(S.autoRef)document.getElementById("btnAuto").click();void 0');
   const geometry=()=>ev(`(()=>{
-    const ids=['q','sym','btnLookup','btnRefresh','btnAuto','btnHelp','tD','tW','tH','tM','netState','symTitle','basisLine'];
+    const ids=['q','sym','btnLookup','btnRefresh','btnAuto','btnHelp','openSettings','openAnalysis'];
     const rect=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
     return {items:Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))])),
       header:rect(document.querySelector('.topbar')),title:rect(document.querySelector('.titleline')),
@@ -895,21 +1296,30 @@ async function topbarStability(){
   })()`);
   for(const width of [1440,1280,1024]){
     await cmd('/window/rect','POST',{width,height:1000});
-    await ev('setBusy(false);S.lastErr=null;paintBasis();void 0');
+    await ev('setBusy(false);S.lastErr=null;paintBasis();window.scrollTo(0,0);void 0');
+    if(width===1440||width===1280){await pause(250);await screenshot('workspace-top-'+width);}
+    const columns=await ev('getComputedStyle(document.querySelector(".workspace")).gridTemplateColumns.split(" ").length');
+    assert.equal(columns,2,`workspace columns at ${width}px`);
+    const side=await ev('document.querySelector(".workspaceSide").getBoundingClientRect().width');
+    assert(Math.abs(side-(width<=1180?220:260))<2,`fixed watchlist width at ${width}px`);
+    assert(await ev('["tH","tD","tW","tM"].every(id=>document.querySelector(".chartToolbar").contains(document.getElementById(id)))'),'main timeframes live above the chart');
     const before=await geometry();assert.equal(before.overflow,false);
+    const stable=async label=>{const after=await geometry();
+      if(JSON.stringify(after)!==JSON.stringify(before))console.error('header geometry '+width+': '+JSON.stringify({before,after}));
+      assert.deepEqual(after,before,label);};
     await config({holdSymbol:'AAPL'});
     await ev('window.__headerDone=false;requestNewTicker("AAPL").finally(()=>window.__headerDone=true);void 0');
     await until(()=>ev('S.refreshing'),'held lookup busy');
-    assert.deepEqual(await geometry(),before,`header moved during lookup at ${width}px`);
+    await stable(`header moved during lookup at ${width}px`);
     assert.equal(await ev('document.getElementById("btnRefresh").textContent'),'조회 중…');
     await config({release:true});await until(()=>ev('window.__headerDone && !S.refreshing'),'header lookup completed');
-    assert.deepEqual(await geometry(),before,`header moved after lookup at ${width}px`);
+    await stable(`header moved after lookup at ${width}px`);
     await config({restError:true});
     await ev('window.__headerDone=false;requestNewTicker("AAPL").then(r=>window.__headerResult=r).finally(()=>window.__headerDone=true);void 0');
     await until(()=>ev('window.__headerDone && !S.refreshing && window.__headerResult?.ok===false'),'header failed lookup');
-    assert.deepEqual(await geometry(),before,`header moved after failure at ${width}px`);
+    await stable(`header moved after failure at ${width}px`);
     await ev(`paintNet('공급처 조회 실패 · '.repeat(60));LIVE_D.AAPL.name='아주 긴 종목명 '.repeat(30);S.lastErr={kind:'provider'};paintBasis();void 0`);
-    assert.deepEqual(await geometry(),before,`long status or symbol changed header at ${width}px`);
+    await stable(`long status or symbol changed header at ${width}px`);
     assert.equal(await ev('document.getElementById("netState").title===document.getElementById("netState").textContent'),true);
     assert.equal(await ev('document.getElementById("symTitle").title===document.getElementById("symTitle").textContent'),true);
     assert.equal(await ev('document.getElementById("basisLine").title===document.getElementById("basisLine").textContent'),true);
@@ -921,8 +1331,50 @@ async function topbarStability(){
   await until(()=>ev('!S.refreshing && frameOf(curSym())?.source==="toss"'),'Toss H4 loaded');
   assert.equal(await ev('frameOf(curSym()).sourceInterval'),'1m');
   assert.equal(await ev('frameOf(curSym()).candles.length'),260);
+  await ev('document.querySelector("[data-intra=M5]").click();void 0');
+  await until(()=>ev('S.tf==="M5" && !S.refreshing && frameOf(curSym())?.tf==="M5"'),'5m intraday loaded',30000);
+  const m5=await ev(`({tf:frameOf(curSym()).tf,bars:frameOf(curSym()).candles.length,aggregation:frameOf(curSym()).aggregation,
+    trial:document.getElementById('intraTrialNote').hidden,basis:document.getElementById('basisLine').textContent,
+    mainH4:document.getElementById('tH').getAttribute('aria-pressed'),
+    intraH4:document.querySelector('[data-intra="H4"]').getAttribute('aria-pressed'),
+    intraM5:document.querySelector('[data-intra="M5"]').getAttribute('aria-pressed'),
+    preset:S.preset,pressed:document.querySelector('.periodbar [data-p][aria-pressed="true"]')?.dataset.p,
+    visible:chart.timeScale().getVisibleRange(),overflow:document.documentElement.scrollWidth>innerWidth})`);
+  assert.equal(m5.tf,'M5');
+  assert.equal(m5.preset,'1M');
+  assert.equal(m5.pressed,'1M');
+  assert(m5.bars>0);
+  assert.equal(m5.aggregation,'exchange-date-first-minute-5min');
+  assert.equal(m5.trial,false,'5m trial note must be visible');
+  assert.match(m5.basis,/5분봉/);
+  assert.equal(m5.intraM5,'true');assert.equal(m5.intraH4,'false');assert.equal(m5.mainH4,'false');
+  assert(m5.visible&&m5.visible.from<m5.visible.to,'5m visible range');
+  assert.equal(m5.overflow,false,'5m page overflow');
+  await ev('window.scrollTo(0,0);void 0');await pause(250);
+  await screenshot('workspace-5m-top-1280');
+  await ev('document.getElementById("chart").scrollIntoView({block:"start"});void 0');await pause(250);
+  await screenshot('workspace-5m-1280');
+  await config({monitor:true,patterns:true,flags:true,triangles:true,now:'2026-09-08T12:00:00+00:00'});
+  await ev('__CF.refreshLive({force:true,reason:"manual"});void 0');
+  await until(()=>ev('!S.refreshing && frameOf(curSym())?.flagAnalysis?.timeframe==="M5"'),'5m flag analysis',30000);
+  const analysis5=await ev(`({flag:frameOf(curSym()).flagAnalysis.sourceStatus,triangle:frameOf(curSym()).triangleAnalysis?.sourceStatus,
+    pattern:frameOf(curSym()).patternAnalysis?.timeframe,
+    panel:document.getElementById('flagPanel').hidden,state:document.getElementById('flagState').textContent,
+    trial:document.getElementById('intraTrialNote').hidden})`);
+  assert.equal(analysis5.pattern,'M5');
+  assert.equal(analysis5.flag,'ready');
+  assert.equal(analysis5.trial,false);
+  assert.equal(analysis5.panel,false,'5m flag panel must be visible');
+  await captureSection('flagPanel','workspace-5m-patterns-1280');
+  await config({monitor:false,patterns:false,flags:false,triangles:false});
+  for(const tf of ['M15','M30','H1','H2']){
+    await ev(`__CF.setTF(${JSON.stringify(tf)});void 0`);
+    await until(()=>ev(`S.tf===${JSON.stringify(tf)} && !S.refreshing && frameOf(curSym())?.tf===${JSON.stringify(tf)}`),tf+' loaded',30000);
+    assert((await ev('frameOf(curSym()).candles.length'))>0,tf+' candles');
+    assert.equal(await ev('document.querySelector("[data-intra=\\"'+tf+'\\"]").getAttribute("aria-pressed")'),'true',tf+' pressed');
+  }
   await checkErrors();
-  evidence.push({scenario:'Desktop lookup header: identical geometry pending/success/failure/long status at 1440/1280/1024px; configured stock H4 uses Toss minute aggregation'});
+  evidence.push({scenario:'Desktop lookup header: identical geometry pending/success/failure/long status at 1440/1280/1024px; configured stock H4 uses Toss minute aggregation; 5m intraday selection/API/alias'});
 }
 
 async function main() {
@@ -937,13 +1389,21 @@ async function main() {
     const value=(await wd('/session','POST',{capabilities:{alwaysMatch:{browserName:'firefox','moz:firefoxOptions':{args:['-headless']}}}})).value;
     session=value.sessionId;assert(session);evidence.push({scenario:'session',browser:value.capabilities.browserName,version:value.capabilities.browserVersion,driverPid:driver.pid,browserPid:value.capabilities['moz:processID'],serverPid:server.pid});
     await cmd('/timeouts','POST',{script:20000,pageLoad:30000,implicit:0});
-      if(process.env.TECHNICAL_ONLY==='1')await technicalScenario();
+      if(process.env.DARK_ONLY==='1')await darkStyleScenario();
+       else if(process.env.ASYNC_PATTERN_ONLY==='1')await asyncPatternScenario();
+       else if(process.env.APPLE_ONLY==='1')await appleStyleScenario();
+       else if(process.env.TOPBAR_ONLY==='1')await topbarStability();
+      else if(process.env.TECHNICAL_ONLY==='1')await technicalScenario();
       else if(process.env.INDICATOR_ONLY==='1')await indicatorScenario();
       else if(process.env.TRIANGLE_ONLY==='1')await triangleScenario();
       else if(process.env.MONITOR_ONLY==='1')await monitorScenario();
       else if(process.env.FLAG_ONLY==='1')await flagScenario();
+      else if(process.env.REFINEMENT_ONLY==='1')await refinementScenario();
+       else if(process.env.WATCH_ADD_ONLY==='1')await watchlistQuickAddScenario();
+       else if(process.env.FAMILY_ONLY==='1')await strategyFamilyScenario();
+       else if(process.env.UI_ONLY==='1')await uiScenario();
       else if(process.env.PATTERN_ONLY==='1')await patternScenario();
-      else {await topbarStability(); await config({reset:true}); await navigate(); await scenarios(); await patternScenario(); await flagScenario(); await monitorScenario(); await triangleScenario(); await indicatorScenario(); await technicalScenario();}
+      else {await topbarStability(); await config({reset:true}); await navigate(); await scenarios(); await patternScenario(); await flagScenario(); await monitorScenario(); await triangleScenario(); await indicatorScenario(); await technicalScenario(); await uiScenario(); await strategyFamilyScenario(); await watchlistQuickAddScenario(); await refinementScenario(); await appleStyleScenario(); await asyncPatternScenario(); await darkStyleScenario();}
       if(process.env.CACHED_TRIANGLE_REPLAY)await cachedTriangleReplay();
   } catch(error) {
     cleanupDeadline=Date.now()+45000;

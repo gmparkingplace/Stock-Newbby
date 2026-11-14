@@ -12,8 +12,8 @@
   if(!s)return [];
   const points=s.family==='H'?[[s.anchorTimes[0],'저점 1',s.knownAt],[s.testTime,'높아진 저점',s.testKnownAt]]:
    [[s.anchorTimes[0],'기준 지지',s.supportKnownAt],[s.springTime,'이탈·회복 저점',s.recoveredAt],[s.testTime,'재시험 저점',s.testKnownAt]];
-  const result=points.filter(([time])=>time!=null).map(([time,text,known])=>({time,position:'belowBar',shape:'circle',color:'#64748b',size:1,text:`${text} (확인 ${Window.format(known)||'대기'})`}));
-  if(s.signalAt!=null)result.push({time:s.signalAt,position:'aboveBar',shape:'arrowUp',color:'#17644c',size:1,text:'저점 구조 · 확정 조건 충족'});
+  const result=points.filter(([time])=>time!=null).map(([time,text,known])=>({time,position:'belowBar',shape:'circle',color:'#a4afc0',size:1,text:`${text} (확인 ${Window.format(known)||'대기'})`}));
+  if(s.signalAt!=null)result.push({time:s.signalAt,position:'aboveBar',shape:'arrowUp',color:'#69d39b',size:1,text:'저점 구조 · 확정 조건 충족'});
   return result;
  }
  function geometry(s){if(!s)return [];
@@ -71,8 +71,8 @@ if(typeof window!=='undefined'&&typeof document!=='undefined')(() => {
   const defs=node('defs',{}),clip=node('clipPath',{id:'low-structure-plot'},defs);node('rect',{x:left,y:0,width:Math.max(0,w-right-left),height:Math.max(0,height)},clip);
   const group=node('g',{'clip-path':'url(#low-structure-plot)'}),xy=p=>({x:chart.timeScale().timeToCoordinate(p.time),y:candles.priceToCoordinate(p.price)});
   const points=LowStructureView.geometry(s).map(xy).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
-  if(points.length>=2)node('polyline',{points:points.map(p=>`${p.x},${p.y}`).join(' '),fill:'none',stroke:'#7c3aed','stroke-width':2},group);
-  for(const [price,color,knownAt] of [[s.triggerLevel,'#17644c',s.testKnownAt||s.knownAt],[s.invalidationLevel,'#b45309',s.testKnownAt||s.recoveredAt||s.knownAt],[s.chaseLimit,'#64748b',s.signalAt]]){if(price==null)continue;const x=chart.timeScale().timeToCoordinate(knownAt),y=candles.priceToCoordinate(price);if(Number.isFinite(x)&&Number.isFinite(y))node('line',{x1:x,y1:y,x2:w-right,y2:y,stroke:color,'stroke-width':1.5,'stroke-dasharray':'5 4'},group);}
+  if(points.length>=2)node('polyline',{points:points.map(p=>`${p.x},${p.y}`).join(' '),fill:'none',stroke:'#bf9bff','stroke-width':2},group);
+  for(const [price,color,knownAt] of [[s.triggerLevel,'#69d39b',s.testKnownAt||s.knownAt],[s.invalidationLevel,'#f1b65d',s.testKnownAt||s.recoveredAt||s.knownAt],[s.chaseLimit,'#a4afc0',s.signalAt]]){if(price==null)continue;const x=chart.timeScale().timeToCoordinate(knownAt),y=candles.priceToCoordinate(price);if(Number.isFinite(x)&&Number.isFinite(y))node('line',{x1:x,y1:y,x2:w-right,y2:y,stroke:color,'stroke-width':1.5,'stroke-dasharray':'5 4'},group);}
  }
  window.LowStructurePanel={current,render,selected:()=>selected,markers:()=>active()?LowStructureView.markers(selected):[]};
  document.addEventListener('DOMContentLoaded',()=>{

@@ -164,3 +164,34 @@ def test_second_listener_gets_existing_ack(monkeypatch):
     listener = hub.subscribe('AAPL')
     assert listener.get()['state'] == 'subscribed'
     hub.unsubscribe(listener)
+
+
+def test_rate_headers_pace_chart_group_and_defer_long_waits(monkeypatch):
+    c = m.TossClient()
+    now = [100.0]
+    slept = []
+    monkeypatch.setattr(m.time, 'monotonic', lambda: now[0])
+    monkeypatch.setattr(m.time, 'sleep',
+                        lambda seconds: (slept.append(seconds), now.__setitem__(0, now[0] + seconds)))
+    c._update_rate('/api/v1/candles', {'X-RateLimit-Limit': '5',
+                                       'X-RateLimit-Remaining': '0',
+                                       'X-RateLimit-Reset': '3'})
+    c._pace('/api/v1/candles')
+    assert slept and slept[-1] >= 3
+    # A long advertised wait is deferred to the persistent budget instead of
+    # sleeping the worker, so other symbols are not blocked behind it.
+    c._update_rate('/api/v1/candles', {'X-RateLimit-Limit': '5',
+                                       'X-RateLimit-Remaining': '0',
+                                       'X-RateLimit-Reset': '60'})
+    with pytest.raises(m.TossError) as error:
+        c._pace('/api/v1/candles')
+    assert error.value.code == 'rate-limited' and error.value.retry_after == 60
+
+
+def test_retry_after_and_reset_use_the_longer_wait():
+    c = m.TossClient()
+    state = c._update_rate('/api/v1/candles', {'X-RateLimit-Limit': '5',
+                                               'X-RateLimit-Remaining': '2',
+                                               'X-RateLimit-Reset': '1',
+                                               'Retry-After': '4'})
+    assert state['limit'] == 5 and state['remaining'] == 2 and state['reset'] == 4

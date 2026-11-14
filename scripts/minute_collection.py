@@ -54,7 +54,7 @@ class MinuteCollection:
         first = min(days) if days else None
         return sum(len(buckets) for day, (_, buckets) in days.items() if day != first)
 
-    def _full(self, symbol, tz, stage_key):
+    def _full(self, symbol, tz, stage_key, yield_check=None):
         from toss_market import TossError
         stage = self._get(stage_key)
         indexed = {r['t']: r for r in stage['rows']} if stage else {}
@@ -84,6 +84,13 @@ class MinuteCollection:
                 if pages % 8 == 0:
                     self._put(stage_key, dict(rows=list(indexed.values()), cursor=before,
                                              seen=sorted(seen), pages=pages))
+                if yield_check is not None and yield_check():
+                    # Save the checkpoint before handing the worker to a
+                    # user-selected symbol; the next pass resumes from here.
+                    self._put(stage_key, dict(rows=list(indexed.values()), cursor=before,
+                                             seen=sorted(seen), pages=pages))
+                    from request_scheduler import CollectionDeferred
+                    raise CollectionDeferred("page-" + str(pages))
         except TossError as error:
             # Save only coherent completed pages. Conflicting/malformed pages
             # cannot be resumed as trustworthy adjusted history.
@@ -161,20 +168,31 @@ class MinuteCollection:
             data = [r for r in data if datetime.fromtimestamp(r['t'], ZoneInfo(tz)).date() != first_day]
         return data or None
 
-    def minute(self, code, tz, force=False):
+    def _key(self, code, tz):
+        from toss_market import toss_symbol
+        return '|'.join(('candles', toss_symbol(code), '1m', 'adjusted', tz, 'v1'))
+
+    def needs_audit(self, code, tz):
+        with self.lock:
+            old = self._get(self._key(code, tz))
+            return bool(old and self.clock()-old['fullRefreshAt'] >= 86400)
+
+    def minute(self, code, tz, force=False, yield_check=None, audit=False):
+        """``audit=True`` forces the full minute history; normal requests merge the
+        recent head and leave the whole-history check to a background task."""
         from toss_market import toss_symbol
         symbol = toss_symbol(code)
-        key = '|'.join(('candles', symbol, '1m', 'adjusted', tz, 'v1'))
+        key = self._key(code, tz)
         stage_key = key+'|backfill'
         with self.lock:
             old, now = self._get(key), self.clock()
             age = now-epoch(old['fetchedAt']) if old else None
             if old and 0 <= age < (10 if force else 30):
                 return deepcopy(old['rows']), True, old['fetchedAt'], old['dataRevision'], old['history']
-            full = not old or now-old['fullRefreshAt'] >= 86400
+            full = audit or not old
             data = None if full else self._recent(symbol, tz, old)
             if data is None:
-                data, history = self._full(symbol, tz, stage_key)
+                data, history = self._full(symbol, tz, stage_key, yield_check)
                 full = True
             else:
                 history = old['history']

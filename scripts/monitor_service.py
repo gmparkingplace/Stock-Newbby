@@ -227,12 +227,21 @@ class MonitorService:
                     interval=30 if item['profile']=='focus' else 300
                     runtime['nextDueAt']=stamp(min(now+interval,epoch(transition)) if transition and epoch(transition)>now else now+interval)
         except Exception as error:
-            streak=runtime.get('failStreak',0)+1
+            kind = getattr(error,'code',None) or 'collection-failed'
             raw_retry=getattr(error,'retry_at',None)
             try:retry=epoch(raw_retry) if raw_retry else 0
             except (ValueError,TypeError):retry=0
-            runtime.update(status='error',failStreak=streak,errorKind=getattr(error,'code',None) or 'collection-failed',
-                           upstreamStatus=getattr(error,'status',None),retryAt=raw_retry,nextDueAt=stamp(max(self.clock()+min(30*2**min(streak-1,4),480),retry)))
+            if kind == 'rate-limited':
+                # A provider cooldown is a schedule change, not a failed judgment.
+                # Do not raise the error count for every watched symbol.
+                runtime.update(status='waiting-rate-limit',failStreak=0,errorKind=kind,
+                               upstreamStatus=getattr(error,'status',None),retryAt=raw_retry,
+                               nextDueAt=stamp(max(self.clock()+5,retry)))
+            else:
+                streak=runtime.get('failStreak',0)+1
+                runtime.update(status='error',failStreak=streak,errorKind=kind,
+                               upstreamStatus=getattr(error,'status',None),retryAt=raw_retry,
+                               nextDueAt=stamp(max(self.clock()+min(30*2**min(streak-1,4),480),retry)))
         with self.lock:
             if generation==self.generation:
                 self.state['runtime'][code]=runtime;self._save()

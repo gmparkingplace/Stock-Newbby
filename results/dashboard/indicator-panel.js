@@ -3,6 +3,9 @@
   'use strict';
   const math=typeof module!=='undefined'&&module.exports?require('./technical-indicators.js'):TechnicalIndicators;
   const definitions={rsi:{label:'RSI 14',field:'rsi14',periodBars:14,unit:'0–100',help:'상승·하락의 상대적 힘입니다. 30·70 기준선은 자동 매수·매도 지시가 아닙니다.'},atr:{label:'ATR 14',field:'atr14',periodBars:14,unit:'price',help:'봉의 가격 변동폭입니다. 가격과 같은 단위이며 상승·하락 방향을 뜻하지 않습니다.'},volume:{label:'거래량',field:'volume',periodBars:1,unit:'volume',help:'봉의 누적 거래량입니다. 비율은 현재 봉을 포함한 20봉 평균 대비이며 패턴의 직전 20봉 비율과 다릅니다.'}};
+  const theme=typeof module!=='undefined'&&module.exports?require('./chart-theme.js'):typeof ChartTheme!=='undefined'?ChartTheme:null;
+  const palette=theme?.colors||{rsi:'#2962ff',macd:'#2962ff',signal:'#FF6D00',atr:'#7c3aed',obv:'#0f766e',threshold:'#94a3b8',histogramUp:'rgba(211,47,47,.65)',histogramDown:'rgba(24,89,201,.65)',volumeUp:'rgba(211,47,47,.65)',volumeDown:'rgba(24,89,201,.65)'};
+  const lineColor=kind=>palette[kind]||palette.rsi;
   const known=v=>typeof v==='number'&&Number.isFinite(v);
   definitions.macd={label:'MACD 12·26·9',periodBars:34,unit:'price',help:'파랑 MACD · 주황 시그널 · 막대는 두 선의 차이입니다. 가격과 같은 단위이며, 0선과의 위치·차이 변화로 모멘텀을 확인합니다.'};
   definitions.obv={label:'OBV · 누적 거래량',periodBars:1,unit:'volume',help:'종가가 직전 봉보다 오르면 거래량을 더하고, 내리면 빼며, 같으면 유지합니다. 불러온 첫 봉을 0으로 시작하므로 절대값보다 흐름을 보세요. 거래량·종가 누락 이후는 계산을 보류합니다. 실제 순매수 금액·자동 매수 신호가 아닙니다.'};
@@ -14,10 +17,10 @@
     const value=known(values[index])?values[index]:null;
     return {kind,label:definition.label,unit:definition.unit,periodBars:definition.periodBars,basisTime:bars[index].time,value,
       volumeRatio:kind==='volume'&&known(frame.state?.[index]?.vol_ratio)?frame.state[index].vol_ratio:null,
-      ...(kind==='macd'&&computed?{signalValue:known(computed.signal[index])?computed.signal[index]:null,histogramValue:known(computed.histogram[index])?computed.histogram[index]:null,parameters:{fast:12,slow:26,signal:9},calculationVersion:math.version,seedPolicy:'sma-period',signalSeries:math.series(bars,computed.signal,index),histogramSeries:math.series(bars,computed.histogram,index).map(p=>known(p.value)?{...p,color:p.value>=0?'rgba(211,47,47,.65)':'rgba(24,89,201,.65)'}:p)}:{}),
+      ...(kind==='macd'&&computed?{signalValue:known(computed.signal[index])?computed.signal[index]:null,histogramValue:known(computed.histogram[index])?computed.histogram[index]:null,parameters:{fast:12,slow:26,signal:9},calculationVersion:math.version,seedPolicy:'sma-period',signalSeries:math.series(bars,computed.signal,index),histogramSeries:math.series(bars,computed.histogram,index).map(p=>known(p.value)?{...p,color:p.value>=0?palette.histogramUp:palette.histogramDown}:p)}:{}),
       ...(kind==='obv'?{calculationVersion:math.version,seedPolicy:'first-bar-zero-stop-on-gap',seedTime:bars[0]?.time??null}:{}),
       status:value==null||(kind==='macd'&&computed&&!known(computed.signal[index]))?'insufficient-data':'ready',provisional:index===bars.length-1&&frame.confirmed===false,
-      series:bars.map((bar,i)=>i<=index&&known(values[i])?{time:bar.time,value:values[i],...(kind==='volume'?{color:bar.close>=bar.open?'rgba(211,47,47,.65)':'rgba(24,89,201,.65)'}:{})}:{time:bar.time})};
+      series:bars.map((bar,i)=>i<=index&&known(values[i])?{time:bar.time,value:values[i],...(kind==='volume'?{color:bar.close>=bar.open?palette.volumeUp:palette.volumeDown}:{})}:{time:bar.time})};
   }
   const equalRange=(a,b)=>!!(a&&b&&Math.abs(a.from-b.from)<1e-6&&Math.abs(a.to-b.to)<1e-6);
   if(typeof module!=='undefined'&&module.exports){module.exports={build,definitions,equalRange};return;}
@@ -34,6 +37,9 @@
     $('indicatorDate').textContent=s.basisTime==null?'—':fmtT(s.basisTime);
     $('indicatorValue').textContent=s.value==null?'자료 부족':kind==='atr'?fmtP(s.value):s.value.toLocaleString('ko-KR',{maximumFractionDigits:2});
     $('indicatorValueLabel').textContent=definitions[kind].label;
+    $('indicatorValue').style.color=kind==='volume'?'':lineColor(kind);
+    $('indicatorSignal').style.color=palette.signal;
+    $('indicatorHistogram').style.color=s.histogramValue==null?'':s.histogramValue>=0?(theme?.colors.up||'#d32f2f'):(theme?.colors.down||'#1859C9');
     $('indicatorComponents').hidden=kind!=='macd';
     for(const [id,value] of [['indicatorSignal',s.signalValue],['indicatorHistogram',s.histogramValue]])$(id).textContent=value==null?'자료 부족':value.toLocaleString('ko-KR',{maximumFractionDigits:4});
     if(kind==='macd'||kind==='obv')$('indicatorValue').textContent=s.value==null?'자료 부족':s.value.toLocaleString('ko-KR',{maximumFractionDigits:4});
@@ -55,14 +61,14 @@
     const f=frameOf(curSym()),data=build(f,kind,asOfIdx());
     plot.applyOptions({timeScale:{timeVisible:S.tf==='H4'},rightPriceScale:{minimumWidth:chart.priceScale('right').width()}});
     for(const threshold of thresholds)line.removePriceLine(threshold);thresholds=[];
-    line.applyOptions({visible:kind!=='volume',color:kind==='atr'?'#7c3aed':kind==='obv'?'#0f766e':'#2962ff',priceFormat:kind==='obv'?{type:'volume'}:kind==='macd'?{type:'price',precision:4,minMove:.0001}:{type:'price',precision:2,minMove:.01},autoscaleInfoProvider:kind==='rsi'?()=>({priceRange:{minValue:0,maxValue:100}}):original=>original()});
+    line.applyOptions({visible:kind!=='volume',color:lineColor(kind),priceFormat:kind==='obv'?{type:'volume'}:kind==='macd'?{type:'price',precision:4,minMove:.0001}:{type:'price',precision:2,minMove:.01},autoscaleInfoProvider:kind==='rsi'?()=>({priceRange:{minValue:0,maxValue:100}}):original=>original()});
     signalLine.applyOptions({visible:kind==='macd'});
     histogram.applyOptions({visible:kind==='volume'||kind==='macd',priceFormat:kind==='volume'?{type:'volume'}:{type:'price',precision:4,minMove:.0001}});
     line.setData(kind==='volume'?data.series.map(p=>({time:p.time})):data.series);
     signalLine.setData(kind==='macd'?data.signalSeries||[]:[]);
     histogram.setData(kind==='macd'?data.histogramSeries||[]:kind==='volume'?data.series:data.series.map(p=>({time:p.time})));
-    if(kind==='rsi')for(const price of [30,70])thresholds.push(line.createPriceLine({price,color:'#94a3b8',lineWidth:1,lineStyle:2,title:String(price),axisLabelVisible:true}));
-    if(kind==='macd')thresholds.push(line.createPriceLine({price:0,color:'#94a3b8',lineWidth:1,lineStyle:2,title:'0',axisLabelVisible:true}));
+    if(kind==='rsi')for(const price of [30,70])thresholds.push(line.createPriceLine({price,color:palette.threshold,lineWidth:1,lineStyle:2,title:String(price),axisLabelVisible:true}));
+    if(kind==='macd')thresholds.push(line.createPriceLine({price:0,color:palette.threshold,lineWidth:1,lineStyle:2,title:'0',axisLabelVisible:true}));
     synchronize();
     requestAnimationFrame(synchronize);
   }
@@ -70,9 +76,9 @@
   window.IndicatorPanel={current,render,tick,chart:()=>plot,kind:()=>kind,series:()=>({line,signal:signalLine,histogram})};
   document.addEventListener('DOMContentLoaded',()=>{
     const host=$('indicatorChart');
-    plot=LightweightCharts.createChart(host,{width:host.clientWidth,height:host.clientHeight,layout:{background:{type:'solid',color:'#fff'},textColor:'#536675',fontSize:12},grid:{vertLines:{color:'#E5EAF0'},horzLines:{color:'#E5EAF0'}},rightPriceScale:{scaleMargins:{top:.1,bottom:.1}},timeScale:{rightOffset:2},handleScroll:false,handleScale:false});
+    plot=LightweightCharts.createChart(host,theme?theme.options({width:host.clientWidth,height:host.clientHeight,layout:{fontSize:12,fontFamily:'Pretendard, system-ui, sans-serif'},rightPriceScale:{scaleMargins:{top:.1,bottom:.1}},timeScale:{rightOffset:2},handleScroll:false,handleScale:false}):{width:host.clientWidth,height:host.clientHeight,layout:{background:{type:'solid',color:'#fff'},textColor:'#536675',fontSize:12,fontFamily:'Pretendard, system-ui, sans-serif'},grid:{vertLines:{color:'#E5EAF0'},horzLines:{color:'#E5EAF0'}},rightPriceScale:{scaleMargins:{top:.1,bottom:.1}},timeScale:{rightOffset:2},handleScroll:false,handleScale:false});
     line=plot.addSeries(LightweightCharts.LineSeries,{lineWidth:2,lastValueVisible:false,priceLineVisible:false});
-    signalLine=plot.addSeries(LightweightCharts.LineSeries,{color:'#FF6D00',lineWidth:2,lastValueVisible:false,priceLineVisible:false,priceFormat:{type:'price',precision:4,minMove:.0001},visible:false});
+    signalLine=plot.addSeries(LightweightCharts.LineSeries,{color:palette.signal,lineWidth:2,lastValueVisible:false,priceLineVisible:false,priceFormat:{type:'price',precision:4,minMove:.0001},visible:false});
     histogram=plot.addSeries(LightweightCharts.HistogramSeries,{priceFormat:{type:'volume'},lastValueVisible:false,priceLineVisible:false,visible:false});
     chart.timeScale().subscribeVisibleLogicalRangeChange(()=>{if(kind!=='none')synchronize();});
     const observer=new ResizeObserver(()=>{if(host.clientWidth){plot.applyOptions({width:host.clientWidth,height:host.clientHeight});synchronize();requestAnimationFrame(synchronize);}});observer.observe(host);

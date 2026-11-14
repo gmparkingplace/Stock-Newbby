@@ -1,6 +1,6 @@
 """Causal ascending/descending/symmetrical daily triangles. No provider or clock."""
 from market_store import revision
-from pattern_math import validated, analyze_contiguous, atr14, fit, line, pivots, channel_coverage
+from pattern_math import validated, analyze_contiguous, atr14, fit, line, pivots, pivot_prefix, channel_coverage
 
 from pattern_profiles import parameters, rule_version
 
@@ -76,12 +76,14 @@ def whipsaw(row,d):
 
 
 def analyze(candles,symbol,confirmed_through,provisional=False,levels=None,timeframe='D',profile='balanced'):
-    if timeframe not in ('D','H4'):raise ValueError('unsupported-pattern-timeframe')
+    from intraday_timeframes import is_intraday
+    if timeframe != 'D' and not is_intraday(timeframe):raise ValueError('unsupported-pattern-timeframe')
     cfg=parameters(profile);rule=rule_version('triangle',timeframe,profile)
     rows=validated(candles,confirmed_through,timeframe,symbol)
     segmented=analyze_contiguous(analyze,rows,symbol,confirmed_through,provisional,levels,timeframe,profile)
     if segmented is not None:return segmented
     atr=atr14(rows)
+    confirmed_pivots=pivot_prefix(rows)
     timeline,events,history=[],[],[];active=None;blocked=-1
     def emit(p,i,kind):
         event=present(p,rows,i,kind);event.update(eventType=kind,confirmedBarTime=rows[i]['time'],eventId=revision([p['patternId'],kind,rows[i]['time'],rule]))
@@ -93,7 +95,7 @@ def analyze(candles,symbol,confirmed_through,provisional=False,levels=None,timef
             if active and (active['terminalIndex'] is not None or active['confirmedIndex'] is not None and i-active['confirmedIndex']>10):
                 blocked=max(blocked,active['terminalIndex'] if active['terminalIndex'] is not None else active['confirmedIndex']);active=None
             if active is None:
-                hi,lo=pivots(rows,i)
+                hi,lo=confirmed_pivots(i)
                 for start in range(max(14,blocked+1,i-59),i-cfg['triangle_min']+2):
                     p=candidate(rows,atr,start,i,hi,lo,symbol,timeframe,profile)
                     if p:active=p;history.append(p);break

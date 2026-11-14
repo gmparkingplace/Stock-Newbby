@@ -149,3 +149,16 @@ def test_disabled_triangle_only_monitor_does_not_collect(tmp_path,monkeypatch):
     assert not calls and worker.status()['items'][0]['status']=='rules-disabled'
     assert epoch(worker.state['runtime']['AAPL']['nextDueAt'])==now+60
     worker.close();store.close()
+
+
+@pytest.mark.parametrize('kind', ['ascending', 'descending', 'symmetrical'])
+@pytest.mark.parametrize('direction', ['up', 'down'])
+def test_triangle_geometry_does_not_self_intersect(kind, direction):
+    from geometry_check import self_intersects
+    rows = triangle_rows(kind, direction)
+    out = analyze(rows, 'T', rows[-1]['time'])
+    calendar = [r['time'] for r in rows]
+    events = [e for e in out['events'] if e.get('geometry', {}).get('points')]
+    assert events, 'geometry events'
+    for e in events:
+        assert not self_intersects(e['geometry']['points'], calendar), e['geometry']['points']

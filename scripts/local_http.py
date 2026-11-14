@@ -1,7 +1,22 @@
 """Request and static-file boundaries shared by live and offline loopback servers."""
 import ipaddress
+from http.server import ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
+import sys
 from urllib.parse import unquote, urlsplit
+
+
+class LocalThreadingHTTPServer(ThreadingHTTPServer):
+    """A canceled browser request is not a server failure; do not print a traceback."""
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def handle_error(self, request, client_address):
+        error = sys.exc_info()[1]
+        if isinstance(error, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            return
+        print(f'요청 처리 실패 {client_address[0]}: {type(error).__name__}: {error}',
+              file=sys.stderr, flush=True)
 
 
 class LocalOnlyHTTPMixin:

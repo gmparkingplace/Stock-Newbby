@@ -1,0 +1,42 @@
+/* 정보 우선순위: 이름은 줄여도 가격·오류·선택 상태는 숨기지 않는다. */
+.brandLine .titleline{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);grid-template-rows:54px auto;gap:6px 26px;max-width:calc(100% - 110px)}
+.symbolHeading{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.brandLine .symbolHeading .sym{display:block;max-width:none;min-width:0;font-size:20px;height:27px;line-height:27px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.symbolCode{color:var(--sub);font-size:12px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quoteHeading{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0;align-content:center}
+.symbolPrice{font-size:25px;line-height:32px;font-weight:600;letter-spacing:-.035em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.quoteHeading .priceChange{font-size:14px;line-height:22px;white-space:nowrap}
+.dataHealth{grid-column:1/-1;grid-row:2;white-space:normal;overflow-wrap:anywhere}
+#watchlistPanel .wl-groupstrip{max-height:112px;overflow-y:auto;align-content:start;scrollbar-width:thin;gap:5px;padding:2px 2px 4px}
+#watchlistPanel .wl-groupstrip button{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+#watchlistPanel .wl-row{display:grid;grid-template-columns:6px minmax(0,1fr);padding:11px 8px;border-left:2px solid transparent;gap:2px 8px;text-align:left}
+#watchlistPanel .wl-row[aria-current=true]{background:#edf2fc;border-left-color:var(--accent)}
+#watchlistPanel .wl-row-name{grid-column:2;grid-row:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+#watchlistPanel .wl-row-code{grid-column:2;grid-row:2;min-width:0;font-size:11px;color:#86909d;overflow-wrap:anywhere}
+#watchlistPanel .wl-row-state{grid-column:2;grid-row:3;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.6}
+#watchlistPanel .wl-tone{grid-row:1;align-self:center}
+#watchlistPanel #wlEmpty{margin:4px 0;padding:18px 8px;color:var(--sub);font-size:12px;text-align:center;border-bottom:1px solid var(--line)}
+.watchManage[open]>.wl-actions{max-height:min(420px,70vh);overflow-y:auto;border-radius:8px;padding:6px!important;gap:3px;box-shadow:0 8px 24px #20263116}
+.watchManage .wl-actions button{border:0;text-align:left;border-radius:4px;color:var(--ink)}
+#wlInfo{padding:8px 4px 0;margin:4px 0 0;border-top:1px solid var(--line);font-size:11px;overflow-wrap:anywhere}
+#wlSymbolDlg,#wlGroupDlg,#wlManageDlg{width:min(500px,calc(100vw - 64px));padding:24px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);box-shadow:0 20px 70px #20263126;max-height:calc(100dvh - 64px);overflow-y:auto}
+#wlSymbolDlg::backdrop,#wlGroupDlg::backdrop,#wlManageDlg::backdrop{background:#14202f55}
+#wlSymbolDlg h2,#wlGroupDlg h2,#wlManageDlg h2{font-size:18px;margin:0 0 16px}
+#wlSymbolQ,#wlGroupName,#wlManageName{width:100%;height:40px;min-width:0;border:1px solid #dce2ea;border-radius:7px;padding:9px 12px;background:#f8fafc;color:var(--ink);font:inherit;font-size:14px}
+#wlSymbolQ:focus,#wlGroupName:focus,#wlManageName:focus{background:#fff}
+.wl-symbol-group{font-size:12px;color:var(--sub);margin:-8px 0 14px;overflow-wrap:anywhere}
+.wl-symbol-status{margin:12px 0 0;font-size:12px;color:var(--sub);min-height:18px;overflow-wrap:anywhere}
+#wlSymbolErr{font-size:12px;color:#a65026;overflow-wrap:anywhere}
+#wlSymbolList,#wlManageList{list-style:none;padding:0;margin:12px 0 16px;max-height:45vh;overflow-y:auto}
+#wlSymbolList li.wl-symbol-result{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.wl-symbol-identity{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.wl-symbol-name{font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.wl-symbol-code,.wl-symbol-market{font-size:11px;color:var(--sub);overflow-wrap:anywhere}
+#wlSymbolList .wl-symbol-add{flex:none;min-width:64px;min-height:34px;font-size:12px;padding:6px 10px;color:var(--accent);border:1px solid #d3deef;background:#f5f8ff}
+#wlSymbolList .wl-symbol-add:disabled{background:#f6f7f9;color:#89929e;border-color:var(--line);cursor:default}
+#wlSymbolClose,#wlGroupClose,#wlManageClose{font-size:12px;min-height:34px}
+#wlManageList li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}
+#wlManageList li button{flex:none;min-height:32px!important;font-size:12px}
+button:active:not(:disabled){background:#e7edf7}
+@media(max-width:1180px){.brandLine .titleline{grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:6px 18px}.symbolPrice{font-size:23px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important}}

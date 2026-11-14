@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('entryMode').disabled=low;const modeLabel=document.getElementById('entryMode').closest?.('label');if(modeLabel)modeLabel.hidden=low;
   const controls=document.getElementById('entryControls');if(controls)controls.dataset.family=low?'low':'legacy';
   const legacyHelp=document.getElementById('entrySettingsLegacy'),lowHelp=document.getElementById('entrySettingsLow');if(legacyHelp)legacyHelp.hidden=low;if(lowHelp)lowHelp.hidden=!low;
-  renderEntryPanel(currentObs());window.LowStructurePanel?.render();if(typeof renderMarkers==='function')renderMarkers();window.Watchlist?.render();
+  renderEntryPanel(currentObs());window.LowStructurePanel?.render();if(typeof renderMarkers==='function')renderMarkers();if(typeof paintSelLine==='function')paintSelLine();window.Watchlist?.render();
  };
  if(family?.value){family.onchange=e=>{S.entryFamily=e.target.value;syncFamily();};
  for(const el of document.querySelectorAll('[name=lowStrategy]'))el.addEventListener('change',()=>{S.lowStrategies=[...document.querySelectorAll('[name=lowStrategy]:checked')].map(x=>x.value);syncFamily();});syncFamily();}

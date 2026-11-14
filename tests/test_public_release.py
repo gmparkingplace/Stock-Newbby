@@ -24,6 +24,11 @@ def test_export_excludes_records_and_uses_empty_credentials(tmp_path, monkeypatc
         p.write_text('public documentation')
     dash = source / 'results/dashboard'
     dash.mkdir(parents=True)
+    (dash / 'workspace-refresh.css').write_text('body { color: #202631; }')
+    (dash / 'fonts').mkdir()
+    font = b'wOF2\x00\xff\xfe\x80'
+    (dash / 'fonts/PretendardVariable.woff2').write_bytes(font)
+    (dash / 'fonts/OFL.txt').write_text('SIL Open Font License 1.1')
     sentinels = (b'fixture-private-old-data-4d71', b'fixture-private-record-9ac2')
     (dash / 'data.js').write_bytes(sentinels[0])
     (dash / 'data.json').write_bytes(sentinels[0])
@@ -39,8 +44,15 @@ def test_export_excludes_records_and_uses_empty_credentials(tmp_path, monkeypatc
         if p.is_file():
             assert not any(value in p.read_bytes() for value in sentinels)
     assert (dest / 'toss-credentials.example.txt').read_text() == 'Client Id:\nClient Secret:\n'
-    assert json.loads((dest / '.local.example.json').read_text())['tossCredentialsFile'] == ''
+    config = json.loads((dest / '.local.example.json').read_text())
+    assert config['tossCredentialsFile'] == ''
+    assert config['marketProvider'] == 'yfinance' and config['h4Provider'] == 'auto'
+    for name in ('desktop_qt.py', 'desktop-qt.sh', 'desktop-qt.bat', 'requirements-desktop.txt'):
+        assert (dest / name).is_file()
     assert not (dest / '.local.json').exists()
+    assert (dest / 'results/dashboard/workspace-refresh.css').read_text() == 'body { color: #202631; }'
+    assert (dest / 'results/dashboard/fonts/PretendardVariable.woff2').read_bytes() == font
+    assert (dest / 'results/dashboard/fonts/OFL.txt').read_text() == 'SIL Open Font License 1.1'
     assert 'synthetic-demo' in (dest / 'results/dashboard/data.js').read_text()
     assert json.loads((dest / 'package.json').read_text())['scripts']['test'] == 'node tests/x.js'
     with pytest.raises(ValueError, match='empty'):

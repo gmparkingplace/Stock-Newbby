@@ -1,10 +1,12 @@
 /* Browser-neutral SSE consumer. All Toss credentials stay in the Python server. */
 "use strict";
 (() => {
-  let capability = false, source = null, activeSymbol = null, state = "idle";
+  let capability = false, realtimeScope = null, source = null, activeSymbol = null, state = "idle";
   let quote = null, nextChartAt = 0;
   const forcedTransitions=new Map();
-  window.__tossQuote = () => activeSymbol === S.symbol && quote ? {...quote, symbol:activeSymbol, connection:state, enabled:S.autoRef && !document.hidden} : null;
+  const intraday = () => typeof isIntraTF === "function" ? isIntraTF(S.tf) : S.tf === "H4";
+  const allowedTimeframe = () => realtimeScope !== "intraday" || intraday();
+  window.__tossQuote = () => !S.selectedAsOf && allowedTimeframe() && activeSymbol === S.symbol && quote ? {...quote, symbol:activeSymbol, connection:state, enabled:S.autoRef && !document.hidden} : null;
   const supported = (s) => !!s && !s.startsWith("^") && !s.endsWith("-USD");
   function paint() {
     const el = document.getElementById("realtimeLine");
@@ -13,6 +15,10 @@
     el.hidden = false;
     if (S.selectedAsOf) {
       el.textContent = "과거 시점 보기 · 실시간 가격 표시 없음"; return;
+    }
+    if (!allowedTimeframe()) {
+      el.textContent = "Yahoo 일봉 기반 · 일·주·월봉은 실시간 체결을 구독하지 않아요 · " +
+        (!S.autoRef ? "자동갱신 OFF" : document.hidden ? "캔들 조회 일시정지" : "캔들 스냅샷 60초 간격 조회"); return;
     }
     const labels = {idle:"실시간 수신 대기", connecting:"실시간 연결 중", subscribed:"실시간 구독 연결됨",
       reconnecting:"연결 끊김 · 재연결 중", rejected:"구독 거절", "quote-unavailable":"최근 가격 조회 실패"};
@@ -27,11 +33,12 @@
       text += " · " + stamp.toLocaleString("ko-KR", {hour12:false});
       if (!fresh) text += " (새 체결 대기)";
     } else text += " · 새 체결 대기";
-    if (S.tf === "H4") {
+    if (intraday()) {
       const frame = frameOf(curSym());
-      text += frame?.source === "toss" ? " · 4시간봉: 토스 1분봉 집계" :
-        frame?.source === "yfinance" ? " · 4시간봉: yfinance 집계" : " · 4시간봉 공급처 확인 중";
-    } else text += " · 장중 캔들 스냅샷은 체결 유무와 무관하게 30초 간격 조회";
+      const label = typeof intraWord === "function" ? intraWord(S.tf) : "4시간봉";
+      text += frame?.source === "toss" ? ` · ${label}: 토스 1분봉 집계` :
+        frame?.source === "yfinance" ? ` · ${label}: yfinance 집계` : ` · ${label} 공급처 확인 중`;
+    } else text += " · 캔들 스냅샷은 체결 유무와 무관하게 60초 간격 조회";
     el.textContent = text;
   }
   function close() {
@@ -39,7 +46,7 @@
     source = null; activeSymbol = null; quote = null; state = "idle";
   }
   function sync() {
-    const wanted = capability && serverMode && S.autoRef && !document.hidden && supported(S.symbol) ? S.symbol : null;
+    const wanted = capability && allowedTimeframe() && !S.selectedAsOf && serverMode && S.autoRef && !document.hidden && supported(S.symbol) ? S.symbol : null;
     if (wanted === activeSymbol) { paint(); return; }
     close();
     if (!wanted) { paint(); return; }
@@ -49,6 +56,7 @@
     const mine = source;
     mine.onmessage = event => {
       if (source !== mine || S.symbol !== symbol) return;
+      if (S.selectedAsOf || !allowedTimeframe()) { sync(); return; }
       let data;
       try { data = JSON.parse(event.data); } catch (_) { return; }
       if (data.kind === "status") {
@@ -70,6 +78,7 @@
         const response = await fetch("api/market-provider");
         if (!response.ok) return;
         const data = await response.json(); capability = data.provider === "toss" && data.realtime === true;
+        realtimeScope = data.realtimeScope;
       } catch (_) { capability = false; }
       sync();
     }
@@ -79,7 +88,7 @@
       if (typeof renderSummary === "function") renderSummary();
       const frame=frameOf(curSym()),now=Date.now();
       const active=['open','break'].includes(frame?.marketSession?.state);
-      const interval=active?30000:60000;
+      const interval=active&&intraday()?30000:60000;
       const key=S.symbol+'#'+S.tf;
       const transitions=[frame?.marketSession?.nextTransitionAt,frame?.nextConfirmationAt]
         .map(Date.parse).filter(t=>Number.isFinite(t)&&t<=now&&t>Date.parse(frame?.fetchedAt));

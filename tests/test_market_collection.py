@@ -6,7 +6,8 @@ from pathlib import Path
 import sqlite3
 import sys
 from threading import Event, Lock
-from time import monotonic
+from time import monotonic, sleep
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -67,6 +68,82 @@ def test_waiter_timeout_does_not_cancel_shared_collection():
         if future: assert future.result(timeout=1)==5
     finally:
         release.set();scheduler.close()
+
+
+def test_queued_job_still_collects_after_waiter_timed_out():
+    scheduler=RequestScheduler(wait_seconds=.05,expire_seconds=5)
+    entered,release=Event(),Event()
+    def slow():
+        entered.set();assert release.wait(2);return 1
+    try:
+        with ThreadPoolExecutor(1) as pool:
+            timed_out=pool.submit(scheduler.execute,'one','toss',slow)
+            assert entered.wait(1)
+            with pytest.raises(QueueBusy):timed_out.result(timeout=1)
+            with pytest.raises(QueueBusy) as busy:scheduler.execute('two','toss',lambda:2)
+            assert busy.value.reason=='wait-timeout'
+            with scheduler.cv: one,queued=scheduler.flights.get('one'),scheduler.flights.get('two')
+            assert one is not None and queued is not None and not queued.done()
+            release.set()
+            # The HTTP waiters are gone, but cache fill still finishes.
+            assert one.result(timeout=2)==1
+            assert queued.result(timeout=2)==2
+            assert scheduler.snapshot()['waitTimeout']==2
+    finally:
+        release.set();scheduler.close()
+
+
+def test_busy_returns_labeled_last_good_snapshot_instead_of_503(tmp_path):
+    now=[NOW];cache=MarketCache(tmp_path/'cache.db',clock=lambda:now[0],wait_seconds=.05)
+    entered,release=Event(),Event()
+    good=payload(NOW)
+    try:
+        first=cache.lookup('toss','AAPL','D',lambda f:good)
+        now[0]+=31
+        def slow(code,force=False):
+            entered.set();assert release.wait(2);return payload(now[0])
+        with ThreadPoolExecutor(1) as pool:
+            pending=pool.submit(cache.lookup,'toss','AAPL','D',slow,True, background=True)
+            assert entered.wait(1)
+            stale=cache.lookup('toss','AAPL','D',lambda f:pytest.fail('merged waiters must not collect'))
+            assert stale['stale'] and stale['cacheHit']
+            assert stale['staleReason']=='wait-timeout'
+            assert stale['fetchedAt']==first['fetchedAt']
+            assert stale['lastSuccessAt']==first['fetchedAt']
+            assert stale['cacheAge']==31 and stale['note']
+            release.set();fresh=pending.result()
+        assert fresh['fetchedAt']!=first['fetchedAt'] and not fresh['stale']
+        assert cache.stats['staleServed']==1
+    finally:
+        release.set();cache.close()
+
+
+def test_daily_and_h4_lanes_do_not_block_each_other(tmp_path):
+    now=[NOW];cache=MarketCache(tmp_path/'cache.db',clock=lambda:now[0],wait_seconds=1)
+    entered,release=Event(),Event()
+    try:
+        with ThreadPoolExecutor(2) as pool:
+            def slow_daily(force):
+                entered.set();assert release.wait(2);return payload(now[0])
+            blocked=pool.submit(cache.lookup,'toss','AAPL','D',slow_daily)
+            assert entered.wait(1)
+            h4=pool.submit(cache.lookup,'toss','AAPL','H4',lambda f:payload(now[0]))
+            assert h4.result(timeout=1)['fetchedAt']==payload(now[0])['fetchedAt']
+            assert not blocked.done(),'H4 backfill must not block the daily lane'
+            release.set();assert blocked.result(timeout=2)['fetchedAt']==payload(now[0])['fetchedAt']
+    finally:
+        release.set();cache.close()
+
+
+def test_stale_refresh_serves_as_fresh_when_collector_won(tmp_path):
+    now=[NOW];cache=MarketCache(tmp_path/'cache.db',clock=lambda:now[0])
+    try:
+        first=cache.lookup('toss','AAPL','D',lambda f:payload(now[0]))
+        now[0]+=5
+        out=cache.stale(cache.key('toss','AAPL','D'),QueueBusy('wait-timeout'))
+        assert not out['stale'] and out['cacheHit'] and out['cacheAge']==5
+    finally:
+        cache.close()
 
 
 def test_cache_restart_original_time_revision_and_force_budget(tmp_path):
@@ -166,13 +243,20 @@ def test_gap_triggers_full_and_failed_reconcile_leaves_old_revision(tmp_path):
     finally:store.close()
 
 
-def test_full_reconcile_daily_and_post_close_once(tmp_path):
+def test_full_reconcile_is_deferred_to_an_explicit_audit(tmp_path):
     now=[NOW];p=Pager();store=MarketStore(tmp_path/'cache.db');c=CandleCollection(p,store,clock=lambda:now[0])
     try:
         c.daily('AAPL','America/New_York');assert len(p.calls)==4
-        now[0]+=31;c.daily('AAPL','America/New_York',reconcile_after=NOW+30);assert len(p.calls)==8
-        c.daily('AAPL','America/New_York',reconcile_after=NOW+30);assert len(p.calls)==8
-        now[0]+=86401;c.daily('AAPL','America/New_York');assert len(p.calls)==12
+        now[0]+=31
+        # Post-close and 24h checks no longer run inside the request path.
+        c.daily('AAPL','America/New_York',reconcile_after=NOW+30);assert len(p.calls)==5
+        assert c.needs_audit('AAPL','America/New_York',reconcile_after=NOW+30) is True
+        c.daily('AAPL','America/New_York',audit=True);assert len(p.calls)==9
+        assert c.needs_audit('AAPL','America/New_York',reconcile_after=NOW+30) is False
+        now[0]+=86401
+        assert c.needs_audit('AAPL','America/New_York') is True
+        c.daily('AAPL','America/New_York');assert len(p.calls)==10
+        c.daily('AAPL','America/New_York',audit=True);assert len(p.calls)==14
     finally:store.close()
 
 
@@ -241,7 +325,8 @@ def test_full_pagination_conflicting_adjustments_never_published(tmp_path):
                 reply['candles'][0]['closePrice']=104
             return reply
         p.get=inconsistent;now[0]+=86401
-        with pytest.raises(TossError,match='adjusted-history-conflict'):c.daily('AAPL','America/New_York')
+        with pytest.raises(TossError,match='adjusted-history-conflict'):
+            c.daily('AAPL','America/New_York',audit=True)
         assert store.get('candles|AAPL|D|adjusted|America/New_York|v1')['dataRevision']==old[3]
     finally:store.close()
 
@@ -293,7 +378,7 @@ def test_production_candle_frame_pipeline_reuses_one_daily_revision(tmp_path,mon
         monkeypatch.setattr(toss_catalog,'resolve',lambda code:code)
         monkeypatch.setattr(toss_market.CLIENT,'get',provider)
         monkeypatch.setattr(server,'_TOSS_NAMES',{})
-        monkeypatch.setattr(server,'market_session',lambda code:{'state':'open','lastSessionEnd':None})
+        monkeypatch.setattr(server,'market_session',lambda code,**kw:{'state':'open','lastSessionEnd':None})
         monkeypatch.setattr(server,'_with_meta',lambda value,meta:{**value,**meta})
         first=server.market_lookup('AAPL')
         assert len(pager.calls)==4
@@ -342,3 +427,188 @@ def test_provider_timeout_is_not_mislabeled_as_queue_busy():
         with pytest.raises(TimeoutError,match='provider timeout'):
             scheduler.execute('one','toss',fail)
     finally:scheduler.close()
+
+
+def test_prefer_stale_returns_last_good_without_waiting_for_provider(tmp_path):
+    now=[NOW];cache=MarketCache(tmp_path/'cache.db',clock=lambda:now[0],wait_seconds=5)
+    entered,release=Event(),Event()
+    try:
+        first=cache.lookup('toss','AAPL','D',lambda f:payload(NOW))
+        now[0]+=120
+        def slow(code,force=False):
+            entered.set();assert release.wait(2);return payload(now[0])
+        started=monotonic()
+        stale=cache.lookup('toss','AAPL','D',slow,prefer_stale=True)
+        elapsed=monotonic()-started
+        assert elapsed<1,'a labeled snapshot must not wait for the provider'
+        assert stale['stale'] and stale['cacheHit'] and stale['fetchedAt']==first['fetchedAt']
+        assert stale['staleReason']=='collecting' and stale['retryAt']
+        assert entered.wait(1),'cache fill must continue in the provider worker'
+        assert cache.scheduler.snapshot()['inFlight']==1,'stale responses must not start a second collection'
+        started=monotonic()
+        again=cache.lookup('toss','AAPL','D',slow,prefer_stale=True)
+        assert monotonic()-started<.5,'repeated UI polling must not wait four seconds on the same flight'
+        assert again['stale'] and again['fetchedAt']==first['fetchedAt']
+        assert cache.scheduler.snapshot()['submitted']==2,'one initial collection and one refresh only'
+        release.set()
+        fresh=cache.lookup('toss','AAPL','D',lambda f:pytest.fail('must merge into the running job'))
+        assert not fresh['stale'] and fresh['fetchedAt']!=first['fetchedAt']
+    finally:
+        release.set();cache.close()
+
+
+def test_prefer_stale_keeps_first_fetch_blocking_and_force_waiting(tmp_path):
+    now=[NOW];cache=MarketCache(tmp_path/'cache.db',clock=lambda:now[0],wait_seconds=.2)
+    try:
+        cold=cache.lookup('toss','AAPL','D',lambda f:payload(now[0]),prefer_stale=True)
+        assert cold['fetchedAt']==payload(now[0])['fetchedAt'] and not cold['stale']
+        now[0]+=60
+        seen=[]
+        def fetch(force):
+            seen.append(force);return payload(now[0])
+        forced=cache.lookup('toss','AAPL','D',fetch,force=True,prefer_stale=True)
+        assert seen==[True] and not forced['stale'],'an explicit refresh still collects before answering'
+    finally:
+        cache.close()
+
+
+def test_market_lookup_ui_path_returns_saved_chart_before_provider(tmp_path,monkeypatch):
+    import serve_dashboard as server
+    import pattern_service
+    now=[NOW];cache=MarketCache(tmp_path/'cache.db',clock=lambda:now[0],wait_seconds=5)
+    entered,release=Event(),Event()
+    try:
+        cache.lookup('toss','AAPL','D',lambda f:payload(NOW))
+        now[0]+=300
+        def slow(code,force=False):
+            entered.set();assert release.wait(2);return payload(now[0])
+        monkeypatch.setattr(server,'market_cache',SimpleNamespace(enabled=lambda:True,services=lambda:cache))
+        monkeypatch.setattr(server,'_provider_choice',lambda tf='D':'auto')
+        # 공개본에는 키가 없으므로 공급처 선택도 fixture로 고정한다.
+        import toss_market, toss_catalog
+        monkeypatch.setattr(toss_market,'enabled',lambda:True)
+        monkeypatch.setattr(toss_market,'supports',lambda code:True)
+        monkeypatch.setattr(toss_catalog,'resolve',lambda code:code)
+        monkeypatch.setattr(server,'_with_meta',lambda payload,cache_meta:payload)
+        monkeypatch.setattr(pattern_service,'attach',lambda payload:payload)
+        monkeypatch.setattr(server,'_market_lookup',slow)
+        started=monotonic()
+        out=server.market_lookup('AAPL',prefer_stale=True)
+        assert monotonic()-started<1
+        assert out['stale'] is True and out['cacheHit'] is True
+        assert out['note'] and out['lastSuccessAt']==payload(NOW)['fetchedAt']
+        assert entered.wait(1)
+        release.set()
+        fresh=server.market_lookup('AAPL')
+        assert not fresh['stale'] and fresh['fetchedAt']!=out['fetchedAt']
+    finally:
+        release.set()
+        server.market_cache=__import__('market_cache')
+        cache.close()
+
+
+def test_interactive_request_promotes_a_queued_job():
+    scheduler=RequestScheduler(wait_seconds=5)
+    entered,release=Event(),Event()
+    try:
+        with ThreadPoolExecutor(1) as pool:
+            running=pool.submit(scheduler.execute,'A','toss',
+                                lambda:(entered.set(),release.wait(2),1)[2])
+            assert entered.wait(1)
+            assert scheduler.enqueue('B','toss',lambda:2) is True
+            with scheduler.cv:
+                assert scheduler.pending['toss'][0][0]==2
+                assert scheduler.has_waiting('toss',2) is False
+            with pytest.raises(QueueBusy):
+                scheduler.execute('B','toss',lambda:2,priority=0,wait_seconds=.01)
+            with scheduler.cv:
+                assert scheduler.pending['toss'][0][0]==0,'interactive work must move ahead'
+                assert scheduler.has_waiting('toss',2) is True
+            release.set()
+            assert running.result(timeout=2)==1
+            for _ in range(200):
+                if scheduler.snapshot()['completed']>=2:break
+                sleep(.01)
+            assert scheduler.snapshot()['completed']==2
+    finally:
+        release.set();scheduler.close()
+
+
+def test_deferred_collection_keeps_its_flight_and_resumes():
+    from request_scheduler import CollectionDeferred
+    scheduler=RequestScheduler(wait_seconds=2)
+    seen=[]
+    def job():
+        seen.append(1)
+        if len(seen)==1:raise CollectionDeferred('page-8')
+        return 'done'
+    try:
+        scheduler.enqueue('k','toss',job)
+        for _ in range(300):
+            if scheduler.snapshot()['completed']:break
+            sleep(.01)
+        assert seen==[1,1],'a deferred job must resume from its checkpoint'
+        assert scheduler.snapshot()['deferred']==1
+        assert scheduler.flights=={}
+    finally:
+        scheduler.close()
+
+
+def test_minute_backfill_yields_at_a_page_boundary(tmp_path,monkeypatch):
+    from datetime import datetime, timezone
+    from minute_collection import MinuteCollection
+    from request_scheduler import CollectionDeferred
+    store=MarketStore(tmp_path/'c.db')
+    seen=[]
+    def page(self,symbol,tz,before=None):
+        seen.append(before)
+        base=1700000000-200*60*len(seen)
+        rows=[dict(t=base+i*60,open=1,high=1,low=1,close=1,volume=1) for i in range(200)]
+        cursor=datetime.fromtimestamp(base-60,timezone.utc).isoformat()
+        return rows,cursor
+    monkeypatch.setattr(MinuteCollection,'_page',page)
+    collector=MinuteCollection(None,store,clock=lambda:1700000000)
+    try:
+        with pytest.raises(CollectionDeferred):
+            collector._full('AAPL','America/New_York','stage',yield_check=lambda:True)
+        stage=store.get('stage')
+        assert stage and stage['pages']==1 and stage['rows']
+        assert len(seen)==1
+        # Resuming continues from the stored cursor instead of restarting.
+        with pytest.raises(CollectionDeferred):
+            collector._full('AAPL','America/New_York','stage',yield_check=lambda:True)
+        assert len(seen)==2 and seen[1] is not None
+    finally:
+        store.close()
+
+
+def test_minute_needs_audit_follows_the_full_refresh_time():
+    from minute_collection import MinuteCollection
+    now=[NOW]
+    collector=MinuteCollection(None,None,clock=lambda:now[0])
+    key=collector._key('AAPL','America/New_York')
+    stamp=datetime.fromtimestamp(now[0],timezone.utc).isoformat(timespec='seconds')
+    collector._put(key,dict(rows=[],fetchedAt=stamp,dataRevision='x',history={},
+                            fullRefreshAt=now[0]))
+    assert collector.needs_audit('AAPL','America/New_York') is False
+    now[0]+=86401
+    assert collector.needs_audit('AAPL','America/New_York') is True
+
+
+def test_audit_scheduling_is_bounded_and_merged(monkeypatch):
+    import serve_dashboard as server
+    class Scheduler:
+        def __init__(self):self.calls=[]
+        def enqueue(self,key,lane,fn,priority=2):
+            self.calls.append((key,lane,priority));return True
+    class Services:
+        def __init__(self):self.scheduler=Scheduler()
+    svc=Services()
+    server._AUDIT_RETRY_AT.clear()
+    try:
+        assert server._queue_audit(svc,'audit|AAPL','toss',lambda:None) is True
+        assert len(svc.scheduler.calls)==1 and svc.scheduler.calls[0][2]==3
+        assert server._queue_audit(svc,'audit|AAPL','toss',lambda:None) is False,'retry cooldown'
+        assert len(svc.scheduler.calls)==1
+    finally:
+        server._AUDIT_RETRY_AT.clear()

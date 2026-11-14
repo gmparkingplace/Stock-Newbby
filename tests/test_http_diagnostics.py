@@ -54,6 +54,10 @@ def test_diagnostics_read_does_not_authenticate(monkeypatch):
     assert instance.status == 200
     body = json.loads(instance.wfile.getvalue())
     assert body['scope'] == 'current-process' and 'toss' in body and 'api' in body
+    # Phase timings are bounded counters: no symbols, payloads or credentials.
+    assert 'perf' in body and isinstance(body['perf'], dict)
+    text = instance.wfile.getvalue().decode()
+    assert '캔들' not in text and 'candles' not in text
 
 
 def test_success_cache_hit_count(monkeypatch):
@@ -90,6 +94,31 @@ def test_queue_busy_is_local_503_and_retains_source_time(monkeypatch):
     assert instance.headers_written['Retry-After']=='2'
 
 
+def test_error_response_does_not_raise_when_browser_already_disconnected(monkeypatch):
+    from request_scheduler import QueueBusy
+    instance, metrics = handler(monkeypatch)
+    class Closed(io.BytesIO):
+        def write(self, *args, **kwargs):
+            raise BrokenPipeError(32, 'Broken pipe')
+    instance.wfile = Closed()
+    def waiting(force):
+        raise QueueBusy()
+    instance.api(waiting,'AAPL','lookup')  # must not escape to socketserver
+    row=metrics.snapshot()['lookup']
+    assert row['statuses']=={'499':1} and row['lastErrorKind']=='client-disconnected'
+    assert instance.close_connection is True
+
+
+def test_client_disconnect_is_not_printed_as_a_server_error(capsys):
+    from local_http import LocalThreadingHTTPServer
+    server=object.__new__(LocalThreadingHTTPServer)
+    try:
+        raise BrokenPipeError(32,'Broken pipe')
+    except BrokenPipeError:
+        server.handle_error(object(),('127.0.0.1',1))
+    assert capsys.readouterr().err==''
+
+
 def test_market_success_and_errors_do_not_allow_cross_origin_reads(monkeypatch):
     instance, _ = handler(monkeypatch)
     instance.api(lambda force: {'cacheHit': True}, 'unused', 'lookup')
@@ -99,3 +128,19 @@ def test_market_success_and_errors_do_not_allow_cross_origin_reads(monkeypatch):
         raise ValueError('fixture failure')
     instance.api(fail, 'unused', 'lookup')
     assert 'Access-Control-Allow-Origin' not in instance.headers_written
+
+
+def test_perf_probe_records_phases_without_content(monkeypatch):
+    import perf_probe
+    perf_probe.reset()
+    metric = perf_probe.span('market', 'cache-read')
+    with metric:
+        pass
+    with pytest.raises(RuntimeError):
+        with perf_probe.span('patterns', 'flag.compute'):
+            raise RuntimeError('DO_NOT_STORE_THIS')
+    rows = perf_probe.snapshot()
+    assert rows['market.cache-read']['count'] == 1
+    assert rows['patterns.flag.compute']['failures'] == 1
+    assert 'DO_NOT_STORE_THIS' not in json.dumps(rows)
+    perf_probe.reset()

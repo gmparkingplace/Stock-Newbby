@@ -39,17 +39,31 @@ class CandleCollection:
             raise TossError('no-candles')
         return data
 
-    def daily(self, code, timezone_name, force=False, reconcile_after=None):
+    def _key(self, code, timezone_name):
+        from toss_market import toss_symbol
+        return '|'.join(('candles',toss_symbol(code),'D','adjusted',timezone_name,'v1'))
+
+    def needs_audit(self, code, timezone_name, reconcile_after=None):
+        """True when the full history reconciliation is due (not done inline)."""
+        with self.lock:
+            old = self.store.get(self._key(code,timezone_name))
+            if not old:return False
+            now = self.clock()
+            if now-old['fullRefreshAt']>=86400:return True
+            return bool(reconcile_after is not None and now>=reconcile_after
+                        and old['fullRefreshAt']<reconcile_after)
+
+    def daily(self, code, timezone_name, force=False, reconcile_after=None, audit=False):
+        """``audit=True`` forces the whole-history reconciliation; a normal request
+        uses the recent-30 merge and leaves the full check to a background task."""
         from toss_market import normalize_candles, toss_symbol, TossError
         symbol = toss_symbol(code)
-        key = '|'.join(('candles',symbol,'D','adjusted',timezone_name,'v1'))
+        key = self._key(code, timezone_name)
         with self.lock:
             old = self.store.get(key)
             now = self.clock()
             age = now-epoch(old['fetchedAt']) if old else None
-            full = not old or now-old['fullRefreshAt']>=86400
-            if old and reconcile_after is not None:
-                full = full or (now>=reconcile_after and old['fullRefreshAt']<reconcile_after)
+            full = audit or not old
             if old and not full and 0<=age<(10 if force else 30):
                 return deepcopy(old['rows']), True, old['fetchedAt'], old['dataRevision']
             if full:

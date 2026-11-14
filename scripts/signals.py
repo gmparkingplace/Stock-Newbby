@@ -120,21 +120,27 @@ def fib_of(d: pd.DataFrame) -> dict:
                        for r in (0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.272, 1.618)}}
 
 
-def to_4h(df: pd.DataFrame, tz: str) -> pd.DataFrame:
-    # 60분 원천 → 4시간 집계. 공급처(yfinance) 60m 인덱스는 봉 시작 시각(거래소 tz).
-    # DST·휴장·단축세션: tz_convert로 처리, 휴장일은 원천에 봉 없음, 단축일은 구성
-    # 60분봉이 적어 거래량이 작게 집계됨(있는 그대로 표시, 보간 없음).
-    # 세션 경계: 날짜별 그룹 후 그날 시가(첫 60분봉 시작)에 origin을 맞춰
-    # 거래일을 넘기는 봉을 만들지 않는다. 코인(24h)은 start_day 유지.
+def to_intraday(df: pd.DataFrame, tz: str, minutes: int) -> pd.DataFrame:
+    """Aggregate provider bars into minute buckets without crossing a trading day.
+
+    Provider indexes are bar-start timestamps in the exchange timezone. DST,
+    closures and shortened sessions are respected by tz_convert; missing source
+    bars are left as smaller volume buckets, never interpolated. For stocks the
+    first source bar of each day is the bucket origin, matching the existing H4
+    contract. Continuous markets keep a UTC day origin.
+    """
+    if minutes <= 0:
+        raise ValueError('invalid-intraday-minutes')
+    rule = f"{minutes}min"
     x = to_adjusted(df).reset_index(names="timestamp")
     x["dt"] = pd.to_datetime(x["timestamp"]).dt.tz_convert(tz)
     if tz == "UTC":
         x = x.set_index("dt")
-        w = pd.DataFrame({"open": x["open"].resample("4h", origin="start_day").first(),
-                          "high": x["high"].resample("4h", origin="start_day").max(),
-                          "low": x["low"].resample("4h", origin="start_day").min(),
-                          "close": x["close"].resample("4h", origin="start_day").last(),
-                          "volume": x["volume"].resample("4h", origin="start_day").sum()})
+        w = pd.DataFrame({"open": x["open"].resample(rule, origin="start_day").first(),
+                          "high": x["high"].resample(rule, origin="start_day").max(),
+                          "low": x["low"].resample(rule, origin="start_day").min(),
+                          "close": x["close"].resample(rule, origin="start_day").last(),
+                          "volume": x["volume"].resample(rule, origin="start_day").sum()})
         w = w.dropna().reset_index(names="dt")
         w["t"] = w["dt"].map(lambda v: int(v.timestamp()))  # 차트용 UTC초, 봉 시작
         return w
@@ -144,12 +150,12 @@ def to_4h(df: pd.DataFrame, tz: str) -> pd.DataFrame:
         g = g.set_index("dt").sort_index()
         if len(g) == 0:
             continue
-        origin = g.index[0]  # 그날 시장 개장(첫 60분봉 시작) 기준
-        r = pd.DataFrame({"open": g["open"].resample("4h", origin=origin).first(),
-                          "high": g["high"].resample("4h", origin=origin).max(),
-                          "low": g["low"].resample("4h", origin=origin).min(),
-                          "close": g["close"].resample("4h", origin=origin).last(),
-                          "volume": g["volume"].resample("4h", origin=origin).sum()})
+        origin = g.index[0]  # 그날 시장 개장(첫 원천봉 시작) 기준
+        r = pd.DataFrame({"open": g["open"].resample(rule, origin=origin).first(),
+                          "high": g["high"].resample(rule, origin=origin).max(),
+                          "low": g["low"].resample(rule, origin=origin).min(),
+                          "close": g["close"].resample(rule, origin=origin).last(),
+                          "volume": g["volume"].resample(rule, origin=origin).sum()})
         r = r.dropna()
         if len(r):
             parts.append(r)
@@ -160,3 +166,7 @@ def to_4h(df: pd.DataFrame, tz: str) -> pd.DataFrame:
     w = _pd.concat(parts).sort_index().reset_index(names="dt")
     w["t"] = w["dt"].map(lambda v: int(v.timestamp()))  # 봉 시작 시각
     return w
+
+
+def to_4h(df: pd.DataFrame, tz: str) -> pd.DataFrame:
+    return to_intraday(df, tz, 240)

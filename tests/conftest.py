@@ -9,3 +9,7 @@ def isolated_market_feature(monkeypatch):
     monkeypatch.setenv('CHART_FLAG_PATTERNS','0')
     monkeypatch.setenv('CHART_SERVER_MONITOR','0')
     monkeypatch.setenv('CHART_TRIANGLE_PATTERNS','0')
+    monkeypatch.setenv('CHART_STRUCTURE_PATTERNS','0')
+    monkeypatch.setenv('CHART_STRUCTURE_EVIDENCE_V2','0')
+    monkeypatch.setenv('CHART_MARKET_PROVIDER','auto')
+    monkeypatch.setenv('CHART_H4_PROVIDER','auto')

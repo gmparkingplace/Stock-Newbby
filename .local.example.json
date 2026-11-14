@@ -1,5 +1,7 @@
 {
   "tossCredentialsFile": "",
+  "marketProvider": "yfinance",
+  "h4Provider": "auto",
   "sharedMarketCache": true,
   "horizontalPatterns": true,
   "flagPatterns": true,

@@ -1,7 +1,7 @@
 """Bull/Bear Flag v1. Confirmed 2+2 pivots; no network, DOM or wall-clock."""
 from copy import deepcopy
 from market_store import revision
-from pattern_math import validated, analyze_contiguous, atr14, fit, line, pivots, channel_coverage
+from pattern_math import validated, analyze_contiguous, atr14, fit, line, pivots, pivot_prefix, channel_coverage
 
 from pattern_profiles import parameters, rule_version
 
@@ -81,12 +81,14 @@ def present(p, rows, end, status=None):
 
 
 def analyze(candles,symbol,confirmed_through,provisional=False,levels=None,timeframe='D',profile='balanced'):
-    if timeframe not in ('D','H4'):raise ValueError('unsupported-pattern-timeframe')
+    from intraday_timeframes import is_intraday
+    if timeframe != 'D' and not is_intraday(timeframe):raise ValueError('unsupported-pattern-timeframe')
     cfg=parameters(profile);rule=rule_version('flag',timeframe,profile)
     rows=validated(candles,confirmed_through,timeframe,symbol)
     segmented=analyze_contiguous(analyze,rows,symbol,confirmed_through,provisional,levels,timeframe,profile)
     if segmented is not None:return segmented
     atr=atr14(rows)
+    confirmed_pivots=pivot_prefix(rows)
     timeline,events,patterns=[],[],[]
     indices={r['time']:i for i,r in enumerate(rows)}
     seen=set()
@@ -99,7 +101,7 @@ def analyze(candles,symbol,confirmed_through,provisional=False,levels=None,timef
     for i,row in enumerate(rows):
         confirmed=confirmed_through is not None and row['time']<=confirmed_through
         if confirmed:
-            hi,lo=pivots(rows,i)
+            hi,lo=confirmed_pivots(i)
             for s in range(max(17,i-cfg['flag_max']+1),i-3):
                 if s in seen:continue
                 p=candidate(rows,atr,s,i,hi,lo,symbol,timeframe,profile)

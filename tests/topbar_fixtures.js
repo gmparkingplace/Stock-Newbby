@@ -9,7 +9,8 @@ let symbol = {name:'긴 종목명 '.repeat(12), symbol:'AAPL'};
 const context = {S:{tf:'D',symbol:'AAPL',lastErr:null}, serverMode:true, $:id=>elements[id],
   curSym:()=>symbol, frameOf:()=>({candles:[{time:'2026-09-07',close:200}]}),
   LIVE_D:{AAPL:{}}, LIVE_H4:{}, LIVE_META:{}, metaKey:()=> 'AAPL|D',
-  latestTime:()=> '2026-09-07', fmtP:String, fmtT:String, fmtClock:String, tfWord:()=> '일봉', ERR_TXT:{rate:'조회 제한'}};
+  latestTime:()=> '2026-09-07', fmtP:String, fmtT:String, fmtClock:String, tfWord:()=> '일봉', ERR_TXT:{rate:'조회 제한'},
+  isIntraTF:()=>false, intraWord:tf=>tf, intraCacheGet:()=>null, INTRA_TRIAL:new Set()};
 vm.createContext(context);
 vm.runInContext(html.slice(html.indexOf('function paintNet('),html.indexOf('function h4CacheGet(')), context);
 vm.runInContext(html.slice(html.indexOf('function paintBasis('),html.indexOf('function paintPreset(')), context);
@@ -33,4 +34,8 @@ symbol=null; context.paintBasis();
 assert.equal(elements.symTitle.textContent,'종목 없음');
 assert.equal(elements.basisLine.textContent,'자료 기준 없음','clears previous symbol basis');
 assert.equal(elements.basisLine.title,'자료 기준 없음');
-console.log('Topbar: bounded busy label, full status titles, busy recovery and cleared missing-symbol basis passed');
+const order=['id="tH"','id="tD"','id="tW"','id="tM"'].map(x=>html.indexOf(x));
+assert(order.every((v,i)=>v>=0&&(!i||v>order[i-1])),'main timeframe order 4H, D, W, M');
+const intra=['M5','M15','M30','H1','H2','H4'].map(tf=>html.indexOf('data-intra="'+tf+'"'));
+assert(intra.every((v,i)=>v>=0&&(!i||v>intra[i-1])),'intraday buttons 5m..4h');
+console.log('Topbar: bounded busy label, full status titles, busy recovery, cleared missing-symbol basis and timeframe order passed');

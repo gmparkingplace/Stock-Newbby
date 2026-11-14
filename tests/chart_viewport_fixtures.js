@@ -26,7 +26,7 @@ const firstMarkers=JSON.stringify(rendered);
 for(let n=0;n<50;n++)vm.runInContext('renderMarkers()',ctx);
 assert.equal(JSON.stringify(rendered),firstMarkers,'repainting must replace markers without accumulating circles');
 const baseline=JSON.stringify(frame);const colors=new Map(rendered.filter(m=>m.shape==='arrowUp').map(m=>[m.time,m.color]));
-assert.equal(rendered.find(m=>m.time===1016&&m.shape==='arrowUp').color,'#e65100');
+assert.equal(rendered.find(m=>m.time===1016&&m.shape==='arrowUp').color,require('../results/dashboard/chart-theme').colors.warning);
 for (const r of [{from:1015,to:1045},{from:1030,to:1040},{from:1000,to:1079}]) {
  range=r;width=500;vm.runInContext('renderMarkers()',ctx);
  assert.equal(JSON.stringify(frame),baseline,'Viewport must not change raw signal data');

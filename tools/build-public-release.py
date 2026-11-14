@@ -12,6 +12,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = ('run.py', 'setup.py', 'start.sh', 'start.bat', 'index.html',
+              'desktop_qt.py', 'desktop-qt.sh', 'desktop-qt.bat', 'requirements-desktop.txt',
               'requirements.txt', 'requirements-lock.txt', 'requirements-dev.txt', 'SECURITY.md', 'LICENSE')
 TREES = {'scripts': {'.py'}, 'lab': {'.py'}, 'skills': {'.md', '.py', '.yaml'},
          'tests': {'.py', '.js', '.json'}, 'tools': {'.py', '.js'},
@@ -103,14 +104,22 @@ def build(source, output, version='0.6.3'):
                         and p.name != 'test_compat.py')
     dash = source / 'results/dashboard'
     selected.extend(p for p in dash.iterdir() if p.is_file() and
-                    (p.suffix == '.js' and p.name != 'data.js' or
+                    (p.suffix in {'.js', '.css'} and p.name != 'data.js' or
                      p.name in {'chart-first.html', 'index.html'}))
-    selected.extend((dash / 'lib').glob('*'))
+    # 비교 전용 차트 엔진은 공개 진입점에서 사용하지 않으므로 제외한다.
+    selected.extend(p for p in (dash / 'lib').glob('*')
+                    if p.name in {'lightweight-charts.js', 'SOURCE.txt'})
+    selected.extend(p for p in (dash / 'fonts').glob('*')
+                    if p.suffix in {'.woff2', '.txt'})
     for p in selected:
         if p.is_symlink():
             raise ValueError('Source symlink refused: ' + str(p.relative_to(source)))
         dest = output / p.relative_to(source)
         dest.parent.mkdir(parents=True, exist_ok=True)
+        if p.suffix == '.woff2':
+            shutil.copyfile(p, dest)
+            shutil.copymode(p, dest)
+            continue
         text = portable_text(p.read_text(encoding='utf-8'), source)
         if p.name == 'chartctl.py':
             text = text.replace("'http://127.0.0.1:8735'", "'http://127.0.0.1:8734'")
@@ -143,7 +152,8 @@ def build(source, output, version='0.6.3'):
     (output / 'package.json').write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n')
     (output / '.gitignore').write_text((source / '.gitignore').read_text() +
         '\n*.sqlite\n*.sqlite3\n*.sqlite3-*\n*.db\nOpen API.txt\n*credentials*.txt\n!toss-credentials.example.txt\n')
-    config = dict(tossCredentialsFile='', sharedMarketCache=True, horizontalPatterns=True,
+    config = dict(tossCredentialsFile='', marketProvider='yfinance', h4Provider='auto',
+                  sharedMarketCache=True, horizontalPatterns=True,
                   flagPatterns=True, serverMonitor=True, trianglePatterns=True)
     (output / '.local.example.json').write_text(json.dumps(config, indent=2) + '\n')
     (output / 'toss-credentials.example.txt').write_text('Client Id:\nClient Secret:\n')

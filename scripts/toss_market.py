@@ -11,12 +11,28 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from request_metrics import RequestMetrics
+import perf_probe
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = 'https://openapi.tossinvest.com'
 WS_URL = 'wss://openapi-ws.tossinvest.com/ws/v1'
 ALLOWED = {'/api/v1/prices', '/api/v1/candles', '/api/v1/stocks', '/api/v1/stocks/all',
            '/api/v1/market-calendar/KR', '/api/v1/market-calendar/US'}
+
+# Toss groups requests by endpoint family. The chart group is the tightest one
+# used by this app (5 req/s), so listen to the response headers instead of
+# guessing a fixed interval.
+RATE_GROUPS = {
+    '/api/v1/candles': 'MARKET_DATA_CHART',
+    '/api/v1/prices': 'MARKET_DATA',
+    '/api/v1/stocks': 'STOCK',
+    '/api/v1/stocks/all': 'STOCK_ALL',
+    '/api/v1/market-calendar/KR': 'MARKET_INFO',
+    '/api/v1/market-calendar/US': 'MARKET_INFO',
+    '/oauth2/token': 'AUTH',
+}
+RATE_LIMITS = {'MARKET_DATA_CHART': 5, 'MARKET_DATA': 10, 'STOCK': 5,
+               'STOCK_ALL': 1, 'MARKET_INFO': 3, 'AUTH': 5, 'default': 5}
 
 
 class TossError(Exception):
@@ -71,6 +87,9 @@ class TossClient:
         self._token = None
         self._expires = 0
         self._next_call = 0
+        self._rate = {}
+        self._last_call = 0.0
+        self._last_headers = {}
         self.metrics = RequestMetrics()
 
     def _request(self, path, body=None, params=None, token=None):
@@ -87,22 +106,26 @@ class TossClient:
         request = urllib.request.Request(url, data=data, headers=headers)
         started = self.metrics.start(path)
         status, error_kind = None, None
+        self._last_headers = {}
         try:
             with urllib.request.urlopen(request, timeout=20) as response:
                 status = response.status
+                self._last_headers = dict(response.headers.items())
                 return json.load(response)
         except urllib.error.HTTPError as exc:
             # Upstream bodies can contain sensitive information. Never relay them.
+            self._last_headers = dict(exc.headers.items()) if exc.headers is not None else {}
             codes = {400: 'invalid-request', 401: 'authentication-failed',
                      403: 'permission-or-ip-denied', 429: 'rate-limited'}
             status, error_kind = exc.code, codes.get(exc.code, 'upstream-error')
             retry_after = None
-            try:
-                value = int(exc.headers.get('Retry-After', ''))
+            for name in ('Retry-After', 'X-RateLimit-Reset'):
+                try:
+                    value = int(exc.headers.get(name, ''))
+                except (TypeError, ValueError, AttributeError):
+                    continue
                 if 0 <= value <= 86400:
-                    retry_after = value
-            except (TypeError, ValueError, AttributeError):
-                pass
+                    retry_after = max(retry_after or 0, value)
             raise TossError(error_kind, status, retry_after=retry_after) from None
         except (urllib.error.URLError, TimeoutError):
             error_kind = 'network-or-timeout'
@@ -113,6 +136,55 @@ class TossClient:
         finally:
             self.metrics.finish(path, started, status, error_kind)
 
+    def _update_rate(self, path, headers):
+        group = RATE_GROUPS.get(path, 'default')
+        state = self._rate.setdefault(group, dict(
+            limit=RATE_LIMITS.get(group, 5), remaining=None, reset=0.0, reset_at=0.0, last=0.0))
+        def number(name):
+            try:
+                return int(headers.get(name, ''))
+            except (TypeError, ValueError, AttributeError):
+                return None
+        limit, remaining, reset = (number('X-RateLimit-Limit'),
+                                   number('X-RateLimit-Remaining'),
+                                   number('X-RateLimit-Reset'))
+        retry = number('Retry-After')
+        if limit and limit > 0:
+            state['limit'] = limit
+        if remaining is not None:
+            state['remaining'] = max(0, remaining)
+        if reset is not None:
+            state['reset'] = max(0.0, float(reset))
+        if retry is not None:
+            state['reset'] = max(state['reset'], float(max(0, retry)))
+        if reset is not None or retry is not None:
+            state['reset_at'] = time.monotonic() + state['reset']
+        return state
+
+    def _pace(self, path):
+        """Keep every group under its advertised token bucket.
+
+        A long advertised wait is raised instead of sleeping the worker: the
+        persistent provider budget then defers the request without blocking the
+        UI thread or the other symbols.
+        """
+        group = RATE_GROUPS.get(path, 'default')
+        state = self._rate.setdefault(group, dict(
+            limit=RATE_LIMITS.get(group, 5), remaining=None, reset=0.0, reset_at=0.0, last=0.0))
+        now = time.monotonic()
+        wait = 0.0
+        if state['remaining'] is not None and state['remaining'] <= 0:
+            wait = max(wait, max(0.0, state.get('reset_at', 0.0) - now))
+        limit = state['limit'] or RATE_LIMITS.get(group, 5)
+        wait = max(wait, 1.1 / limit - (now - state['last']))
+        wait = max(wait, 0.25 - (now - self._last_call))
+        if wait > 8:
+            raise TossError('rate-limited', 429, retry_after=int(wait + .999))
+        if wait > 0:
+            time.sleep(wait)
+        state['last'] = time.monotonic()
+        self._last_call = state['last']
+
     def token(self):
         with self._lock:
             if self._token and time.monotonic() < self._expires:
@@ -120,12 +192,19 @@ class TossClient:
             self.budget.check('/oauth2/token')
             credentials = read_credentials()
             try:
+                self._pace('/oauth2/token')
+            except TossError as error:
+                self.budget.failure('/oauth2/token', error)
+                raise
+            try:
                 reply = self._request('/oauth2/token', body={
                     'grant_type': 'client_credentials',
                     'client_id': credentials['id'], 'client_secret': credentials['secret']})
             except TossError as error:
+                self._update_rate('/oauth2/token', self._last_headers)
                 self.budget.failure('/oauth2/token',error)
                 raise
+            self._update_rate('/oauth2/token', self._last_headers)
             self.budget.success('/oauth2/token')
             if not reply.get('access_token'):
                 raise TossError('token-response-invalid')
@@ -136,6 +215,9 @@ class TossClient:
     def get(self, path, **params):
         if path not in ALLOWED:
             raise TossError('endpoint-not-enabled')
+        with perf_probe.span('toss','client-lock'):
+            return self._get_locked(path, params)
+    def _get_locked(self, path, params):
         with self._lock:
             import copy
             ref_ttl = (21600 if path in ('/api/v1/stocks','/api/v1/stocks/all') else 60 if 'market-calendar' in path else 0)
@@ -145,18 +227,23 @@ class TossClient:
                 return copy.deepcopy(hit[1])
             self.budget.check(path)
             token = self.token()
-            delay = self._next_call - time.monotonic()
-            if delay > 0:
-                time.sleep(delay)
-            self._next_call = time.monotonic() + (1.1 if path == "/api/v1/stocks/all" else .25)
+            with perf_probe.span('toss','rate-pace'):
+                try:
+                    self._pace(path)
+                except TossError as error:
+                    self.budget.failure(path, error)
+                    raise
             try:
-                reply = self._request(path, params=params, token=token)
+                with perf_probe.span('toss','http'):
+                    reply = self._request(path, params=params, token=token)
             except TossError as error:
+                self._update_rate(path, self._last_headers)
                 self.budget.failure(path,error)
                 if error.status == 401:
                     self._expires = 0
                     self.budget.failure('/oauth2/token',error)
                 raise
+            self._update_rate(path, self._last_headers)
             self.budget.success(path)
             if 'result' not in reply:
                 raise TossError('market-response-invalid')

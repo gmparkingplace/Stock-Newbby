@@ -7,11 +7,16 @@ function validFrame(j) {
   return j && typeof j.symbol === "string" && Array.isArray(j.candles) && j.candles.length > 0;
 }
 // 주기 자료가 없으면 다른 주기로 대체하지 않는다. 화면과 관심목록 공통 계약.
+const INTRADAY_TFS = new Set(['M5','M15','M30','H1','H2','H4']);
 function selectFrame(payload, tf, intraday) {
   if (!payload) return null;
   if (tf === 'W') return payload.weekly || null;
   if (tf === 'M') return payload.monthly || null;
-  if (tf === 'H4') return intraday || payload.h4 || (payload.tf === 'H4' ? payload : null);
+  if (INTRADAY_TFS.has(tf)) {
+    if (intraday) return intraday;
+    if (payload.tf === tf) return payload;
+    return tf === 'H4' && payload.h4 ? payload.h4 : null;
+  }
   return tf === 'D' ? payload : null;
 }
 function barDateVal(t) { return typeof t === "number" ? new Date(t * 1000) : new Date(t + "T00:00:00"); }

@@ -13,7 +13,7 @@ def at(s): return datetime.fromisoformat(s)
 @pytest.fixture
 def schedule(monkeypatch):
     holidays=set()
-    def days(market, query):
+    def days(market, query, source=None):
         d=date.fromisoformat(query)
         prev=d-timedelta(days=1)
         while prev.weekday()>4 or prev.isoformat() in holidays: prev-=timedelta(days=1)
@@ -54,6 +54,13 @@ def test_open_stale_date_not_snapshot(schedule):
     assert not result['snapshotEligible']
 
 
+def test_labeled_stale_fallback_is_never_live_eligible(schedule):
+    p=payload('2026-09-09T12:00:00+09:00',('2026-09-09',))
+    result=m.judgment_metadata({**p,'stale':True},'005930.KS','Asia/Seoul','D',at('2026-09-09T12:00:01+09:00'))
+    assert result['marketSession']['state']=='open'
+    assert not result['snapshotEligible']
+
+
 def test_wednesday_closed_selects_previous_week(schedule):
     p=payload('2026-09-09T21:00:00+09:00',('2026-09-04','2026-09-11'))
     p['sourceDate']='2026-09-09'
@@ -87,7 +94,7 @@ def test_unknown_calendar_and_error_block_confirmation(schedule,monkeypatch):
     p=payload('2026-09-09T21:00:00+09:00')
     p['lastError']='failed'
     assert m.judgment_metadata(p,'005930.KS','Asia/Seoul','D',at('2026-09-09T21:01:00+09:00'))['lastConfirmedTime'] is None
-    def fail(*a): raise ValueError('missing')
+    def fail(*a, **kw): raise ValueError('missing')
     monkeypatch.setattr(m,'calendar_days',fail)
     p.pop('lastError')
     result=m.judgment_metadata(p,'005930.KS','Asia/Seoul','D',at('2026-09-09T21:01:00+09:00'))

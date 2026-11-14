@@ -15,6 +15,12 @@ from urllib.parse import urlparse, parse_qs, unquote
 ROOT = Path(__file__).resolve().parents[2]
 DASH = ROOT / 'results/dashboard'
 sys.path.insert(0, str(ROOT / 'scripts'))
+# The suite asserts the Toss H4 path with a fixture feed. Force the provider
+# choice here so a personal .local.json (e.g. h4Provider=yfinance) cannot make
+# the run depend on local settings.
+import os
+os.environ['CHART_H4_PROVIDER'] = 'toss'
+os.environ['CHART_MARKET_PROVIDER'] = 'toss'
 import chart_control
 import serve_dashboard as production
 import time_contract
@@ -37,10 +43,12 @@ def clock():
 LOCK = threading.RLock()
 GATE = threading.Event()
 GATE.set()
+PATTERN_GATE=threading.Event()
+PATTERN_GATE.set()
 DEFAULTS = {'blockDelivery': False, 'holdSymbol': None, 'futureVolumeAfter': None,
             'futureVolumeFactor': 1, 'disableStaleGuard': False, 'now': None,
             'sourceThrough':'2026-09-07','priceMode':'candidate','restError':False,
-            'calendarError':False,'keepSource':False,'perSymbol':{},'patterns':False,'flags':False,'monitor':False,'triangles':False,'triangleKind':'ascending','triangleDirection':'up','triangleBreakout':True}
+            'calendarError':False,'keepSource':False,'perSymbol':{},'patterns':False,'flags':False,'monitor':False,'triangles':False,'triangleKind':'ascending','triangleDirection':'up','triangleBreakout':True,'asyncPatterns':False,'holdPatterns':False,'patternJobError':False}
 CONFIG = dict(DEFAULTS)
 EVENTS = []
 
@@ -104,6 +112,19 @@ def source_daily(symbol, timezone, force=False):
         if day.weekday() < 5:
             dates.append(day.isoformat())
         day += dt.timedelta(days=1)
+    # A weekday market holiday has no session, so a fixture bar there would make
+    # the Toss H4 session grid reject the whole frame. Keep real trading days only.
+    from time_contract import calendar_days
+    market = 'KR' if kr else 'US'
+    try:
+        sessions = {}
+        for name in dates:
+            sessions.update(calendar_days(market, name))
+        dates = [name for name in dates if sessions.get(name)]
+    except Exception:
+        # The calendar-error scenario must still exercise the data path; the H4
+        # scenario that needs an exact session grid runs with a working calendar.
+        pass
     if config['triangles']:
         sys.path.insert(0,str(ROOT/'tests'))
         from triangle_fixture import triangle_rows
@@ -148,23 +169,58 @@ toss_market.CANDLES.daily = source_daily
 
 
 def source_minute(symbol, timezone, force=False):
-    from zoneinfo import ZoneInfo
+    from time_contract import calendar_days
     daily, cached, fetched = source_daily(symbol, timezone, force)
+    market = 'KR' if symbol.endswith('.KS') else 'US'
+    step = dt.timedelta(hours=4)
     rows = []
     for row in daily:
-        start = dt.datetime.fromisoformat(row['t']).replace(hour=9, minute=0 if symbol.endswith('.KS') else 30,
-                                                          tzinfo=ZoneInfo(timezone))
-        for offset in (0, 240):
-            rows.append({**row, 't':int((start+dt.timedelta(minutes=offset)).timestamp()),
-                         'volume':row['volume']/2})
-    return rows, cached, fetched, revision(rows), {'stop':'fixture-history'}
+        day = dt.date.fromisoformat(row['t']).isoformat()
+        intervals = calendar_days(market, day).get(day, ())
+        if not intervals:
+            continue
+        start, end = min(s for s, _ in intervals), max(e for _, e in intervals)
+        # The integrated session grid is what the Toss H4 annotator validates.
+        while start < end:
+            if any(s <= start < e for s, e in intervals):
+                rows.append({**row, 't': int(start.timestamp()), 'volume': row['volume'] / 8})
+            start += step
+    return rows, cached, fetched, revision(rows), {'stop': 'fixture-history'}
 
 
 toss_market.CANDLES.minute = source_minute
 
 
+def async_calculation(payload):
+    with LOCK:
+        EVENTS.append({'kind':'pattern-start','symbol':payload['symbol']})
+        held=CONFIG['holdPatterns'];error=CONFIG['patternJobError']
+    if held and not PATTERN_GATE.wait(30):
+        raise ValueError('fixture-pattern-timeout')
+    if error:
+        raise ValueError('fixture-pattern-error')
+    out=dict(payload)
+    out['patternAnalysis']=pattern_service.evaluate(payload,PATTERN_STORE,FixtureDateTime.now(dt.timezone.utc))
+    with LOCK:EVENTS.append({'kind':'pattern-done','symbol':payload['symbol']})
+    return out
+
+
+import pattern_async
+ASYNC_JOBS=pattern_async.AsyncPatterns(attach_fn=async_calculation,
+    context_fn=lambda payload:dict(features=(('patternAnalysis','horizontal'),),shared=True,store=PATTERN_STORE,levels={}),
+    clock=lambda:dt.datetime.fromisoformat(clock()).timestamp())
+pattern_async.JOBS=ASYNC_JOBS
+
+
+def async_fixture(payload):
+    return ASYNC_JOBS.attach(payload)
+
+
 def fixture(symbol, force=False):
     result=production.market_lookup(symbol, force=force)
+    if CONFIG['asyncPatterns']:
+        result['dataRevision']=revision(result['candles'])
+        return {**async_fixture(result),'servedAt':clock()}
     if CONFIG['patterns']:
         result['dataRevision'] = revision(result['candles'])
         result['patternAnalysis'] = pattern_service.evaluate(result,PATTERN_STORE,FixtureDateTime.now(dt.timezone.utc))
@@ -178,16 +234,24 @@ def fixture(symbol, force=False):
 
 
 class FixtureCandles:
-    def daily(self,code,tz,force=False,reconcile_after=None):
+    def daily(self,code,tz,force=False,reconcile_after=None,audit=False):
         rows,cached,fetched=source_daily(code,tz,force)
         return rows,cached,fetched,revision(rows)
+    def needs_audit(self,code,tz,reconcile_after=None):
+        return False
+
+class FixtureMinutes(SimpleNamespace):
+    def needs_audit(self,code,tz):
+        return False
+    def minute(self,code,tz,force=False,yield_check=None,audit=False):
+        return source_minute(code,tz,force)
 
 class FixtureCache:
     store=PATTERN_STORE
     candles=FixtureCandles()
     lock=LOCK
-    minutes=SimpleNamespace(minute=source_minute)
-    def lookup(self,provider,code,tf,fn,force=False,background=False):
+    minutes=FixtureMinutes(minute=source_minute)
+    def lookup(self,provider,code,tf,fn,force=False,background=False,prefer_stale=False):
         result=fn(force);return {**result,'stale':False,'cacheHit':False,'cacheAge':0}
 
 market_cache.services=lambda:FixtureCache()
@@ -247,8 +311,15 @@ class Handler(BaseHTTPRequestHandler):
             self.rfile.read(int(self.headers.get('Content-Length', 0)))
             self.reply({'command': None})
             return
+        if pattern_async.handle(self):
+            return
         if monitor_service.handle(self):
             return
+        if p=='/api/market-context':
+            # 실제 공급처를 부르지 않는 고정 응답: 화면이 요청하는 부가 경로를 모두 대체한다.
+            return self.reply({'ok':True,'data':{'source':'yfinance','symbol':'^VIX','market':'US',
+                'available':True,'applicable':True,'value':17.4,'previousClose':17.1,'changePercent':1.75,
+                'level':'normal','asOf':'2026-09-07','fetchedAt':'2026-09-07T12:00:00+00:00','stale':False}})
         if p=='/api/analysis-session':
             from analysis_jobs import SESSION_TOKEN
             return self.reply({'sessionToken':SESSION_TOKEN})
@@ -271,10 +342,16 @@ class Handler(BaseHTTPRequestHandler):
                         CONFIG.update(DEFAULTS)
                         SOURCE.clear()
                         GATE.set()
+                        PATTERN_GATE.set()
                     CONFIG.update({k:v for k,v in body.items() if k in CONFIG})
                     time_contract._CALENDAR_CACHE.clear()
                     if body.get('holdSymbol'):
                         GATE.clear()
+                    if body.get('holdPatterns'):
+                        PATTERN_GATE.clear()
+                    if body.get('releasePatterns'):
+                        CONFIG['holdPatterns']=False
+                        PATTERN_GATE.set()
                     if body.get('release'):
                         CONFIG['holdSymbol'] = None
                         GATE.set()
@@ -312,7 +389,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply({'error':'gate timeout'}, 504)
             try:
                 force = parse_qs(u.query).get('force') == ['1']
-                payload = production.market_intraday(symbol, force=force) if p == '/api/intraday' else fixture(symbol, force=force)
+                tf = parse_qs(u.query).get('tf', ['H4'])[0]
+                payload = production.market_intraday(symbol, tf, force=force) if p == '/api/intraday' else fixture(symbol, force=force)
             except toss_market.TossError:
                 return self.reply({'error':'fixture source request failed','kind':'provider'},503)
             self.reply(payload)
@@ -321,7 +399,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == '/api/market-provider':
             return self.reply({'provider':'yfinance', 'realtime':False})
-        if p in ('/api/universe','/api/health','/api/search'):
+        if p == '/api/search':
+            items = json.loads((Path(__file__).parent/'fixtures'/'search.json').read_text())
+            query = parse_qs(u.query).get('q', [''])[0].casefold()
+            return self.reply({'results':[item for item in items if query in item['symbol'].casefold() or query in item['name'].casefold()]})
+        if p in ('/api/universe','/api/health'):
             return self.send(200, (Path(__file__).parent/'fixtures'/f'{p.rsplit("/",1)[1]}.json').read_bytes())
         if p == '/api/related':
             return self.reply({'related':[]})

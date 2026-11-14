@@ -8,7 +8,7 @@
   }
   function rowLabel(row,enabled){
     if(!enabled||!row.enabled)return '서버 감시 중지';
-    const status={'rules-disabled':'선택한 규칙 꺼짐 · 보류',waiting:'수집 대기',collecting:'수집 중',watching:'최근 일봉 확인 · 잠정','confirmed-history':'확정봉 기록 · 현재 가격 미반영','waiting-session':'다음 세션 대기','calendar-unknown':'시장 일정 미확인 · 보류','waiting-confirmation':'마감 자료 확인 대기',error:'조회 실패 · 새 판단 보류'}[row.status]||'감시 대기';
+    const status={'rules-disabled':'선택한 규칙 꺼짐 · 보류',waiting:'수집 대기',collecting:'수집 중',watching:'최근 일봉 확인 · 잠정','confirmed-history':'확정봉 기록 · 현재 가격 미반영','waiting-session':'다음 세션 대기','calendar-unknown':'시장 일정 미확인 · 보류','waiting-confirmation':'마감 자료 확인 대기','waiting-rate-limit':'공급처 한도 대기 · 자동 재시도',error:'조회 실패 · 새 판단 보류'}[row.status]||'감시 대기';
     if(row.status==='watching'&&!row.provisionalEligible)return `${row.profile==='focus'?'집중 30초':'일반 5분'} · 이전 일봉 조회 · 현재 판단 보류`;
     return `${row.profile==='focus'?'집중 30초':'일반 5분'} · ${status}`;
   }

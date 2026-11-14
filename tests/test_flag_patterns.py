@@ -150,3 +150,15 @@ def test_flag_api_cached_read_and_family_isolation(monkeypatch,tmp_path):
     assert store.pattern_recent('TEST',rule='horizontal-d-v1')==[]
     assert store.pattern_recent('TEST',rule=RULE)[0]['type']=='bull-flag'
     store.close()
+
+
+@pytest.mark.parametrize('direction,kind', [('up', 'bull-flag'), ('down', 'bear-flag')])
+def test_flag_geometry_does_not_self_intersect(direction, kind):
+    from geometry_check import self_intersects
+    rows = flag_rows(direction)
+    out = analyze(rows, 'T', rows[-1]['time'])
+    calendar = [r['time'] for r in rows]
+    events = [e for e in out['events'] if e.get('geometry', {}).get('points')]
+    assert events, 'geometry events'
+    for e in events:
+        assert not self_intersects(e['geometry']['points'], calendar), e['geometry']['points']

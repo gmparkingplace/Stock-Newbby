@@ -13,6 +13,12 @@ assert.equal(U.selectFrame({candles:[{}]},'M'),null,'missing monthly must not us
 const h4={tf:'H4',candles:[{time:123}]};
 assert.equal(U.selectFrame(frames,'H4',h4),h4);
 assert.equal(U.selectFrame(h4,'H4'),h4);
+const m5={tf:'M5',candles:[{time:123}]}, h1={tf:'H1',candles:[{time:456}]};
+assert.equal(U.selectFrame(frames,'M5',m5),m5);
+assert.equal(U.selectFrame(m5,'M5'),m5);
+assert.equal(U.selectFrame(frames,'H1',h1),h1);
+assert.equal(U.selectFrame(frames,'M5'),null,'missing intraday must not use daily');
+assert.equal(U.selectFrame(frames,'M5',h4),h4,'caller supplies the selected intraday frame');
 const f = { candles: [{ time: '2026-06-01' }, { time: '2026-08-15' }, { time: '2026-09-07' }] };
 assert.equal(U.latestTime(f), '2026-09-07');
 assert.equal(U.latestTime({ candles: [] }), null);

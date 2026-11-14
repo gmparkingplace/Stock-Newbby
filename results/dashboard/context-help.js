@@ -75,5 +75,5 @@
     return {close,position};
   }
   if(typeof module!=='undefined'&&module.exports){module.exports={place,install};return;}
-  document.addEventListener('DOMContentLoaded',()=>install(document,window));
+  document.addEventListener('DOMContentLoaded',()=>{window.ContextHelp=install(document,window);});
 })();

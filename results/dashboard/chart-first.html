@@ -6,15 +6,16 @@
 <title>차트 보조기</title>
 <style>
 :root{
-  --bg:#F4F6F8; --ink:#172B3A; --sub:#536675;
-  --accent:#1859C9; --pass:#17644C; --fail:#87540D;
-  --card:#FFFFFF; --line:#D7DEE4; --focus:#0F3D91;
-  --up:#d32f2f; --down:#1859C9;
+  --bg:#F5F7F9; --ink:#1B2733; --sub:#5B6B7A;
+  --accent:#1D4ED8; --pass:#15803D; --fail:#B45309;
+  --card:#FFFFFF; --line:#E3E7EC; --focus:#1E3A8A;
+  --up:#D32F2F; --down:#1D4ED8;
 }
 *{box-sizing:border-box}
 html{font-size:16px}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;line-height:1.65}
+  font-family:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;line-height:1.6;
+  -webkit-font-smoothing:antialiased;letter-spacing:-.005em}
 .wrap{max-width:70rem;margin:0 auto;padding:1rem 1rem 3rem;min-width:0}
 .skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:#fff;padding:.6rem 1rem}
 .skip:focus{left:0;z-index:10}
@@ -33,8 +34,9 @@ h2{font-size:1.15rem;margin:1.5rem 0 .5rem}
 .topbar>.seg{grid-area:timeframes;display:grid;grid-template-columns:repeat(4,5rem);gap:.5rem}
 #netState{grid-area:connection;min-width:0;height:3.3em;line-height:1.65;margin:0;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
-button{cursor:pointer;border:2px solid var(--accent);background:#fff;color:var(--accent);
-  border-radius:.6rem;padding:.45rem .85rem;font-size:1rem;min-height:44px}
+button{cursor:pointer;border:1px solid var(--accent);background:#fff;color:var(--accent);
+  border-radius:.55rem;padding:.42rem .8rem;font-size:.95rem;min-height:44px;font-weight:600}
+button:hover:not(:disabled){background:#F0F4FF}
 button[aria-pressed="true"]{background:var(--accent);color:#fff}
 button:disabled{border-color:var(--line);color:var(--sub);cursor:not-allowed}
 button:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible{
@@ -210,8 +212,8 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
 .controlField{display:grid;gap:.5rem;min-width:0;flex:0 1 24rem;font-size:.9rem;color:var(--sub)}
 .controlField select{width:100%;min-width:0;min-height:44px;padding:.5rem .75rem;border:1px solid var(--line);border-radius:.5rem;background:var(--card);color:var(--ink);font:inherit;font-size:1rem}
 #flagOverlayStatus{grid-column:1/-1;min-height:1.65em;margin:0;font-size:.9rem;overflow-wrap:anywhere}
-#flagPanel>details,#trianglePanel>details,#patternPanel>details{margin-top:1.25rem;padding-top:.75rem;border-top:1px solid var(--line)}
-#flagPanel>details>summary,#trianglePanel>details>summary,#patternPanel>details>summary{cursor:pointer;min-height:44px;padding:.4rem 0;color:var(--accent)}
+#flagPanel>details,#trianglePanel>details,#structurePanel>details,#structureEvidencePanel>details,#patternPanel>details{margin-top:1.25rem;padding-top:.75rem;border-top:1px solid var(--line)}
+#flagPanel>details>summary,#trianglePanel>details>summary,#structurePanel>details>summary,#structureEvidencePanel>details>summary,#patternPanel>details>summary{cursor:pointer;min-height:44px;padding:.4rem 0;color:var(--accent)}
 #flagEvents,#triangleEvents,#patternEvents{gap:.75rem;margin-top:.5rem}
 #flagCards,#triangleCards,#patternLevels{gap:1rem}
 #flagCards:empty,#triangleCards:empty{display:none}
@@ -262,21 +264,199 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
 .lowStructureOverlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
 @media(max-width:900px){.lowFacts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.lowFacts{grid-template-columns:1fr}.lowControls label{width:100%}}
+
+/* ===== 2:1 작업 화면: 왼쪽 차트·지표, 오른쪽 관심 목록·상세 설정 ===== */
+.wrap{max-width:none;padding:.75rem 1rem 2rem}
+.appHeader{display:grid;gap:.45rem}
+.brandLine{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap;min-width:0}
+.brandLine h1{margin:0;font-size:1.15rem;white-space:nowrap}
+.brandLine .titleline{display:grid;grid-template-columns:minmax(0,26rem) minmax(0,1fr);align-items:start;gap:.15rem .75rem;
+  margin:0;min-width:0;flex:1 1 24rem}
+.brandLine .titleline .sym{font-size:1.05rem;height:auto;min-width:0}
+.brandLine .titleline .basis{font-size:.88rem;height:3.3em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.topbar{padding:.5rem .65rem;gap:.45rem .6rem}
+@media(min-width:1360px){
+  .topbar{grid-template-columns:minmax(0,1fr) auto auto 15rem;grid-template-areas:"symbol timeframes actions connection";align-items:center}
+  .topbar>.seg{grid-template-columns:repeat(4,4.4rem)}
+  .toolbarActions{grid-template-columns:6rem 9rem 6rem}
+  .symbolControls>label{grid-template-columns:auto 12.5rem minmax(0,1fr)}
+}
+@media(min-width:1025px) and (max-width:1359px){
+  .topbar{grid-template-columns:minmax(0,1fr) 20rem;grid-template-areas:"symbol timeframes" "actions connection";align-items:center}
+  .topbar>.seg{grid-template-columns:repeat(4,4.4rem)}
+  .toolbarActions{grid-template-columns:6rem 9rem 6rem;justify-content:start}
+  .symbolControls>label{grid-template-columns:auto 11rem minmax(0,1fr)}
+}
+.workspace{display:grid;grid-template-columns:minmax(0,2fr) minmax(20rem,1fr);gap:1rem;align-items:start;margin-top:.75rem}
+.workspacePrimary,.workspaceDetails{min-width:0;display:grid;gap:.6rem;align-content:start}
+.workspaceDetails{grid-column:1}
+.workspaceSide{grid-column:2;grid-row:1 / span 2;align-self:start;min-width:0;position:sticky;top:.75rem;
+  max-height:calc(100dvh - 1.5rem);overflow:auto;display:grid;gap:.6rem;overscroll-behavior:contain;scrollbar-gutter:stable}
+.workspaceSide .statusbox{margin:0}
+#watchlistPanel{display:flex;flex-direction:column;min-height:0;padding:.75rem .85rem}
+#watchlistPanel .wl-groupstrip{margin:.35rem 0}
+#watchlistPanel .wl-actions{gap:.3rem;margin:.4rem 0}
+#watchlistPanel .wl-actions button{flex:1 1 7rem;padding:.35rem .4rem;font-size:.92rem}
+#wlRows{min-height:0;max-height:38vh;overflow:auto;padding-right:.15rem}
+#wlRows:empty{display:none}
+#watchlistPanel .wl-row{grid-template-columns:auto minmax(0,1fr);gap:.15rem .45rem;padding:.45rem .55rem}
+#watchlistPanel .wl-row-name{grid-column:2}
+#watchlistPanel .wl-row-state{grid-column:2;font-size:.88rem}
+#watchlistPanel .wl-tone{grid-row:1 / span 2;align-self:center}
+#watchlistPanel .wl-legend{font-size:.8rem;gap:.5rem}
+#settingsPanel{padding:.75rem .85rem;display:grid;gap:.5rem;align-content:start}
+#settingsPanel h2{margin:0;font-size:1.05rem}
+#settingsPanel h3{margin:.2rem 0 0;font-size:.95rem}
+.settingsRow{display:grid;gap:.25rem;font-size:.9rem;color:var(--sub)}
+.settingsRow select{min-height:40px;width:100%;padding:.35rem .5rem;border:1px solid var(--line);border-radius:.5rem;background:var(--card);color:var(--ink);font:inherit}
+#settingsPanel .chartDisplayControls{margin:0;padding:.5rem 0 0;border:0;border-top:1px solid var(--line);background:transparent}
+#settingsPanel .chartDisplayControls .chartTools{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;gap:.4rem;margin-top:.3rem}
+#settingsPanel .chartTools button{min-height:40px;padding:.3rem .4rem;font-size:.9rem}
+#settingsPanel #flagOverlayControls{grid-template-columns:1fr;gap:.4rem;margin-top:.4rem;padding-top:.4rem}
+#settingsPanel .controlField{flex:1 1 100%}
+.entrySettingsScope{border-top:1px solid var(--line);padding-top:.5rem}
+.entrySettingsScope .strategyFamily{margin:.35rem 0;font-size:.9rem;color:var(--sub)}
+.entrySettingsScope .strategyFamily select{min-height:40px}
+.entrySettingsScope>details>summary{cursor:pointer;min-height:40px;padding:.35rem 0;font-weight:600;color:var(--accent)}
+.entrySettingsScope .entryStrategies{display:grid;grid-template-columns:1fr;gap:.5rem;padding:.5rem;border-radius:.5rem;margin:.5rem 0}
+.entrySettingsScope .entryOption,.entrySettingsScope .entryBreakoutGroup{padding:.5rem;background:var(--card);border:1px solid var(--line);border-radius:.5rem;min-width:0}
+.entrySettingsScope .entryOption{display:flex;align-items:center;gap:.4rem;font-size:.92rem}
+.entrySettingsScope .entryBreakoutGroup{display:grid;gap:.4rem}
+.entrySettingsScope .entryBreakoutGroup label{display:flex;align-items:center;gap:.4rem}
+.entrySettingsScope select{width:100%;min-height:40px;padding:.35rem .5rem;border:1px solid var(--line);border-radius:.5rem;background:var(--card);color:var(--ink);font:inherit}
+.entrySettingsScope .entryControls{display:grid;grid-template-columns:1fr;gap:.5rem;margin:.5rem 0}
+.entrySettingsScope .entryControls>label{display:grid;gap:.25rem;font-size:.9rem;color:var(--sub)}
+.entrySettingsScope .entryControls>label[hidden],.entrySettingsScope fieldset[hidden]{display:none}
+.entrySettingsScope .lowOption{display:grid;gap:.3rem}
+.entrySettingsScope .lowOption small{color:var(--sub);line-height:1.45}
+.entrySettingsScope .compareWrap{max-width:100%;overflow-x:auto}
+.entrySettingsScope table{border-collapse:collapse;width:100%;font-size:.88rem}
+.entrySettingsScope th,.entrySettingsScope td{text-align:left;padding:.35rem;border-bottom:1px solid var(--line);vertical-align:top}
+#monitorPanel{padding:.75rem .85rem}
+#monitorPanel h2{font-size:1.05rem;margin:0 0 .5rem}
+#monitorPanel .wl-actions{gap:.3rem}
+#monitorPanel .wl-actions button{flex:1 1 7rem;padding:.35rem .4rem;font-size:.9rem}
+#monitorPanel .monitorRow{grid-template-columns:minmax(0,1fr) auto auto;gap:.3rem .5rem;padding:.5rem;font-size:.9rem}
+#monitorPanel .monitorStatus{grid-column:1/-1;font-size:.85rem;color:var(--sub)}
+#monitorPanel .monitorRow select{grid-column:1;min-width:0;max-width:100%;min-height:36px}
+#monitorPanel .monitorRow label{grid-column:2}
+#monitorPanel .monitorRow button{grid-column:3;min-height:36px;padding:.2rem .5rem;font-size:.88rem;white-space:nowrap}
+#monitorPanel .monitorRow label{font-size:.85rem}
+#monitorPanel details summary{cursor:pointer;min-height:36px;padding:.35rem 0;color:var(--accent)}
+.workspaceDetails .statusbox{margin:0;padding:.8rem 1rem}
+.workspaceDetails>h2{margin:.4rem 0 0}
+.workspaceDetails .cards{margin-top:0}
+.workspaceDetails .src{margin:0}
+.workspaceDetails footer{margin-top:.4rem}
+#entryPanel{padding:.7rem .9rem}
+#entryTitle{font-size:1.35rem;margin:.1rem 0}
+#entryReason,#entrySetup{display:inline;margin:0 .8rem 0 0;max-width:none;font-size:.92rem}
+#entryReason{color:var(--ink)}
+#entryPanel .entryMeta{margin:.25rem 0;gap:.2rem 1.2rem;font-size:.9rem}
+#entryPanel .entryMeta p{margin:.1rem 0}
+#chartWrap{padding:.5rem}
+#chart{aspect-ratio:auto;height:clamp(300px,36vh,560px)}
+.chartToolbar{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem .9rem;margin-top:.15rem}
+.chartToolbar h2{margin:0;font-size:1.05rem;white-space:nowrap}
+.chartToolbar .periodbar{margin:0;flex:1 1 auto}
+.chartToolbar .periodbar button{min-height:38px;padding:.25rem .55rem;font-size:.9rem}
+#chartLegend{margin:.1rem 0 .2rem}
+.intradayTfBar{display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;margin:.1rem 0 .2rem}
+.intradayTfBar .segLabel{font-size:.82rem;color:var(--sub);font-weight:700;margin-right:.1rem}
+.intradayTfBar button{min-height:34px;padding:.2rem .5rem;font-size:.88rem;border-width:1px}
+.intradayTfBar #intraTrialNote{margin-left:.4rem;font-size:.82rem}
+#selline{margin:0;padding:.45rem .7rem;background:var(--card);border:1px solid var(--line);border-radius:.7rem}
+#selOhlc{grid-template-columns:repeat(6,minmax(0,1fr));gap:.35rem}
+#selOhlc .readout{min-height:3.2rem;height:auto;padding:.25rem .45rem;overflow:hidden}
+#selOhlc .readout.wide{grid-column:span 2}
+#selOhlc .key{white-space:normal;line-height:1.35;max-height:2.7em;overflow:hidden}
+#selOhlc .value{font-size:.9rem;line-height:1.55}
+#priceIndicatorPanel{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:.4rem .6rem;padding:.5rem .6rem;background:var(--card);border:1px solid var(--line);border-radius:.7rem}
+#priceIndicatorPanel>label{font-size:.9rem;color:var(--sub);display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap}
+#priceIndicatorPanel>label select{min-height:36px;padding:.25rem .45rem;font-size:.9rem}
+#priceIndicatorReadout{margin:0;grid-template-columns:repeat(6,minmax(0,1fr));gap:.35rem;flex:1 1 34rem;min-width:0}
+#priceIndicatorReadout .readout{min-height:3.6rem;height:auto;padding:.25rem .45rem}
+#priceIndicatorReadout .value{font-size:.9rem;line-height:1.6}
+#indicatorPanel{margin:0;border-top:0;padding:.55rem .5rem;background:var(--card);border:1px solid var(--line);border-radius:.7rem}
+#indicatorPanel>label{font-size:.9rem;color:var(--sub)}
+#indicatorPanel>label select{min-height:36px;padding:.25rem .45rem;font-size:.9rem}
+#indicatorReadout{margin:.4rem 0 0;gap:.35rem}
+#indicatorReadout .readout{min-height:3.6rem;padding:.25rem .45rem}
+#indicatorReadout .value{font-size:.95rem;line-height:1.6}
+#indicatorChart{height:clamp(110px,14vh,170px)}
+#chartSr{display:none}
+@media(max-width:1180px){
+  .workspace{grid-template-columns:minmax(0,1fr)}
+  .workspaceSide{grid-column:1;grid-row:auto;position:static;max-height:none;overflow:visible}
+  .workspaceDetails{grid-column:1}
+}
+@media(max-width:700px){
+  #priceIndicatorReadout{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #selOhlc{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #selOhlc .readout.wide{grid-column:span 2}
+}
+/* ── 종합판단 · 세부항목 ── */
+#verdictPanel{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--line);
+  border-radius:.9rem;padding:1rem 1.1rem;display:grid;gap:.35rem;margin-top:.6rem}
+#verdictPanel[data-tone="up"]{border-left-color:var(--up)}
+#verdictPanel[data-tone="down"]{border-left-color:var(--down)}
+#verdictPanel[data-tone="accent"]{border-left-color:var(--accent)}
+#verdictPanel[data-tone="neutral"]{border-left-color:#94A3B8}
+#verdictPanel[data-tone="warn"]{border-left-color:var(--fail)}
+#verdictPanel .verdictTop{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+#verdictLabel{font-size:1.75rem;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+#verdictPanel[data-tone="up"] #verdictLabel{color:var(--up)}
+#verdictPanel[data-tone="down"] #verdictLabel{color:var(--down)}
+#verdictPanel[data-tone="accent"] #verdictLabel{color:var(--accent)}
+#verdictPanel[data-tone="neutral"] #verdictLabel{color:var(--ink)}
+#verdictPanel[data-tone="warn"] #verdictLabel{color:var(--fail)}
+#verdictTag{font-size:.82rem;font-weight:700;color:var(--sub);border:1px solid var(--line);
+  border-radius:999px;padding:.1rem .55rem;background:#FAFBFC}
+#verdictPanel[data-tone="warn"] #verdictTag{border-color:var(--fail);color:var(--fail)}
+#verdictReason{margin:0;font-size:1rem;color:var(--ink)}
+#verdictMeta{margin:0;color:var(--sub);font-size:.85rem;font-variant-numeric:tabular-nums}
+.detailGroup{background:var(--card);border:1px solid var(--line);border-radius:.8rem;margin-top:.6rem}
+.detailGroup>summary{cursor:pointer;padding:.7rem .95rem;font-weight:700;font-size:.95rem;
+  display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;list-style:none;min-height:44px}
+.detailGroup>summary::-webkit-details-marker{display:none}
+.detailGroup>summary::before{content:"＋";color:var(--sub);font-weight:600}
+.detailGroup[open]>summary::before{content:"－"}
+.detailGroup>summary .dgHint{font-weight:500;color:var(--sub);font-size:.85rem}
+.detailGroup>.dgBody{display:grid;gap:.6rem;padding:0 .6rem .6rem}
+.detailGroup>.dgBody>.statusbox{margin:0}
+.zoneList{margin:.3rem 0 0;padding-left:1.1rem;font-variant-numeric:tabular-nums}
+.zoneList li{margin:.22rem 0;font-size:.92rem}
+.zoneList .zoneEmpty{list-style:none;margin-left:-1.1rem;color:var(--sub);font-size:.88rem}
+.zoneGroup{margin-top:.45rem}
+.zoneGroup h3{margin:0;font-size:.92rem;color:var(--sub);font-weight:700}
+.zoneToggle{display:flex;gap:.9rem;flex-wrap:wrap;font-size:.9rem;color:var(--sub)}
+.zoneToggle label{display:inline-flex;align-items:center;gap:.3rem}
 </style>
+<link rel="preload" href="fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="workspace-refresh.css">
+<link rel="stylesheet" href="ui-refinement.css">
+<link rel="stylesheet" href="apple-workspace.css">
+<link rel="stylesheet" href="dark-workspace.css">
 </head>
 <body>
 <a class="skip" href="#chartHead">차트로 건너뛰기</a>
 <div class="wrap">
-  <header>
-    <h1>차트 보조기</h1>
+  <header class="appHeader">
+    <div class="brandLine">
+      <h1>차트 보조기</h1>
+      <div class="titleline">
+        <span class="sym" id="symTitle">—</span>
+        <span class="basis" id="basisLine">자료 기준일 —</span>
+      </div>
+    </div>
     <div class="topbar" role="group" aria-label="종목과 주기 선택">
       <div class="symbolControls"><label>종목 <input type="search" id="q" placeholder="종목·코인 (예: 비나텍·BTC)" aria-label="종목 검색">
       <select id="sym" aria-label="종목 선택"></select></label>
       <button type="button" id="btnLookup">조회</button></div>
-      <div class="seg" role="group" aria-label="봉 주기">
+      <div class="seg" role="group" aria-label="메인 봉 주기">
+        <button type="button" id="tH" aria-pressed="false">4시간</button>
         <button type="button" id="tD" aria-pressed="true">일봉</button>
         <button type="button" id="tW" aria-pressed="false">주봉</button>
-        <button type="button" id="tH" aria-pressed="false">4시간</button>
         <button type="button" id="tM" aria-pressed="false">월봉</button>
       </div>
       <div class="toolbarActions"><button type="button" id="btnRefresh" aria-busy="false">새로고침</button>
@@ -284,36 +464,9 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
       <button type="button" id="btnHelp" aria-haspopup="dialog">? 도움말</button></div>
       <span class="hint" id="netState" role="status" aria-live="polite"></span>
     </div>
-    <div class="titleline">
-      <span class="sym" id="symTitle">—</span>
-      <span class="basis" id="basisLine">자료 기준일 —</span>
-    </div>
   </header>
-  <section id="watchlistPanel" class="statusbox" aria-label="즐겨찾기 목록">
-    <div class="wl-groupstrip" role="group" aria-label="그룹 선택" id="wlGroupStrip"></div>
-    <p class="hint" id="wlInfo"></p>
-    <p class="wl-legend" aria-hidden="true"><span class="wl-tone" data-tone="entry"></span>진입<span class="wl-tone" data-tone="exit"></span>이탈·주의<span class="wl-tone" data-tone="neutral"></span>관망</p>
-    <div class="wl-actions">
-      <button type="button" id="wlAddGroup">그룹 추가</button>
-      <button type="button" id="wlManageGroup">그룹 관리</button>
-      <button type="button" id="wlAddSymbol">종목 추가</button>
-      <button type="button" id="wlRefresh">목록 새로고침</button>
-    </div>
-    <div id="wlRows" role="list"></div>
-    <p id="wlEmpty" class="wl-empty" hidden>등록된 종목이 없어요</p>
-    <p id="wlStorageErr" class="wl-storage-err" hidden></p>
-  </section>
-
-  <section id="monitorPanel" class="statusbox" hidden aria-label="서버 관심종목 감시">
-    <h2>서버 감시 · 일봉<button type="button" class="helpTrigger" data-help="monitorHelp" aria-label="서버 감시 도움말" aria-expanded="false" aria-controls="monitorHelp">?</button></h2><div class="helpContent" id="monitorHelp"><p>시작하면 브라우저를 닫아도 서버가 기록합니다. 일반 5분 · 집중 최대 3개 30초 · 마감 30분 후 확정. 현재 가격의 진입 판단과 구별하세요.</p></div>
-    <p id="monitorState" role="status"></p>
-    <div class="wl-actions"><button id="monitorToggle" type="button">감시 시작</button><button id="monitorImport" type="button">관심목록 가져오기</button><button id="monitorAdd" type="button">현재 종목 등록</button></div>
-    <div id="monitorPreview" hidden><p id="monitorPreviewText"></p><button id="monitorImportSave" type="button">미리보기 목록 저장</button><button id="monitorImportCancel" type="button">취소</button></div>
-    <p id="monitorError" role="alert" hidden></p>
-    <div id="monitorRows"></div>
-    <details><summary>발생 기록</summary><div id="monitorEvents"></div><button type="button" id="monitorMore">기록 더 읽기</button></details>
-  </section>
-
+  <div class="workspace">
+  <div class="workspacePrimary">
   <p id="realtimeLine" class="hint" hidden></p>
 
   <div class="banner" id="pastBanner" hidden>
@@ -321,88 +474,55 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
     <button type="button" id="btnRecentTop">최근으로</button>
   </div>
 
+  <section id="verdictPanel" class="statusbox" aria-label="종합판단" data-verdict="blocked" data-tone="warn">
+    <div class="verdictTop">
+      <span id="verdictLabel" aria-live="polite">판단 보류</span>
+      <span id="verdictTag">종합판단 · 보유와 무관한 차트 신호</span>
+    </div>
+    <p id="verdictReason">자료를 불러오는 중이에요.</p>
+    <p id="verdictMeta"></p>
+  </section>
+
+  <details class="detailGroup" id="groupEntry">
+    <summary>진입 판단 상세<span class="dgHint">전략별 조건 · 추격 상한 · 자료 상태</span></summary>
+    <div class="dgBody">
   <section id="entryPanel" class="statusbox" aria-label="진입 시점 판단">
     <div class="helpRow"><span class="hint">진입 판단</span><button type="button" class="helpTrigger" data-help="entryHelp" aria-label="진입 판단 도움말" aria-expanded="false" aria-controls="entryHelp">?</button></div><div class="helpContent" id="entryHelp"><p>선택 전략의 조건·봉 확정·자료 시각·추격 범위를 함께 확인합니다. 진입 검토는 조건을 통과했다는 뜻이며 주문을 실행하지 않습니다.</p><p>수익성은 검증되지 않았습니다. 기업 분석과 매매 계획을 함께 확인하세요.</p></div>
     <h2 id="entryTitle" aria-live="polite">판단 자료 대기</h2>
     <p id="entryReason"></p><p id="entrySetup"></p><div class="entryMeta"><div class="helpRow"><p id="entryRisk"></p><button type="button" class="helpTrigger" data-help="entryRiskDetails" aria-label="추격 주의선 도움말" aria-expanded="false" aria-controls="entryRiskDetails">?</button></div><div class="helpRow"><span id="entryDataStatus"></span><button type="button" class="helpTrigger" data-help="entryDataHelp" aria-label="자료 시각과 판단 상태" aria-expanded="false" aria-controls="entryDataHelp">?</button></div></div><div class="helpContent" id="entryRiskDetails"><p id="entryRiskHelp"></p></div><div class="helpContent" id="entryDataHelp"><p id="entryDataDetails"></p></div>
-    <label class="strategyFamily">전략군 <select id="entryFamily"><option value="legacy">추세·돌파</option><option value="low">저점 매수</option></select></label>
-    <details><summary>전략 비교 · 설정</summary>
-      <fieldset class="entryStrategies" id="legacyStrategies"><legend>함께 확인할 전략</legend>
-        <label class="entryOption"><input type="checkbox" name="entryStrategy" value="A"> A 추세 전환</label>
-        <label class="entryOption"><input type="checkbox" name="entryStrategy" value="B"> B 침체 반등</label>
-        <div class="entryBreakoutGroup"><label><input type="checkbox" name="entryStrategy" id="entryBreakoutEnabled" value="F" checked> 돌파 전략</label>
-          <select id="entryBreakoutKind" aria-label="돌파 전략 조건"><option value="C">C 고점 돌파</option><option value="F" selected>F 추세·거래량 추가 확인</option></select>
-        </div>
-      </fieldset>
-      <fieldset class="entryStrategies" id="lowStrategies" hidden><legend>선택한 방식 중 하나가 맞으면 진입 검토</legend><label class="entryOption lowOption"><span><input type="checkbox" name="lowStrategy" value="R" checked> 저점 회복</span><small>저점 아래로 내려갔다 회복한 뒤, 다시 지키는지 확인</small></label><label class="entryOption lowOption"><span><input type="checkbox" name="lowStrategy" value="H" checked> 저점 상승</span><small>이전보다 높은 저점과 반등 고점 돌파를 확인</small></label></fieldset>
-      <div class="entryControls" id="entryControls"><label id="entryModeControl">조합 방식 <select id="entryMode"><option value="all">선택 조건 모두 (AND)</option><option value="any">선택 조건 하나 이상 (OR)</option></select></label>
-      <label>추격을 피할 가격 여유 <select id="entryMaxAtr"><option value="0.25">좁게 (0.25 ATR)</option><option value="0.5" selected>기본 (0.5 ATR)</option><option value="1">넓게 (1 ATR)</option></select></label></div>
-      <div class="helpRow">설정 기준<button type="button" class="helpTrigger" data-help="entrySettingsHelp" aria-label="전략 조합 설정 도움말" aria-expanded="false" aria-controls="entrySettingsHelp">?</button></div><div class="helpContent" id="entrySettingsHelp"><div id="entrySettingsLegacy"><p>A/B는 원래 교차 신호 이후 3봉까지 검토합니다. A는 20봉 평균이 60봉 위, B는 RSI가 30 위를 유지해야 합니다. 이탈·추격·자료 지연·봉 미확정이면 진입 검토를 보류합니다. 추격 상한은 최초 신호 가격 + 기본 0.5 ATR입니다.</p><p>AND는 최초 같은 봉에서 모두 충족해야 합니다. 이후 C/F는 현재 봉에서도 충족해야 합니다. F는 C에 추가 조건을 적용하므로 돌파 전략에서는 둘 중 하나를 선택합니다. 원래 전략의 공통 60봉 준비 조건과 임계값은 유지합니다.</p></div><div id="entrySettingsLow" hidden><p>선택한 저점 매수 방식 중 하나가 충족되면 진입을 검토합니다. 저점 확인만으로는 부족하고 반등 고점 돌파도 필요해요.</p><p>지지 가격이 깨지거나 확인 기간이 끝나면 새 신호를 기다립니다. 신호 발생봉과 이후 3봉까지 확인하며, 새 봉이 진행 중이면 진입 검토를 보류해요.</p></div><p>가격 여유는 평소 봉의 변동 폭(ATR)을 기준으로 정합니다. 넓게 설정할수록 신호 가격보다 더 높은 가격까지 허용해요.</p><p id="entryConflict" class="hint"></p></div>
-      <div class="compareWrap"><table><thead><tr><th>전략</th><th>기준봉 결과</th><th>언제 조건이 켜지나요?</th></tr></thead><tbody id="entryCompare"></tbody></table></div>
-    </details>
   </section>
+    </div>
+  </details>
 
-  <section class="statusbox" id="lowStructurePanel" aria-label="저점 구조">
-    <div class="helpRow"><h2>저점 구조</h2><button type="button" class="helpTrigger" data-help="lowStructureHelp" aria-label="저점 구조 도움말" aria-expanded="false" aria-controls="lowStructureHelp">?</button></div>
-    <p id="lowStructureStatus"></p>
-    <div class="lowControls"><label>표시 구조 <select id="lowStructureChoice" aria-label="표시할 저점 구조"></select></label><label><input type="checkbox" id="lowOverlayEnabled" checked> 차트 표시</label></div>
-    <div class="lowFacts" id="lowStructureFacts"></div><p class="hint" id="lowStructureNote"></p>
-    <div class="helpContent" id="lowStructureHelp"><p>일봉·코인 4시간봉의 확정 저점을 비교합니다. 회복 뒤 재시험과 반등 돌파, 또는 높아진 저점 뒤 고점 돌파를 확인합니다. 저점 표식은 발생 위치이며 진입 표식은 확인 가능한 봉에만 표시합니다.</p><p>진행봉은 초록 진입 검토를 발행하지 않습니다. 거래량·OBV는 보조 근거이며 매집 확정·성공확률이 아닙니다. 기업행사와 공급처 조정 가격의 일관성은 미확인입니다.</p><div id="lowStructureEvidence"></div><p id="lowStructureSource"></p></div>
-  </section>
-
-  <section class="statusbox" aria-live="polite" aria-label="현재 상태 요약">
-    <p id="statusLine">불러오는 중…</p>
-    <p id="reasonLine"></p>
-    <p id="nextLine"></p>
-    <button type="button" id="btnGrounds">판단 근거 펼치기</button>
-    <div id="groundsShort" class="grounds" hidden></div>
-  </section>
-
-  <div class="periodbar" role="group" aria-label="표시 기간">
-    <button type="button" data-p="1M">1개월</button>
-    <button type="button" data-p="3M" aria-pressed="true">3개월</button>
-    <button type="button" data-p="6M">6개월</button>
-    <button type="button" data-p="1Y">1년</button>
-    <button type="button" data-p="ALL">전체</button>
-    <button type="button" id="zoomOut" aria-label="축소">−</button>
-    <button type="button" id="zoomIn" aria-label="확대">+</button>
-    <button type="button" id="btnRecent">최근으로</button>
-    <span class="custom" id="customTag" hidden>사용자 지정</span>
+  <div class="chartToolbar">
+    <h2 id="chartHead">캔들 차트<button type="button" class="helpTrigger" data-help="chartSignalHelp" aria-label="차트 신호 도움말" aria-expanded="false" aria-controls="chartSignalHelp">?</button></h2>
+    <div class="periodbar" role="group" aria-label="표시 기간">
+      <button type="button" data-p="1M">1개월</button>
+      <button type="button" data-p="3M" aria-pressed="true">3개월</button>
+      <button type="button" data-p="6M">6개월</button>
+      <button type="button" data-p="1Y">1년</button>
+      <button type="button" data-p="ALL">전체</button>
+      <button type="button" id="zoomOut" aria-label="축소">−</button>
+      <button type="button" id="zoomIn" aria-label="확대">+</button>
+      <button type="button" id="btnRecent">최근으로</button>
+      <span class="custom" id="customTag" hidden>사용자 지정</span>
+    </div>
   </div>
-
-  <h2 id="chartHead">캔들 차트<button type="button" class="helpTrigger" data-help="chartSignalHelp" aria-label="차트 신호 도움말" aria-expanded="false" aria-controls="chartSignalHelp">?</button></h2>
-  <label>차트 신호 전략 <select id="signalStrategy"><option value="A">A 추세 전환</option><option value="B">B 침체 반등</option><option value="C">C 고점 돌파</option><option value="F" selected>F 추세·거래량 돌파</option></select></label>
+  <div class="intradayTfBar" role="group" aria-label="분봉 주기">
+    <span class="segLabel">분봉</span>
+    <button type="button" data-intra="M5" aria-pressed="false">5분</button>
+    <button type="button" data-intra="M15" aria-pressed="false">15분</button>
+    <button type="button" data-intra="M30" aria-pressed="false">30분</button>
+    <button type="button" data-intra="H1" aria-pressed="false">1시간</button>
+    <button type="button" data-intra="H2" aria-pressed="false">2시간</button>
+    <button type="button" data-intra="H4" aria-pressed="false">4시간</button>
+    <span class="hint" id="intraTrialNote" hidden>분봉 패턴은 검증 전 시험 표시입니다.</span>
+  </div>
   <div id="chartLegend" class="chartLegend" aria-label="동그라미 관찰 범례"></div>
   <p id="lowMarkerLegend" class="hint" hidden>저점 구조: 회색 점 = 발생 저점 · 초록 화살표 = 확정 조건 충족 · 보라 선 = 저점 연결 · 점선 초록 = 반등 기준 / 주황 = 구조 무효 / 회색 = 추격 상한. 과거 구조 표식은 현재 진입 안내가 아닙니다.</p>
   <div class="helpContent" id="chartSignalHelp"><p>동그라미는 관찰 상태입니다. 화살표는 선택 전략의 진입·이탈 조건이며, 주황 화살표는 잦은 신호 전환입니다.</p><p class="hint" id="markerNote"></p></div><div class="helpRow"><span class="hint">패턴: 최근 3개월</span><button type="button" class="helpTrigger" data-help="patternPeriodHelp" aria-label="패턴 기간 도움말" aria-expanded="false" aria-controls="patternPeriodHelp">?</button></div><div class="helpContent" id="patternPeriodHelp"><p id="patternWindowNote">패턴·발생 이력: 최신 자료 기준 최근 3개월 · 구조 시작일 포함</p></div>
-  <section id="priceIndicatorPanel" aria-label="가격 지표">
-    <label>가격 지표 <select id="priceIndicatorChoice"><option value="sma">SMA 20·60·120·200 (기본)</option><option value="ema">EMA 20·60·120·200</option><option value="wma">WMA 20·60·120·200</option><option value="bollinger">볼린저밴드 20·2</option><option value="donchian">돈치안 채널 20</option><option value="none">숨김</option></select></label><button type="button" class="helpTrigger" data-help="priceHelp" aria-label="가격 지표 도움말" aria-expanded="false" aria-controls="priceHelp">?</button>
-    <div id="priceIndicatorReadout">
-      <div class="readout"><span class="key">기준 봉</span><span class="value" id="priceIndicatorDate">—</span></div>
-      <div class="readout" id="priceIndicatorCell0"><span class="key" id="priceIndicatorLabel0">SMA 20</span><span class="value" id="priceIndicatorValue0">—</span></div>
-      <div class="readout" id="priceIndicatorCell1"><span class="key" id="priceIndicatorLabel1">SMA 60</span><span class="value" id="priceIndicatorValue1">—</span></div>
-      <div class="readout" id="priceIndicatorCell2"><span class="key" id="priceIndicatorLabel2">SMA 120</span><span class="value" id="priceIndicatorValue2">—</span></div>
-      <div class="readout" id="priceIndicatorCell3"><span class="key" id="priceIndicatorLabel3">SMA 200</span><span class="value" id="priceIndicatorValue3">—</span></div>
-      <div class="readout"><span class="key">자료 상태</span><span class="value" id="priceIndicatorStatus">—</span></div>
-    </div><div class="helpContent" id="priceHelp"><p class="hint" id="priceIndicatorHelp"></p></div>
-  </section>
   <div id="chartWrap">
-    <div id="obsOverlay" hidden>
-      <div class="ob-meta" id="obsMeta"></div>
-      <div class="ob-t" id="obsT"></div>
-      <div class="ob-r" id="obsR"></div>
-      <details><summary>다음에 확인할 것</summary><div class="ob-n" id="obsN"></div></details>
-    </div>
     <div id="chart" role="img" aria-label="캔들 차트. 휠 확대 축소와 좌우 드래그가 가능해요."></div>
-    <section id="indicatorPanel" aria-label="선택 보조 지표">
-      <label>보조 지표 <select id="indicatorChoice"><option value="rsi">RSI 14</option><option value="macd">MACD 12·26·9</option><option value="obv">OBV · 누적 거래량</option><option value="atr">ATR 14</option><option value="volume">거래량</option><option value="none">숨김</option></select></label><button type="button" class="helpTrigger" data-help="indicatorInfo" aria-label="보조 지표 도움말" aria-expanded="false" aria-controls="indicatorInfo">?</button>
-      <div id="indicatorBody"><div id="indicatorReadout">
-        <div class="readout"><span class="key">기준 봉</span><span class="value" id="indicatorDate">—</span></div>
-        <div class="readout"><span class="key" id="indicatorValueLabel">RSI 14</span><span class="value" id="indicatorValue">—</span></div>
-        <div class="readout"><span class="key">자료 상태</span><span class="value" id="indicatorStatus">—</span></div>
-      </div><div id="indicatorComponents" hidden><div class="readout"><span class="key">시그널 9</span><span class="value" id="indicatorSignal">—</span></div><div class="readout"><span class="key">MACD − 시그널</span><span class="value" id="indicatorHistogram">—</span></div></div><div id="indicatorChart" role="img" aria-label="선택 보조 지표 차트"></div></div>
-      <div class="helpContent" id="indicatorInfo"><p class="hint" id="indicatorHelp"></p></div>
-    </section>
     <div id="chartOverlay" hidden></div>
   </div>
   <div id="selline">
@@ -416,14 +536,114 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
       <div class="readout wide"><span class="key" id="readObsKey">관찰 상태</span><span class="value" id="readObservation">—</span></div>
       <div class="readout wide"><span class="key" id="readSignalKey">전략 신호</span><span class="value" id="readSignal">—</span></div>
     </div>
-    <div class="chartDisplayControls" role="group" aria-label="차트 표시 설정">
-    <div class="chartTools"><button type="button" id="tglObs" aria-pressed="true">관찰 표시</button>
-    <button type="button" id="tglSig" aria-pressed="true">신호 표시</button>
-    </div>
-    <div id="flagOverlayControls" hidden><label class="controlField">패턴 영역<select id="patternAreaFamily"><option value="auto">최근 유효 패턴</option><option value="flag">플래그</option><option value="triangle">삼각수렴</option></select></label><button type="button" id="flagOverlayToggle" aria-pressed="true">패턴 영역 ON</button><span id="flagOverlayStatus" role="status"></span></div>
-    </div>
   </div>
+  <section id="indicatorPanel" aria-label="선택 보조 지표">
+    <label>보조 지표 <select id="indicatorChoice"><option value="rsi">RSI 14</option><option value="macd">MACD 12·26·9</option><option value="obv">OBV · 누적 거래량</option><option value="atr">ATR 14</option><option value="volume">거래량</option><option value="none">숨김</option></select></label><button type="button" class="helpTrigger" data-help="indicatorInfo" aria-label="보조 지표 도움말" aria-expanded="false" aria-controls="indicatorInfo">?</button>
+    <div id="indicatorBody"><div id="indicatorReadout">
+      <div class="readout"><span class="key">기준 봉</span><span class="value" id="indicatorDate">—</span></div>
+      <div class="readout"><span class="key" id="indicatorValueLabel">RSI 14</span><span class="value" id="indicatorValue">—</span></div>
+      <div class="readout"><span class="key">자료 상태</span><span class="value" id="indicatorStatus">—</span></div>
+    </div><div id="indicatorComponents" hidden><div class="readout"><span class="key">시그널 9</span><span class="value" id="indicatorSignal">—</span></div><div class="readout"><span class="key">MACD − 시그널</span><span class="value" id="indicatorHistogram">—</span></div></div><div id="indicatorChart" role="img" aria-label="선택 보조 지표 차트"></div></div>
+    <div class="helpContent" id="indicatorInfo"><p class="hint" id="indicatorHelp"></p></div>
+  </section>
+  <section id="priceIndicatorPanel" aria-label="가격 지표">
+    <label>가격 지표 <select id="priceIndicatorChoice"><option value="sma">SMA 20·60·120·200 (기본)</option><option value="ema">EMA 20·60·120·200</option><option value="wma">WMA 20·60·120·200</option><option value="bollinger">볼린저밴드 20·2</option><option value="donchian">돈치안 채널 20</option><option value="none">숨김</option></select></label><button type="button" class="helpTrigger" data-help="priceHelp" aria-label="가격 지표 도움말" aria-expanded="false" aria-controls="priceHelp">?</button>
+    <div id="priceIndicatorReadout">
+      <div class="readout"><span class="key">기준 봉</span><span class="value" id="priceIndicatorDate">—</span></div>
+      <div class="readout" id="priceIndicatorCell0"><span class="key" id="priceIndicatorLabel0">SMA 20</span><span class="value" id="priceIndicatorValue0">—</span></div>
+      <div class="readout" id="priceIndicatorCell1"><span class="key" id="priceIndicatorLabel1">SMA 60</span><span class="value" id="priceIndicatorValue1">—</span></div>
+      <div class="readout" id="priceIndicatorCell2"><span class="key" id="priceIndicatorLabel2">SMA 120</span><span class="value" id="priceIndicatorValue2">—</span></div>
+      <div class="readout" id="priceIndicatorCell3"><span class="key" id="priceIndicatorLabel3">SMA 200</span><span class="value" id="priceIndicatorValue3">—</span></div>
+      <div class="readout"><span class="key">자료 상태</span><span class="value" id="priceIndicatorStatus">—</span></div>
+    </div><div class="helpContent" id="priceHelp"><p class="hint" id="priceIndicatorHelp"></p></div>
+  </section>
   <p class="sr" id="chartSr"></p>
+
+  </div>
+  <aside class="workspaceSide" aria-label="관심 목록과 상세 설정">
+    <section id="watchlistPanel" class="statusbox" aria-label="즐겨찾기 목록">
+      <div class="wl-groupstrip" role="group" aria-label="그룹 선택" id="wlGroupStrip"></div>
+      <p class="hint" id="wlInfo"></p>
+      <p class="wl-legend" aria-hidden="true"><span class="wl-tone" data-tone="entry"></span>진입<span class="wl-tone" data-tone="exit"></span>이탈·주의<span class="wl-tone" data-tone="neutral"></span>관망</p>
+      <div class="wl-actions">
+        <button type="button" id="wlAddGroup">그룹 추가</button>
+        <button type="button" id="wlManageGroup">그룹 관리</button>
+        <button type="button" id="wlAddSymbol">종목 추가</button>
+        <button type="button" id="wlRefresh">목록 새로고침</button>
+      </div>
+      <div id="wlRows" role="list"></div>
+      <p id="wlEmpty" class="wl-empty" hidden>등록된 종목이 없어요</p>
+      <p id="wlStorageErr" class="wl-storage-err" hidden></p>
+    </section>
+
+    <section id="settingsPanel" class="statusbox" aria-label="상세 설정">
+      <h2>상세 설정</h2>
+      <label class="settingsRow">차트 신호 전략 <select id="signalStrategy"><option value="A">A 추세 전환</option><option value="B">B 침체 반등</option><option value="C">C 고점 돌파</option><option value="F" selected>F 추세·거래량 돌파</option></select></label>
+      <div class="chartDisplayControls" role="group" aria-label="차트 표시 설정">
+        <div class="chartTools"><button type="button" id="tglObs" aria-pressed="true">관찰 표시</button>
+        <button type="button" id="tglSig" aria-pressed="true">신호 표시</button>
+        </div>
+        <div id="flagOverlayControls" hidden><label class="controlField">패턴 영역<select id="patternAreaFamily"><option value="auto">최근 유효 패턴</option><option value="flag">플래그</option><option value="triangle">삼각수렴</option><option value="structure">구조 패턴</option></select></label><button type="button" id="flagOverlayToggle" aria-pressed="true">패턴 영역 ON</button><span id="flagOverlayStatus" role="status"></span></div>
+      </div>
+      <div class="entrySettingsScope" id="entrySettings">
+        <h3>진입 전략</h3>
+        <label class="strategyFamily">전략군 <select id="entryFamily"><option value="legacy">추세·돌파</option><option value="low">저점 매수</option></select></label>
+        <details><summary>전략 비교 · 설정</summary>
+          <fieldset class="entryStrategies" id="legacyStrategies"><legend>함께 확인할 전략</legend>
+            <label class="entryOption"><input type="checkbox" name="entryStrategy" value="A"> A 추세 전환</label>
+            <label class="entryOption"><input type="checkbox" name="entryStrategy" value="B"> B 침체 반등</label>
+            <div class="entryBreakoutGroup"><label><input type="checkbox" name="entryStrategy" id="entryBreakoutEnabled" value="F" checked> 돌파 전략</label>
+              <select id="entryBreakoutKind" aria-label="돌파 전략 조건"><option value="C">C 고점 돌파</option><option value="F" selected>F 추세·거래량 추가 확인</option></select>
+            </div>
+          </fieldset>
+          <fieldset class="entryStrategies" id="lowStrategies" hidden><legend>선택한 방식 중 하나가 맞으면 진입 검토</legend><label class="entryOption lowOption"><span><input type="checkbox" name="lowStrategy" value="R" checked> 저점 회복</span><small>저점 아래로 내려갔다 회복한 뒤, 다시 지키는지 확인</small></label><label class="entryOption lowOption"><span><input type="checkbox" name="lowStrategy" value="H" checked> 저점 상승</span><small>이전보다 높은 저점과 반등 고점 돌파를 확인</small></label></fieldset>
+          <div class="entryControls" id="entryControls"><label id="entryModeControl">조합 방식 <select id="entryMode"><option value="all">선택 조건 모두 (AND)</option><option value="any">선택 조건 하나 이상 (OR)</option></select></label>
+          <label>추격을 피할 가격 여유 <select id="entryMaxAtr"><option value="0.25">좁게 (0.25 ATR)</option><option value="0.5" selected>기본 (0.5 ATR)</option><option value="1">넓게 (1 ATR)</option></select></label></div>
+          <div class="helpRow">설정 기준<button type="button" class="helpTrigger" data-help="entrySettingsHelp" aria-label="전략 조합 설정 도움말" aria-expanded="false" aria-controls="entrySettingsHelp">?</button></div><div class="helpContent" id="entrySettingsHelp"><div id="entrySettingsLegacy"><p>A/B는 원래 교차 신호 이후 3봉까지 검토합니다. A는 20봉 평균이 60봉 위, B는 RSI가 30 위를 유지해야 합니다. 이탈·추격·자료 지연·봉 미확정이면 진입 검토를 보류합니다. 추격 상한은 최초 신호 가격 + 기본 0.5 ATR입니다.</p><p>AND는 최초 같은 봉에서 모두 충족해야 합니다. 이후 C/F는 현재 봉에서도 충족해야 합니다. F는 C에 추가 조건을 적용하므로 돌파 전략에서는 둘 중 하나를 선택합니다. 원래 전략의 공통 60봉 준비 조건과 임계값은 유지합니다.</p></div><div id="entrySettingsLow" hidden><p>선택한 저점 매수 방식 중 하나가 충족되면 진입을 검토합니다. 저점 확인만으로는 부족하고 반등 고점 돌파도 필요해요.</p><p>지지 가격이 깨지거나 확인 기간이 끝나면 새 신호를 기다립니다. 신호 발생봉과 이후 3봉까지 확인하며, 새 봉이 진행 중이면 진입 검토를 보류해요.</p></div><p>가격 여유는 평소 봉의 변동 폭(ATR)을 기준으로 정합니다. 넓게 설정할수록 신호 가격보다 더 높은 가격까지 허용해요.</p><p id="entryConflict" class="hint"></p></div>
+          <div class="compareWrap"><table><thead><tr><th>전략</th><th>기준봉 결과</th><th>언제 조건이 켜지나요?</th></tr></thead><tbody id="entryCompare"></tbody></table></div>
+        </details>
+      </div>
+    </section>
+
+    <section id="monitorPanel" class="statusbox" hidden aria-label="서버 관심종목 감시">
+      <h2>서버 감시 · 일봉<button type="button" class="helpTrigger" data-help="monitorHelp" aria-label="서버 감시 도움말" aria-expanded="false" aria-controls="monitorHelp">?</button></h2><div class="helpContent" id="monitorHelp"><p>시작하면 브라우저를 닫아도 서버가 기록합니다. 일반 5분 · 집중 최대 3개 30초 · 마감 30분 후 확정. 현재 가격의 진입 판단과 구별하세요.</p></div>
+      <p id="monitorState" role="status"></p>
+      <div class="wl-actions"><button id="monitorToggle" type="button">감시 시작</button><button id="monitorImport" type="button">관심목록 가져오기</button><button id="monitorAdd" type="button">현재 종목 등록</button></div>
+      <div id="monitorPreview" hidden><p id="monitorPreviewText"></p><button id="monitorImportSave" type="button">미리보기 목록 저장</button><button id="monitorImportCancel" type="button">취소</button></div>
+      <p id="monitorError" role="alert" hidden></p>
+      <div id="monitorRows"></div>
+      <details><summary>발생 기록</summary><div id="monitorEvents"></div><button type="button" id="monitorMore">기록 더 읽기</button></details>
+    </section>
+  </aside>
+
+  <div class="workspaceDetails">
+  <div id="obsOverlay" hidden>
+    <div class="ob-meta" id="obsMeta"></div>
+    <div class="ob-t" id="obsT"></div>
+    <div class="ob-r" id="obsR"></div>
+    <details><summary>다음에 확인할 것</summary><div class="ob-n" id="obsN"></div></details>
+  </div>
+  <details class="detailGroup" id="groupPatterns">
+    <summary>패턴 · 구조 · 지지저항<span class="dgHint">저점 구조 · 플래그 · 삼각수렴 · 돌파</span></summary>
+    <div class="dgBody">
+  <section class="statusbox" id="lowStructurePanel" aria-label="저점 구조">
+    <div class="helpRow"><h2>저점 구조</h2><button type="button" class="helpTrigger" data-help="lowStructureHelp" aria-label="저점 구조 도움말" aria-expanded="false" aria-controls="lowStructureHelp">?</button></div>
+    <p id="lowStructureStatus"></p>
+    <div class="lowControls"><label>표시 구조 <select id="lowStructureChoice" aria-label="표시할 저점 구조"></select></label><label><input type="checkbox" id="lowOverlayEnabled" checked> 차트 표시</label></div>
+    <div class="lowFacts" id="lowStructureFacts"></div><p class="hint" id="lowStructureNote"></p>
+    <div class="helpContent" id="lowStructureHelp"><p>일봉·코인 4시간봉의 확정 저점을 비교합니다. 회복 뒤 재시험과 반등 돌파, 또는 높아진 저점 뒤 고점 돌파를 확인합니다. 저점 표식은 발생 위치이며 진입 표식은 확인 가능한 봉에만 표시합니다.</p><p>진행봉은 초록 진입 검토를 발행하지 않습니다. 거래량·OBV는 보조 근거이며 매집 확정·성공확률이 아닙니다. 기업행사와 공급처 조정 가격의 일관성은 미확인입니다.</p><div id="lowStructureEvidence"></div><p id="lowStructureSource"></p></div>
+  </section>
+
+  <details class="detailGroup" id="groupEvidence">
+    <summary>판단 근거 · 가격 구간 · 자료<span class="dgHint">관찰 요약 · 매물대 · 갭 · 용어</span></summary>
+    <div class="dgBody">
+  <section class="statusbox" aria-live="polite" aria-label="현재 상태 요약">
+    <p id="statusLine">불러오는 중…</p>
+    <p id="reasonLine"></p>
+    <p id="nextLine"></p>
+    <button type="button" id="btnGrounds">판단 근거 펼치기</button>
+    <div id="groundsShort" class="grounds" hidden></div>
+  </section>
 
   <section class="statusbox" id="flagPanel" hidden aria-label="플래그">
     <h2>플래그<button type="button" class="helpTrigger" data-help="flagHelp" aria-label="플래그 도움말" aria-expanded="false" aria-controls="flagHelp">?</button></h2><div class="helpContent" id="flagHelp"><p>색 채움은 조정 구간, 굵은 선은 선행 급등·급락입니다. 형성 중은 점선, 종가 확인은 실선입니다. 목표가·자동 매수 지시가 아닙니다.</p></div><p id="flagState" role="status"></p>
@@ -439,6 +659,20 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
     <details><summary>삼각수렴 이력</summary><div id="triangleEvents"></div></details>
   </section>
 
+  <section class="statusbox" id="structurePanel" hidden aria-label="구조 패턴">
+    <h2>구조 패턴<button type="button" class="helpTrigger" data-help="structureHelp" aria-label="구조 패턴 도움말" aria-expanded="false" aria-controls="structureHelp">?</button></h2><div class="helpContent" id="structureHelp"><p>더블탑/더블바텀은 같은 높이의 고점·저점 두 개, 헤드앤숄더는 가운데가 더 높거나 낮은 세 점입니다. 목선을 종가로 돌파하면 확인으로 기록해요. 목표가·자동 매수 지시가 아닙니다.</p></div><p id="structureState" role="status"></p>
+    <div class="controlRow"><label class="controlField">구조 선택<select id="structureChoice"></select></label></div>
+    <div id="structureCards"></div>
+    <details><summary>구조 패턴 이력</summary><div id="structureEvents"></div></details>
+  </section>
+
+  <section class="statusbox" id="structureEvidencePanel" hidden aria-label="구조 근거 병행 평가">
+    <h2>구조 근거 · 병행 평가<button type="button" class="helpTrigger" data-help="structureEvidenceHelp" aria-label="구조 근거 병행 평가 도움말" aria-expanded="false" aria-controls="structureEvidenceHelp">?</button></h2><div class="helpContent" id="structureEvidenceHelp"><p>목선·돌파·거래량·선행 흐름을 사건 단위로 보여주는 시험 적용입니다. 확인은 표시된 기준가를 종가가 넘었을 때만 기록하며, 실패한 구조도 지우지 않습니다. 기존 진입·감시·알림 판단에는 아직 반영하지 않습니다.</p></div><p id="structureEvidenceState" role="status"></p>
+    <div class="controlRow"><label class="controlField">구조 선택<select id="structureEvidenceChoice"></select></label></div>
+    <div id="structureEvidenceCards"></div>
+    <details><summary>구조 사건 이력</summary><div id="structureEvidenceEvents"></div></details>
+  </section>
+
   <section class="statusbox" id="patternPanel" hidden aria-label="지지 저항 돌파">
     <h2>지지·저항 돌파<button type="button" class="helpTrigger" data-help="breakoutHelp" aria-label="지지·저항 돌파 도움말" aria-expanded="false" aria-controls="breakoutHelp">?</button></h2><div class="helpContent" id="breakoutHelp"><p>돌파는 가격 조건의 확인입니다. 기존 전략의 진입 판단과 함께 확인하세요. 거래량 부족도 사건은 기록합니다.</p></div>
     <p id="patternStatus" role="status"></p>
@@ -452,6 +686,8 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
     </details>
     <details><summary>돌파 이력</summary><div id="patternEvents"></div></details>
   </section>
+    </div>
+  </details>
   <dialog id="patternDialog" aria-labelledby="patternSnapshotTitle">
     <button id="patternClose" type="button">닫기 · 현재 차트로</button>
     <h2 id="patternSnapshotTitle"></h2><p id="patternSnapshotBasis"></p>
@@ -503,6 +739,18 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
     <details><summary>전체 가격 구간 보기</summary><div class="compareWrap"><table class="vpTable"><thead><tr><th>가격 구간</th><th>거래량 비중</th><th>누적 거래량</th></tr></thead><tbody id="volumeProfileRows"></tbody></table></div></details>
   </section>
 
+  <section class="statusbox" id="priceZonesPanel" aria-label="가격 구간">
+    <h2>가격 구간 · 갭과 지지저항<button type="button" class="helpTrigger" data-help="priceZonesHelp" aria-label="가격 구간 도움말" aria-expanded="false" aria-controls="priceZonesHelp">?</button></h2>
+    <div class="helpContent" id="priceZonesHelp"><p>갭은 앞봉과 다음 봉 사이에 가격이 비어 있는 구간이에요. 자료가 빠진 구간은 갭으로 세지 않아요. 지지·저항 후보는 여러 번 반응한 가격을 묶은 관찰값이며 지지를 보장하지 않아요.</p><p>매물대는 봉의 대표가격에 거래량을 배정한 추정 분포예요. 실제 호가 잔량이 아니에요. 이 구간들은 종합판단에 자동으로 들어가지 않아요.</p></div>
+    <p id="priceZonesSummary"></p>
+    <div class="zoneToggle" role="group" aria-label="가격 구간 표시">
+      <label><input type="checkbox" id="zoneShowGaps" checked> 미채움 갭</label>
+      <label><input type="checkbox" id="zoneShowLevels" checked> 지지·저항 후보</label>
+      <label><input type="checkbox" id="zoneShowClusters" checked> 매물대</label>
+    </div>
+    <div id="priceZonesBody"></div>
+  </section>
+
   <h2 id="cardsHead">왜 그런가요?</h2>
   <div class="cards" id="cards"></div>
   <div id="evDetail" hidden></div>
@@ -511,11 +759,15 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
     <summary>자료 출처 · 검증</summary>
     <div class="body" id="srcBody"></div>
   </details>
+    </div>
+  </details>
 
   <footer><details><summary>앱 정보</summary>
     <p>차트 라이브러리: TradingView Lightweight Charts v5.0.8 (Apache-2.0) · 로컬 <code>lib/lightweight-charts.js</code> · 출처 <code>lib/SOURCE.txt</code> 보존 · 버전 업그레이드 없음.</p>
     <p id="runInfo">실행: 같은 origin 권장 — <code>python run.py --live</code> → <code>http://localhost:8734/chart-first.html</code> · 파일 직접 열기도 가능(내장 14종목 일봉·주봉).</p>
   </details></footer>
+  </div>
+  </div>
 </div>
 
 <dialog id="helpDlg" aria-labelledby="helpT">
@@ -552,6 +804,7 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
 </dialog>
 
 <script src="lib/lightweight-charts.js"></script>
+<script src="chart-theme.js"></script>
 <script src="obs-model.js"></script>
 <script src="chart-timing.js"></script>
 <script src="entry-model.js"></script>
@@ -561,6 +814,7 @@ footer{margin-top:2rem;color:var(--sub);font-size:.9rem;border-top:1px solid var
 <script src="low-entry-model.js"></script>
 <script src="low-entry-context.js"></script>
 <script src="volume-profile.js"></script>
+<script src="price-zones.js"></script>
 <script src="chart-util.js"></script>
 <script src="technical-indicators.js"></script>
 <script src="chart-api.js"></script>
@@ -590,21 +844,41 @@ const S = {
   evCard: null,
   sourceKind: "builtin", fetchedAt: null,
   autoRef: true, refreshing: false, failStreak: 0, nextAutoAt: 0, lastErr: null,
+  staleRetries: 0, busyRetries: 0, rateRetries: 0,
 };
 const REFRESH_MS = 60000; // 자동갱신 설정 주기 (공급처 원천 갱신 주기와 다름)
 let EXP = (typeof DASHBOARD_DATA !== "undefined" && DASHBOARD_DATA.exps[0]) || {symbols:{}};
-const LIVE_D = {}, LIVE_H4 = {}, LIVE_META = {}; // LIVE_META[종목#주기] = 최신성 계약
-let API = "", serverMode = false, reqSeq = 0, liveCtl = null, liveRequestKey = null;
+const LIVE_D = {}, LIVE_H4 = {}, LIVE_INTRA = {}, LIVE_META = {}; // LIVE_META[종목#주기] = 최신성 계약
+const INTRA_MINUTES = {M5:5, M15:15, M30:30, H1:60, H2:120, H4:240};
+const INTRA_WORD = {M5:"5분봉", M15:"15분봉", M30:"30분봉", H1:"1시간봉", H2:"2시간봉", H4:"4시간봉"};
+const INTRA_TRIAL = new Set(["M5","M15","M30","H1","H2"]);
+const isIntraTF = (tf) => Object.prototype.hasOwnProperty.call(INTRA_MINUTES, tf);
+const intraWord = (tf) => INTRA_WORD[tf] || tf;
+const intraKey = (sym, tf) => sym + "|" + tf;
+function intraFrame(sym, tf) {
+  if (!sym || !isIntraTF(tf)) return null;
+  return tf === "H4" ? (LIVE_H4[sym] || null) : (LIVE_INTRA[intraKey(sym, tf)] || null);
+}
+function setIntraFrame(sym, tf, data) {
+  if (!sym || !isIntraTF(tf)) return;
+  if (tf === "H4") LIVE_H4[sym] = data;
+  else LIVE_INTRA[intraKey(sym, tf)] = data;
+}
+let API = "", serverMode = false, reqSeq = 0, liveCtl = null, liveRequestKey = null, staleTimer = null, busyTimer = null, rateTimer = null;
 function frozenSym() { return EXP.symbols[S.symbol] || null; } // 고정 실행 원장(섞지 않고 별도 참조)
 const $ = (id) => document.getElementById(id);
 const isKR = (s) => /\.(KS|KQ)$/.test(s || "") || s === "^KS11" || s === "^KQ11";
 const curSym = () => LIVE_D[S.symbol] || EXP.symbols[S.symbol] || null;
-const tfWord = () => S.tf === "W" ? "주봉" : S.tf === "H4" ? "4시간봉" : S.tf === "M" ? "월봉" : "일봉";
-const avgWord = (n) => S.tf === "W" ? `${n}주 평균` : S.tf === "H4" ? `최근 ${n}개 4시간봉 평균` : S.tf === "M" ? `${n}개월 평균` : `${n}일 평균`;
+const tfWord = (tf = S.tf) => isIntraTF(tf) ? intraWord(tf)
+  : tf === "W" ? "주봉" : tf === "M" ? "월봉" : "일봉";
+const avgWord = (n) => S.tf === "W" ? `${n}주 평균`
+  : isIntraTF(S.tf) ? `최근 ${n}개 ${intraWord(S.tf)} 평균`
+  : S.tf === "M" ? `${n}개월 평균` : `${n}일 평균`;
 
 /* ---------- data-provider ---------- */
 function frameOf(symObj) {
-  return ChartUtil.selectFrame(symObj, S.tf, symObj && LIVE_H4[symObj.symbol]);
+  const sym = symObj && symObj.symbol;
+  return ChartUtil.selectFrame(symObj, S.tf, intraFrame(sym, S.tf));
 }
 const ERR_TXT = {
   timeout: "조회 시간초과", network: "서버 연결 실패", nodata: "자료 없음",
@@ -612,9 +886,11 @@ const ERR_TXT = {
   "adjusted-history-conflict": "과거 가격 정합성 확인 필요", "history-cursor-repeated": "과거 자료 페이지 확인 필요",
   "queue-busy": "조회 작업 진행 중", "rate-limited": "공급처 호출 한도 초과", "authentication-failed": "공급처 인증 실패",
   "permission-or-ip-denied": "공급처 권한·IP 확인 필요", "network-or-timeout": "공급처 연결·시간초과",
+  stale: "이전 저장값 표시 · 갱신 중",
 };
 /* apiGet: res.ok·스키마·kind·timeout 구분. 실패는 throw(kind 부착). */
 const apiGet = ChartApi.get;
+const waitMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /* detectServer: await 가능. 연결 성공 후 현재 선택 종목·주기의 최신 조회를 실행한다. */
 async function detectServer() {
   const bases = (location.protocol === "http:" || location.protocol === "https:") ? [""] : [];
@@ -651,20 +927,94 @@ function h4CacheGet(sym) {
 function h4CacheSet(sym, data) {
   try { localStorage.setItem("cf_h4_" + sym, JSON.stringify({t: Date.now(), data})); } catch (e) {}
 }
+/* Only H4 keeps a disk snapshot. Other intraday frames stay in memory so a
+   short-lived 5m series cannot fill the origin's localStorage quota. */
+function intraCacheGet(sym, tf) { return tf === "H4" ? h4CacheGet(sym) : null; }
+function intraCacheSet(sym, tf, data) { if (tf === "H4") h4CacheSet(sym, data); }
 /* refreshLive: 현재 선택(symbol/timeframe/requestId 고정)만 반영. 늦은·이전 응답 무시.
    성공 시 최신 조회로 교체 + 최신성 기록. 실패 시 마지막 정상 자료 보존 + 실패 표시. */
 function rememberLiveMeta(symbol, payload, tf) {
   const save=(frame,period)=>{const {candles,state,lines,marks,weekly,monthly,...meta}=frame;LIVE_META[metaKey(symbol,period)]=meta;};
-  save(payload,tf==='H4'?'H4':'D');
+  save(payload, tf);
   if(payload.weekly)save(payload.weekly,'W');
   if(payload.monthly)save(payload.monthly,'M');
+}
+/* A stale payload is a labeled disk fallback, not a failed request. Retry soon
+   without resetting the normal refresh cadence; the server keeps collecting. */
+function clearRetryTimers() {
+  if (staleTimer) { clearTimeout(staleTimer); staleTimer = null; }
+  if (busyTimer) { clearTimeout(busyTimer); busyTimer = null; }
+  if (rateTimer) { clearTimeout(rateTimer); rateTimer = null; }
+}
+function scheduleStaleRetry(sym, tf, retryAt) {
+  if (!S.autoRef || document.hidden || S.staleRetries >= 6) return;
+  S.staleRetries++;
+  const target = Date.parse(retryAt || "");
+  const delay = Number.isFinite(target) ? Math.max(2000, Math.min(15000, target - Date.now())) : 4000;
+  if (staleTimer) clearTimeout(staleTimer);
+  staleTimer = setTimeout(() => {
+    staleTimer = null;
+    if (serverMode && S.autoRef && !document.hidden && !S.refreshing &&
+        S.symbol === sym && S.tf === tf) refreshLive({ force: false, reason: "stale" });
+  }, delay);
+}
+/* A local queue-busy means the same key is still collecting. Retrying merges
+   into that single job instead of paying the 2-minute provider backoff. */
+function scheduleBusyRetry(sym, tf) {
+  if (!S.autoRef || document.hidden || S.busyRetries > 6) return;
+  const delay = 1500 * S.busyRetries;
+  if (busyTimer) clearTimeout(busyTimer);
+  busyTimer = setTimeout(() => {
+    busyTimer = null;
+    if (serverMode && S.autoRef && !document.hidden && !S.refreshing &&
+        S.symbol === sym && S.tf === tf) refreshLive({ force: false, reason: "wait" });
+  }, delay);
+}
+/* The provider cooldown is persisted server-side. Resume exactly then instead
+   of waiting for the slower periodic refresh interval. */
+function scheduleRateLimitRetry(sym, tf, retryAt) {
+  if (!S.autoRef || document.hidden || S.rateRetries >= 12) return;
+  S.rateRetries++;
+  const target = Date.parse(retryAt || "");
+  const delay = Number.isFinite(target) ? Math.max(2000, Math.min(120000, target - Date.now() + 2000)) : 30000;
+  if (rateTimer) clearTimeout(rateTimer);
+  rateTimer = setTimeout(() => {
+    rateTimer = null;
+    if (serverMode && S.autoRef && !document.hidden && !S.refreshing &&
+        S.symbol === sym && S.tf === tf) refreshLive({ force: false, reason: "rate-limit" });
+  }, delay);
+}
+let marketCtx = null, marketCtxAt = 0, marketCtxBusy = false;
+window.__marketContext = () => marketCtx;
+/* 시장 변동성 맥락은 최종 판단에만 합쳐지고 화면에 따로 표시하지 않는다.
+   조회 실패·오래된 자료는 무시하므로 기존 판단을 막지 않는다. */
+async function loadMarketContext() {
+  if (!serverMode || marketCtxBusy) return;
+  if (marketCtxAt && Date.now() - marketCtxAt < 600000) return;
+  marketCtxBusy = true;
+  try {
+    const r = await fetch(API + "api/market-context?code=" + encodeURIComponent(S.symbol || ""), { cache: "no-store" });
+    if (r.ok) {
+      const j = await r.json();
+      marketCtx = (j && j.data) || j;
+      marketCtxAt = Date.now();
+      try { window.VerdictPanel?.render?.(typeof currentObs === "function" ? currentObs() : null); } catch (e) {}
+    }
+  } catch (e) {
+    // 시장 맥락 실패는 차트·판단을 막지 않는다.
+  } finally { marketCtxBusy = false; }
 }
 async function refreshLive(opt) {
   opt = opt || {};
   const force = !!opt.force, reason = opt.reason || "manual";
+  const startedAt = nowMs();
   if (!serverMode) { paintBasis(); return; }
+  if (typeof loadMarketContext === "function") loadMarketContext();
   if (S.refreshing && reason === "auto") return; // 중복 요청 병합
   const key = metaKey(S.symbol, S.tf);
+  if (S.retryKey !== key) { S.retryKey = key; S.staleRetries = 0; S.busyRetries = 0; S.rateRetries = 0; }
+  // A new explicit request supersedes any pending stale/busy retry.
+  clearRetryTimers();
   if (S.refreshing && liveRequestKey === key && liveCtl && !liveCtl.signal.aborted) return;
   S.lastRefreshAttemptAt = Date.now();
   const mySeq = ++reqSeq;
@@ -676,16 +1026,48 @@ async function refreshLive(opt) {
   setBusy(true, force ? "강제 조회 중…" : "최신 조회 중…");
   hideOverlayIfLoading();
   try {
-    const ep = tf === "H4" ? "api/intraday" : "api/lookup";
-    const j = await apiGet(API + ep + "?code=" + encodeURIComponent(sym) + (force ? "&force=1" : ""), 20000, mine.signal);
+    const intra = isIntraTF(tf);
+    const ep = intra ? "api/intraday" : "api/lookup";
+    const j = await apiGet(API + ep + "?code=" + encodeURIComponent(sym)
+      + (intra ? "&tf=" + encodeURIComponent(tf) : "") + (force ? "&force=1" : ""), 20000, mine.signal);
     if (mySeq !== reqSeq || mine.signal.aborted) return; // 늦은 응답 무시
     if (S.symbol !== sym || S.tf !== tf) return; // 선택이 바뀌었으면 버림
     if (!validFrame(j)) { const e = new Error("응답 형식 오류(봉 없음)"); e.kind = "provider"; throw e; }
-    if (tf === "H4") { LIVE_H4[sym] = j; h4CacheSet(sym, j); }
+    if (j.stale) {
+      // Never let an older disk snapshot replace a newer in-memory frame.
+      const cur = intra ? intraFrame(j.symbol, tf) : LIVE_D[j.symbol];
+      const incoming = Date.parse(j.fetchedAt || "");
+      const current = Date.parse((cur && cur.fetchedAt) || "");
+      const replaced = !cur || !Number.isFinite(current) || (Number.isFinite(incoming) && incoming >= current);
+      if (replaced) {
+        if (intra) setIntraFrame(sym, tf, j); // do not persist a labeled fallback as a fresh local copy
+        else LIVE_D[j.symbol] = j;
+        rememberLiveMeta(sym, j, tf);
+      }
+      S.sourceKind = "live"; S.fetchedAt = new Date();
+      S.failStreak = 0; S.nextAutoAt = 0; S.rateRetries = 0;
+      // If newer data is already on screen, only the refresh is pending.
+      S.lastErr = replaced
+        ? { kind: "stale", msg: "이전 저장값 표시 · 새 자료 수집 중", at: new Date(), retryAt: j.retryAt || null }
+        : null;
+      hideOverlay();
+      renderAll(false);
+      if (S.preset !== "custom" && !S.selectedAsOf) applyPresetRange();
+      else renderMarkers();
+      paintBasis();
+      if (window.Watchlist) Watchlist.render();
+      clearRetryTimers();
+      recordTiming({ symbol: sym, tf, reason, stale: true, ms: Math.round(nowMs() - startedAt) });
+      scheduleStaleRetry(sym, tf, j.retryAt);
+      return;
+    }
+    S.busyRetries = 0; S.staleRetries = 0; S.rateRetries = 0;
+    clearRetryTimers();
+    if (intra) { setIntraFrame(sym, tf, j); intraCacheSet(sym, tf, j); }
     else { LIVE_D[j.symbol] = j; }
     rememberLiveMeta(sym,j,tf);
     S.sourceKind = "live"; S.fetchedAt = new Date();
-    S.failStreak = 0; S.lastErr = null; S.nextAutoAt = 0;
+    S.failStreak = 0; S.lastErr = null; S.nextAutoAt = 0; S.rateRetries = 0;
     hideOverlay();
     // 정상 갱신은 줌·카드 유지. 최신 추적 상태(프리셋+최신 선택)에서만 오른쪽 끝을 따라감.
     renderAll(false);
@@ -693,17 +1075,50 @@ async function refreshLive(opt) {
     else renderMarkers();
     paintBasis();
     if (window.Watchlist) Watchlist.render();
+    recordTiming({ symbol: sym, tf, reason, stale: false, ms: Math.round(nowMs() - startedAt) });
   } catch (e) {
-    if (mySeq !== reqSeq) return;
+    if (mySeq !== reqSeq || mine.signal.aborted || S.symbol !== sym || S.tf !== tf) return;
     if (e && e.name === "AbortError") return; // 더 새 요청이 취소함
+    if ((e && e.kind) === "queue-busy" && S.busyRetries <= 6) {
+      S.busyRetries++;
+      S.nextAutoAt = 0;
+      S.lastErr = { kind: "queue-busy", msg: String((e && e.message) || e).slice(0, 120), at: new Date(), retryAt: e.retryAt || null };
+      if (isIntraTF(tf) && !frameOf(curSym())) showIntraCollecting(tf);
+      paintBasis(); renderSummary(); renderSource();
+      scheduleBusyRetry(sym, tf);
+      return; // do not apply provider backoff to local contention
+    }
+    if ((e && e.kind) === "rate-limited") {
+      // The server already persisted the provider cooldown. Respect its exact
+      // retryAt instead of doubling it with the generic exponential backoff.
+      S.failStreak = 0;
+      S.nextAutoAt = Math.max(Date.now() + 5000, Date.parse(e?.retryAt) || 0);
+      S.lastErr = { kind: "rate-limited", msg: String((e && e.message) || e).slice(0, 120), at: new Date(), retryAt: e.retryAt || null };
+      if (isIntraTF(tf) && !frameOf(curSym())) showIntraRateLimited(tf, S.lastErr);
+      paintBasis(); renderSummary(); renderSource();
+      if (window.Watchlist) Watchlist.render();
+      scheduleRateLimitRetry(sym, tf, e.retryAt);
+      return;
+    }
     S.failStreak++; S.nextAutoAt = Math.max(Date.now() + Math.min(REFRESH_MS * Math.pow(2, S.failStreak), 8 * 60000), Date.parse(e?.retryAt) || 0);
     S.lastErr = { kind: (e && e.kind) || "network", msg: String((e && e.message) || e).slice(0, 120), at: new Date(), status:e?.status || null, upstreamStatus:e?.upstreamStatus || null, retryAt:e?.retryAt || null };
-    if (tf === "H4" && !frameOf(curSym())) showH4Error(S.lastErr);
-    paintBasis(); renderSummary(); renderSource(); if (window.PatternPanel) PatternPanel.render(); if (window.FlagPanel) FlagPanel.render(); if (window.TrianglePanel) TrianglePanel.render(); // Preserve chart, block judgment immediately.
+    if (isIntraTF(tf) && !frameOf(curSym())) showIntraError(tf, S.lastErr);
+    paintBasis(); renderSummary(); renderSource(); if (window.PatternPanel) PatternPanel.render(); if (window.FlagPanel) FlagPanel.render(); if (window.TrianglePanel) TrianglePanel.render(); if (window.StructurePanel) StructurePanel.render(); if (window.StructureEvidencePanel) StructureEvidencePanel.render(); // Preserve chart, block judgment immediately.
     if (window.Watchlist) Watchlist.render();
   } finally {
     if (mySeq === reqSeq) { liveRequestKey = null; setBusy(false); }
   }
+}
+/* 화면 표시 구간 계측: 요청 시작부터 그 응답으로 화면을 다시 그린 뒤까지.
+   서버 진단(/api/diagnostics)의 perf와 함께 보면 대기와 렌더를 구분할 수 있다. */
+const CHART_TIMINGS = [];
+const nowMs = () => (typeof performance !== 'undefined' && performance.now)
+  ? performance.now() : Date.now();
+function recordTiming(entry) {
+  try {
+    CHART_TIMINGS.push(Object.assign({ at: new Date().toISOString() }, entry));
+    if (CHART_TIMINGS.length > 50) CHART_TIMINGS.shift();
+  } catch (e) {}
 }
 /* 검색 제안 선택과 새 티커 조회 분리. Enter/조회 버튼은 유효 티커를 서버로 요청한다. */
 async function lookupTicker() {
@@ -725,12 +1140,28 @@ async function requestNewTicker(code) {
   let result = null;
   setBusy(true, code + " 조회 중…");
   try {
-    const j = await apiGet(API + "api/lookup?code=" + encodeURIComponent(code));
+    let j = null, last = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        j = await apiGet(API + "api/lookup?code=" + encodeURIComponent(code));
+        last = null;
+        break;
+      } catch (error) {
+        last = error;
+        if (!(error && (error.kind === "queue-busy" || error.kind === "timeout")) || attempt === 2) break;
+        setBusy(true, code + " 수집 중… (" + (attempt + 1) + "/3)");
+        await waitMs(1500 * (attempt + 1));
+      }
+    }
+    if (last) throw last;
     if (mySeq !== reqSeq) { result = {ok:false, cancelled:true}; }
     else if (!validFrame(j)) { errMsg = "조회 결과 없음: " + code + " · 현재 차트 유지"; result = {ok:false, error:{kind:'nodata', msg:errMsg}}; }
     else {
       LIVE_D[j.symbol] = j;
       rememberLiveMeta(j.symbol,j,"D");
+      S.lastErr = j.stale
+        ? { kind: "stale", msg: "이전 저장값 표시 · 새 자료 수집 중", at: new Date(), retryAt: j.retryAt || null }
+        : null;
       $("q").value = ""; buildSymList("");
       onSymbolChange(j.symbol);
       // weekly는 응답에 포함, H4는 선택 시 조회
@@ -754,23 +1185,27 @@ async function requestNewTicker(code) {
 /* ---------- chart-controller ---------- */
 let chart, candles, volS, sma20S, sma60S, priceLines = [], markersPlugin = null;
 let progUntil = 0;
-const UP = "#d32f2f", DOWN = "#1859C9";
+const UP = "#ff777f", DOWN = "#75aaff";
 function initChart() {
   const el = $("chart");
   const h = Math.round(el.clientHeight);
-  chart = LightweightCharts.createChart(el, {
+  chart = LightweightCharts.createChart(el, typeof ChartTheme!=="undefined" ? ChartTheme.plotFor({
     width: el.clientWidth, height: h,
-    layout: { background: { type: "solid", color: "rgba(255,255,255,0)" }, textColor: "#536675", fontSize: 12, fontFamily: "system-ui" },
+    layout: { fontSize: 12, fontFamily: "Pretendard, system-ui, sans-serif" },
+    timeScale: { timeVisible: isIntraTF(S.tf), rightOffset: 2 },
+  }) : {
+    width: el.clientWidth, height: h,
+    layout: { background: { type: "solid", color: "rgba(255,255,255,0)" }, textColor: "#536675", fontSize: 12, fontFamily: "Pretendard, system-ui, sans-serif" },
     grid: { vertLines: { color: "#E5EAF0" }, horzLines: { color: "#E5EAF0" } },
-    timeScale: { timeVisible: S.tf === "H4", rightOffset: 2 },
+    timeScale: { timeVisible: isIntraTF(S.tf), rightOffset: 2 },
   });
   candles = chart.addSeries(LightweightCharts.CandlestickSeries,
     { upColor: UP, downColor: DOWN, wickUpColor: UP, wickDownColor: DOWN });
   volS = chart.addSeries(LightweightCharts.HistogramSeries, { priceScaleId: "vol", priceFormat: { type: "volume" }, lastValueVisible: false, priceLineVisible: false });
   chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
   candles.priceScale().applyOptions({ scaleMargins: { top: .12, bottom: .25 } });
-  sma20S = chart.addSeries(LightweightCharts.LineSeries, { color: "#2962FF", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-  sma60S = chart.addSeries(LightweightCharts.LineSeries, { color: "#FF6D00", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  sma20S = chart.addSeries(LightweightCharts.LineSeries, { color: typeof ChartTheme!=="undefined" ? ChartTheme.colors.sma20 : "#2962FF", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  sma60S = chart.addSeries(LightweightCharts.LineSeries, { color: typeof ChartTheme!=="undefined" ? ChartTheme.colors.sma60 : "#FF6D00", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
   new ResizeObserver(() => {
     try { const range=chart.timeScale().getVisibleLogicalRange();chart.applyOptions({ width: el.clientWidth, height: Math.round(el.clientHeight) });if(range)chart.timeScale().setVisibleLogicalRange(range);scheduleMarkers(); } catch (e) {}
   }).observe(el);
@@ -815,7 +1250,7 @@ function initChart() {
       let i = asOfIdx();
       if (e.key === "ArrowLeft") i = Math.max(0, i - 1);
       else if (e.key === "ArrowRight") i = Math.min(f.candles.length - 1, i + 1);
-      else if (e.key === "Enter") { $("btnGrounds").click(); return; }
+      else if (e.key === "Enter") { e.preventDefault(); $("btnGrounds").click(); return; }
       else return;
       e.preventDefault();
       S.selectedAsOf = f.candles[i].time;
@@ -848,7 +1283,7 @@ function setChartData() {
   const bars = f?.candles || [];
   candles.setData(bars);
   volS.setData(bars.map(c => ({ time: c.time, value: c.volume,
-    color: c.close >= c.open ? "rgba(211,47,47,.5)" : "rgba(24,89,201,.5)" })));
+    color: typeof ChartTheme!=="undefined" ? (c.close >= c.open ? ChartTheme.colors.volumeUp : ChartTheme.colors.volumeDown) : (c.close >= c.open ? "rgba(211,47,47,.5)" : "rgba(24,89,201,.5)") })));
   sma20S.setData(f?.lines?.sma20 || []);
   sma60S.setData(f?.lines?.sma60 || []);
 }
@@ -906,7 +1341,7 @@ function renderExitGlossary() {
 let markerRaf = 0, markerLayout = {markers:[], boxes:[]};
 let markerMeasure;
 function measureMarkerText(text) {
-  if (!markerMeasure) { markerMeasure=document.createElement("canvas").getContext("2d");markerMeasure.font="12px system-ui"; }
+  if (!markerMeasure) { markerMeasure=document.createElement("canvas").getContext("2d");markerMeasure.font="12px Pretendard, system-ui, sans-serif"; }
   return markerMeasure.measureText(text).width;
 }
 function scheduleMarkers() {
@@ -922,7 +1357,7 @@ function renderMarkers() {
     if (!vr) return true;
     return String(t) >= String(vr.from) && String(t) <= String(vr.to);
   };
-  const rawSigs = (((f.marks || {})[S.signalStrategy || "F"]) || []).slice().sort((a, b) => (a.time < b.time ? -1 : 1));
+  const rawSigs = (S.entryFamily === 'low' ? [] : (((f.marks || {})[S.signalStrategy || "F"]) || [])).slice().sort((a, b) => (a.time < b.time ? -1 : 1));
   const sigs = rawSigs.filter(m => inVis(m.time));
   const bidx = {}; (f.candles || []).forEach((c, i) => { bidx[c.time] = i; });
   const isWhip = (k, arr) => {
@@ -935,7 +1370,7 @@ function renderMarkers() {
   if (S.showSig) rawSigs.forEach((m, k) => {
     mk.push({ time: m.time, position: m.side === "entry" ? "belowBar" : "aboveBar",
       shape: m.side === "entry" ? "arrowUp" : "arrowDown", size: 1,
-      color: isWhip(k, rawSigs) ? "#e65100" : (m.side === "entry" ? UP : DOWN),
+      color: isWhip(k, rawSigs) ? "#f1b65d" : (m.side === "entry" ? UP : DOWN),
       text: ((f.confirmed === false && m.time === latestTime(f) ? "잠정 " : "") + (m.side === "entry" ? `${S.signalStrategy || "F"} 진입 조건` : `${S.signalStrategy || "F"} 이탈 조건`)) });
   });
   let labels = [];
@@ -968,9 +1403,29 @@ function renderMarkers() {
 }
 /* 강조선: 선택한 근거 카드가 있으면 그 기준선, 없으면 관찰 상태의 핵심 기준선을 그린다.
    우선순위: 사용자가 선택한 카드 > 기본 관찰 강조. */
+let evidenceLines = [];
+/* 선택한 구조 근거의 목선·확인 기준·무효 기준을 차트에 그린다. 판단은 서버가
+   계산한 값을 그대로 쓰고 화면에서 다시 계산하지 않는다. */
+function syncStructureEvidenceLines(pattern) {
+  evidenceLines.forEach(l => { try { candles.removePriceLine(l); } catch (e) {} });
+  evidenceLines = [];
+  const p = pattern === undefined ? window.StructureEvidencePanel?.currentPattern?.() : pattern;
+  if (!p) return;
+  const drawn = new Set();
+  const line = (px, color, title) => {
+    const value = px == null ? null : Number(px);
+    if (value == null || !Number.isFinite(value) || drawn.has(value)) return;
+    drawn.add(value);
+    try { evidenceLines.push(candles.createPriceLine({ price: value, color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title })); } catch (e) {}
+  };
+  line(p.neckline?.atEvaluation, "#75aaff", "구조 목선");
+  line(p.triggerPriceAtEvaluation, "#69d39b", "확인 기준");
+  line(p.invalidationPrice, "#ff777f", "무효 기준");
+}
 function syncObservationEmphasis(obs) {
   priceLines.forEach(l => { try { candles.removePriceLine(l); } catch (e) {} });
   priceLines = [];
+  syncStructureEvidenceLines();
   if (!S.showObs || !obs || !obs.st) return;
   const ev = obs.model.evidence.find(e => e.id === S.evCard);
   let src = ev ? ev.sourceField : LINE_BY_STATE[obs.model.statusId] || null;
@@ -980,15 +1435,15 @@ function syncObservationEmphasis(obs) {
     drawn.add(Number(px));
     try { priceLines.push(candles.createPriceLine({ price: Number(px), color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title })); } catch (e) {}
   };
-  if (src === "close") line(obs.st.close, "#1859C9", "종가");
-  else if (src === "don_hi") line(obs.st.don_hi, "#B26A00", "최근 고점");
-  else if (src === "don_lo") line(obs.st.don_lo, "#7A1F1F", "직전 저점");
-  else if (src === "sma20") line(obs.st.sma20, "#2962FF", avgWord(20));
-  else if (src === "sma60") line(obs.st.sma60, "#FF6D00", avgWord(60));
+  if (src === "close") line(obs.st.close, "#75aaff", "종가");
+  else if (src === "don_hi") line(obs.st.don_hi, "#f1b65d", "최근 고점");
+  else if (src === "don_lo") line(obs.st.don_lo, "#ff777f", "직전 저점");
+  else if (src === "sma20") line(obs.st.sma20, "#9cafff", avgWord(20));
+  else if (src === "sma60") line(obs.st.sma60, "#f1b65d", avgWord(60));
   const horizontal=window.PatternPanel?.current();
   if(horizontal?.status==='ready')for(const level of horizontal.levels){
     const title={'prior-20-high':'20봉 저항','prior-10-low':'10봉 지지','user-resistance':'지정 저항','user-support':'지정 지지'}[level.type];
-    if(title)line(level.boundary,level.direction==='up'?'#B26A00':'#13795B',title);
+    if(title)line(level.boundary,level.direction==='up'?'#f1b65d':'#69d39b',title);
   }
 }
 
@@ -1014,15 +1469,15 @@ function stateAt(i) {
     sma20: lineVal((f.lines || {}).sma20), sma60: lineVal((f.lines || {}).sma60) };
 }
 function isProvisional() {
-  // 미완성 주봉·진행 중 4시간봉은 확정 신호로 설명하지 않는다.
+  // 미완성 주봉·진행 중 분봉은 확정 신호로 설명하지 않는다.
   const f = frameOf(curSym());
   if (!f || !f.candles.length) return false;
   if (S.selectedAsOf && S.selectedAsOf !== latestTime(f)) return false; // 과거는 확정 봉 기준
   if (typeof f.confirmed === "boolean") return !f.confirmed;
-  if (S.tf === "H4") {
+  if (isIntraTF(S.tf)) {
     const lt = latestTime(f);
     const ms = typeof lt === "number" ? lt * 1000 : Date.parse(lt);
-    if (ms && Date.now() - ms < 4 * 3600 * 1000) return true;
+    if (ms && Date.now() - ms < INTRA_MINUTES[S.tf] * 60 * 1000) return true;
   }
   if (S.tf === "W") {
     const d = barDateVal(latestTime(f));
@@ -1160,6 +1615,12 @@ function paintSelLine() {
   $("readSignal").dataset.tone=marks.length===1 ? marks[0].side : "neutral";
   $("readObsKey").textContent="관찰 · 기준일 고정";
   $("readSignalKey").textContent=`${S.signalStrategy || "F"} 신호 · 기준일 고정`;
+  if (S.entryFamily === 'low') {
+    const entry = entryEvaluation(obs);
+    putReadout('readSignal', entry?.label || '판단 보류');
+    $('readSignal').dataset.tone = 'neutral';
+    $('readSignalKey').textContent = '저점 매수 판단 · 선택 기준';
+  }
 }
 function renderEvidenceCards(obs) {
   const box = $("cards");
@@ -1205,7 +1666,7 @@ function renderSummary() {
   if (window.PatternPanel) PatternPanel.tick();
   if (window.IndicatorPanel) IndicatorPanel.tick();
   if (window.PriceIndicators) PriceIndicators.tick();
-  if (window.FlagPanel) FlagPanel.tick(); if (window.TrianglePanel) TrianglePanel.tick();
+  if (window.FlagPanel) FlagPanel.tick(); if (window.TrianglePanel) TrianglePanel.tick(); if (window.StructurePanel) StructurePanel.tick(); if (window.StructureEvidencePanel) StructureEvidencePanel.tick();
   const patternBars=frameOf(curSym())?.candles||[],end=patternBars.at(-1)?.time,begin=PatternWindow.start(end);
   $("patternWindowNote").textContent=begin?`${tfWord()} 패턴·발생 이력: ${PatternWindow.format(begin)} ~ ${PatternWindow.format(end)} · 최근 3개월 · 구조 시작일 포함`:"패턴·발생 이력: 최신 자료 기준 최근 3개월";
   const f = frameOf(curSym());
@@ -1238,6 +1699,7 @@ function renderSummary() {
   renderObsOverlay(obs);
   syncObservationEmphasis(obs);
   if (typeof renderEntryPanel === "function") renderEntryPanel(obs);
+  window.PriceZonesPanel?.render?.();
 }
 
 /* ---------- source ---------- */
@@ -1264,7 +1726,7 @@ function renderSource() {
   const quality=(f?.dataWarnings||[]).find(x=>x.code==="invalid-yahoo-bars");
   if(quality)rows.push(["자료 확인",`가격 오류 ${quality.count}개 봉 · ${fmtT(quality.analysisFrom)}부터 정상 구간으로 계산합니다. 이전 ${quality.excludedHistoryBars}개 봉은 분석에서 제외했습니다.`]);
   const partial=(f?.dataWarnings||[]).find(x=>x.code==="partial-first-yahoo-session");
-  if(partial)rows.push(["4시간봉 집계",`${partial.sessionDate} 첫 거래일은 개장 이후부터 조회되어 제외했습니다. 이후 거래일부터 개장 시각 기준으로 계산합니다.`]);
+  if(partial)rows.push([`${tfWord()} 집계`,`${partial.sessionDate} 첫 거래일은 개장 이후부터 조회되어 제외했습니다. 이후 거래일부터 개장 시각 기준으로 계산합니다.`]);
   for(const [key,value] of rows){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=key;dd.textContent=value;grid.append(dt,dd);}body.appendChild(grid);
   const sections=[
     ["표시를 읽는 방법",[
@@ -1282,7 +1744,7 @@ function renderSource() {
       `관찰 규칙 ${ObsModel.RULE_VERSION}. 평균선은 ${avgWord(20)}, ${avgWord(60)}을 사용해요.`,
       "최근 고점은 직전 20봉의 최고가, 최근 저점은 직전 10봉의 최저가예요. 기준봉 자신은 제외해요.",
       "A/B/C/F 진입 조건은 상단 ‘전략 조합 비교’에서 볼 수 있어요. 과거 선택에서는 그 이후 자료를 판단에 넣지 않아요.",
-      "토스 API가 설정된 주식은 토스를 먼저 사용해요. 키가 없거나 미지원 종목이면 Yahoo Finance를 사용하고, 코인·지수도 Yahoo Finance를 사용해요. 4시간봉은 토스 1분봉 또는 야후 60분봉을 집계해요. 조회 주기는 시세 지연을 보장하지 않아요.",
+      "토스 API가 설정된 주식은 토스를 먼저 사용해요. 키가 없거나 미지원 종목이면 Yahoo Finance를 사용하고, 코인·지수도 Yahoo Finance를 사용해요. 분봉은 토스 1분봉 또는 야후 분봉을 집계해요. 조회 주기는 시세 지연을 보장하지 않아요.",
       S.lastErr ? `최근 조회 문제: ${ERR_TXT[S.lastErr.kind] || S.lastErr.kind}${S.lastErr.upstreamStatus ? ' · 공급처 HTTP ' + S.lastErr.upstreamStatus : ''}${S.lastErr.retryAt ? ' · 재시도 가능 ' + fmtClock(S.lastErr.retryAt) : ''}` : "최근 선택 종목 조회 오류 없음.",
       "차트: TradingView Lightweight Charts 5.0.8 · Apache-2.0. 시장 체결가 점선과 개인 보유·매도 내역은 표시하지 않아요."
     ]]
@@ -1300,14 +1762,16 @@ function paintBasis() {
   $("symTitle").textContent = `${d.name || d.symbol} · ${d.symbol} · ${fmtP(c)}`;
   $("symTitle").title = $("symTitle").textContent;
   let src;
-  if (S.tf === "H4") {
-    src = LIVE_H4[d.symbol] ? (m && m.cacheHit ? "서버 조회(캐시 재사용)" : "서버 최신 조회")
-      : h4CacheGet(d.symbol) ? "저장된 4시간본" : serverMode ? "서버 조회 필요" : "서버 미실행(미제공 가능)";
+  if (isIntraTF(S.tf)) {
+    const cached = intraCacheGet(d.symbol, S.tf);
+    src = intraFrame(d.symbol, S.tf) ? (m && m.cacheHit ? "서버 조회(캐시 재사용)" : "서버 최신 조회")
+      : cached && cached.data ? `저장된 ${intraWord(S.tf)}` : serverMode ? "서버 조회 필요" : "서버 미실행(미제공 가능)";
   } else {
     src = LIVE_D[d.symbol] ? ((m && m.cacheHit) ? "서버 조회(캐시 재사용)" : "서버 최신 조회")
       : (serverMode ? "저장 자료 · 최신 조회 중" : "내장");
   }
   let line = `시장 자료 ${fmtT(lt)} · ${tfWord()} · ${src}`;
+  if (INTRA_TRIAL.has(S.tf)) line += " · 분봉 패턴 시험";
   if (S.tf === "M") {
     const n = (f && f.candles.length) || 0;
     line += n < 60 ? ` · 월봉 ${n}개 확보 · 전략 공통 60봉 준비 미충족` : ` · 월봉 ${n}개 확보`;
@@ -1318,7 +1782,12 @@ function paintBasis() {
   if (quality) line += ` · 가격 오류 ${quality.count}봉 제외 · ${fmtT(quality.analysisFrom)}부터 계산`;
   if ((f?.dataWarnings||[]).some(x=>x.code==="partial-first-yahoo-session")) line += " · 첫 거래일 불완전 자료 제외";
   if (!serverMode) line += " · 파일 모드(서버 미연결)";
-  if (S.lastErr) line += ` · 최신 조회 실패(${(ERR_TXT[S.lastErr.kind] || "오류")}) · 마지막 자료 유지`;
+  if (S.lastErr) {
+    if (S.lastErr.kind === "stale") line += S.autoRef ? " · 이전 저장값 표시 · 최신 조회 중" : " · 이전 저장값 표시 · 새로고침 필요";
+    else if (S.lastErr.kind === "queue-busy") line += S.autoRef ? " · 자료 수집 중 · 자동 재확인" : " · 자료 수집 중 · 새로고침으로 확인";
+    else if (S.lastErr.kind === "rate-limited") line += S.autoRef ? " · 공급처 한도 대기 · 자동 재시도" : " · 공급처 한도 대기 · 새로고침 필요";
+    else line += ` · 최신 조회 실패(${(ERR_TXT[S.lastErr.kind] || "오류")}) · 마지막 자료 유지`;
+  }
   $("basisLine").textContent = line;
   $("basisLine").title = line;
 }
@@ -1331,7 +1800,12 @@ function paintPreset() {
   $("tW").setAttribute("aria-pressed", String(S.tf === "W"));
   $("tH").setAttribute("aria-pressed", String(S.tf === "H4"));
   $("tM").setAttribute("aria-pressed", String(S.tf === "M"));
-  try { chart.applyOptions({ timeScale: { timeVisible: S.tf === "H4" } }); } catch (e) {}
+  document.querySelectorAll("[data-intra]").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.intra === S.tf));
+  });
+  const trial = $("intraTrialNote");
+  if (trial) trial.hidden = !INTRA_TRIAL.has(S.tf);
+  try { chart.applyOptions({ timeScale: { timeVisible: isIntraTF(S.tf) } }); } catch (e) {}
 }
 
 /* ---------- top-level render ---------- */
@@ -1345,7 +1819,7 @@ function renderAll(resetRange) {
   if (window.LowStructurePanel) LowStructurePanel.render();
   renderMarkers(); renderSummary(); renderSource();
   if (window.PatternPanel) PatternPanel.render();
-  if (window.FlagPanel) FlagPanel.render(); if (window.TrianglePanel) TrianglePanel.render();
+  if (window.FlagPanel) FlagPanel.render(); if (window.TrianglePanel) TrianglePanel.render(); if (window.StructurePanel) StructurePanel.render(); if (window.StructureEvidencePanel) StructureEvidencePanel.render();
   if (typeof renderVolumeProfile === "function") renderVolumeProfile();
 }
 function buildSymList(filter) {
@@ -1373,14 +1847,15 @@ function onSymbolChange(sym, opts) {
   opts = opts || {};
   const prevSym = S.symbol;
   S.symbol = sym; S.selectedAsOf = null; S.evCard = null; obsPreview = false;
-  if (!opts.keepPreset) S.preset = "3M";
+  if (!opts.keepPreset) S.preset = S.tf === "H4" ? "3M" : isIntraTF(S.tf) ? "1M" : "3M";
   $("sym").value = sym;
   try { localStorage.setItem("cf_last_sym", sym); } catch (e) {}
   reqSeq++; // 이전 선택 요청 무효화 (Abort + seq 이중 가드)
   if (liveCtl) { try { liveCtl.abort(); } catch (e) {} }
+  if (typeof marketCtx !== "undefined") { marketCtx = null; marketCtxAt = 0; } // 종목 시장이 바뀌면 다시 조회
   // 먼저 저장 자료로 즉시 표시 후 서버 최신 조회 (내장 종목도 생략하지 않음)
   renderAll(true);
-  if (S.tf === "H4") ensureH4();
+  if (isIntraTF(S.tf)) ensureIntra(S.tf);
   else { hideOverlay(); renderAll(false); }
   if (serverMode) refreshLive({ force: false, reason: "select" });
   else paintBasis();
@@ -1388,45 +1863,59 @@ function onSymbolChange(sym, opts) {
 }
 function showOverlay(html) { const o = $("chartOverlay"); o.hidden = false; o.innerHTML = html; }
 function hideOverlay() { $("chartOverlay").hidden = true; }
-function ensureH4() {
-  const sym = S.symbol;
-  if (LIVE_H4[sym]) { hideOverlay(); renderAll(false); paintBasis(); return; }
-  const cache = h4CacheGet(sym);
+function ensureIntra(tf) {
+  const sym = S.symbol, label = intraWord(tf);
+  if (intraFrame(sym, tf)) { hideOverlay(); renderAll(false); paintBasis(); return; }
+  const cache = intraCacheGet(sym, tf);
   if (cache && cache.data) {
-    LIVE_H4[sym] = cache.data;
+    setIntraFrame(sym, tf, cache.data);
     renderAll(true);
-    showOverlay(`<p>저장된 4시간본 표시 중 · 최신 조회 시도 중…</p>`);
+    showOverlay(`<p>저장된 ${label} 표시 중 · 최신 조회 시도 중…</p>`);
   } else {
-    showOverlay(`<p>4시간봉 조회 중…</p>`);
+    showOverlay(`<p>${label} 조회 중…</p>`);
   }
   if (!serverMode) {
     if (cache && cache.data) {
-      showOverlay(`<p>서버 미실행 — 저장된 4시간본 표시 중 (마지막 저장 ${new Date(cache.t).toLocaleString("ko-KR")}).<br>서버 실행: <code>python run.py --live</code></p>`);
+      showOverlay(`<p>서버 미실행 — 저장된 ${label} 표시 중 (마지막 저장 ${new Date(cache.t).toLocaleString("ko-KR")}).<br>서버 실행: <code>python run.py --live</code></p>`);
       renderAll(false);
       return;
     }
-    showOverlay(`<p>4시간 자료 미제공 — 서버 미실행.<br>실행: <code>python run.py --live</code> 후 새로고침.<br>일봉으로 몰래 되돌리지 않았어요.</p><button type="button" id="retryH4">재시도</button>`);
-    const rb = $("retryH4");
-    if (rb) rb.onclick = () => ensureH4();
+    showOverlay(`<p>${label} 자료 미제공 — 서버 미실행.<br>실행: <code>python run.py --live</code> 후 새로고침.<br>다른 주기로 몰래 되돌리지 않았어요.</p><button type="button" id="retryTf">재시도</button>`);
+    const rb = $("retryTf");
+    if (rb) rb.onclick = () => ensureIntra(tf);
     renderAll(false);
     return;
   }
   refreshLive({ force: false, reason: "select" });
 }
-function showH4Error(err) {
-  if (S.symbol == null || S.tf !== "H4") return;
-  const c2 = h4CacheGet(S.symbol);
-  if (c2 && c2.data && !LIVE_H4[S.symbol]) {
-    LIVE_H4[S.symbol] = c2.data; renderAll(true);
-    showOverlay(`<p>4시간 조회 실패(${(ERR_TXT[err.kind] || "오류")}) — 저장본 표시 (마지막 저장 ${new Date(c2.t).toLocaleString("ko-KR")}).</p><button type="button" id="retryH4b">재시도</button>`);
-  } else if (!LIVE_H4[S.symbol]) {
-    showOverlay(`<p>4시간 조회 실패(${(ERR_TXT[err.kind] || "오류")}): ${err.msg}<br>일봉으로 되돌리지 않았어요.</p><button type="button" id="retryH4c">재시도</button>`);
+function ensureH4() { return ensureIntra("H4"); }
+function showIntraCollecting(tf) {
+  if (S.symbol == null || S.tf !== tf || intraFrame(S.symbol, tf)) return;
+  showOverlay(`<p>${intraWord(tf)} 자료 수집 중… 첫 수집은 시간이 걸릴 수 있어요.<br>완료되면 자동으로 다시 확인해요.</p>`);
+}
+function showIntraRateLimited(tf, err) {
+  if (S.symbol == null || S.tf !== tf || intraFrame(S.symbol, tf)) return;
+  const when = err && err.retryAt ? ` · ${fmtClock(err.retryAt)} 이후 자동 재시도` : "";
+  showOverlay(`<p>${intraWord(tf)} 자료를 나눠 받는 중이에요. 공급처 호출 한도에 걸려 잠시 멈췄습니다${when}.<br>이미 받은 페이지는 저장되어 이어서 수집합니다.</p>`);
+}
+function showIntraError(tf, err) {
+  if (S.symbol == null || S.tf !== tf) return;
+  const label = intraWord(tf);
+  const c2 = intraCacheGet(S.symbol, tf);
+  if (c2 && c2.data && !intraFrame(S.symbol, tf)) {
+    setIntraFrame(S.symbol, tf, c2.data); renderAll(true);
+    showOverlay(`<p>${label} 조회 실패(${(ERR_TXT[err.kind] || "오류")}) — 저장본 표시 (마지막 저장 ${new Date(c2.t).toLocaleString("ko-KR")}).</p><button type="button" id="retryTfB">재시도</button>`);
+  } else if (!intraFrame(S.symbol, tf)) {
+    showOverlay(`<p>${label} 조회 실패(${(ERR_TXT[err.kind] || "오류")}): ${err.msg}<br>다른 주기로 되돌리지 않았어요.</p><button type="button" id="retryTfC">재시도</button>`);
   } else {
-    showOverlay(`<p>최신 조회 실패(${(ERR_TXT[err.kind] || "오류")}) · 마지막 자료 유지.</p><button type="button" id="retryH4d">재시도</button>`);
+    showOverlay(`<p>최신 조회 실패(${(ERR_TXT[err.kind] || "오류")}) · 마지막 자료 유지.</p><button type="button" id="retryTfD">재시도</button>`);
   }
-  const r = $("retryH4b") || $("retryH4c") || $("retryH4d");
+  const r = $("retryTfB") || $("retryTfC") || $("retryTfD");
   if (r) r.onclick = () => refreshLive({ force: true, reason: "manual" });
 }
+function showH4Collecting() { return showIntraCollecting("H4"); }
+function showH4RateLimited(err) { return showIntraRateLimited("H4", err); }
+function showH4Error(err) { return showIntraError("H4", err); }
 function hideOverlayIfLoading() {
   // 조회 중 표시는 유지, 성공/실패 때만 교체
 }
@@ -1438,8 +1927,9 @@ function ensureM() {
 }
 function setTF(tf) {
   if (S.tf === tf) return;
-  S.tf = tf; S.selectedAsOf = null; S.evCard = null; obsPreview = false; S.preset = tf === "M" ? "ALL" : "3M"; // 월봉 최초 선택은 확보한 전체 기간 표시
-  if (tf === "H4") { renderAll(false); ensureH4(); }
+  S.tf = tf; S.selectedAsOf = null; S.evCard = null; obsPreview = false;
+  S.preset = tf === "M" ? "ALL" : tf === "H4" ? "3M" : isIntraTF(tf) ? "1M" : "3M"; // 월봉 전체, 4시간 기존 3개월, 새 분봉 1개월
+  if (isIntraTF(tf)) { renderAll(false); ensureIntra(tf); }
   else if (tf === "M") { renderAll(false); ensureM(); }
   else { hideOverlay(); renderAll(true); }
   if (window.Watchlist) Watchlist.onTFChangeHook();
@@ -1509,6 +1999,9 @@ document.addEventListener("DOMContentLoaded", () => {
   $("tW").onclick = () => setTF("W");
   $("tH").onclick = () => setTF("H4");
   $("tM").onclick = () => setTF("M");
+  document.querySelectorAll("[data-intra]").forEach(b => {
+    b.onclick = () => setTF(b.dataset.intra);
+  });
   document.querySelectorAll(".periodbar [data-p]").forEach(b => {
     b.onclick = () => { S.preset = b.dataset.p; renderAll(true); };
   });
@@ -1620,11 +2113,23 @@ document.addEventListener("DOMContentLoaded", () => {
     $("wlRefresh").onclick = () => { if (!S.autoRef) { paintNet("자동갱신 ON으로 전환하면 목록 조회가 시작돼요"); return; } Watchlist.refresh(); };
   }
   renderAll(true);
+  const setFrameIntra = (tf, frame) => {
+    if (!isIntraTF(tf)) return;
+    setIntraFrame(S.symbol, tf, frame);
+    LIVE_META[metaKey(S.symbol, tf)] = {
+      marketAsOf: (frame.candles || []).length ? frame.candles[frame.candles.length - 1].time : null,
+      confirmed: false, source: "fixture", delayStatus: "unknown",
+      fetchedAt: new Date().toISOString(), servedAt: new Date().toISOString(), cacheHit: false
+    };
+    S.sourceKind = "live"; hideOverlay(); renderAll(true);
+  };
   window.__CF = { S, EXP, setTF, onSymbolChange, refreshLive, lookupTicker, currentObs,
+    timings: () => CHART_TIMINGS.slice(),
     judgeObs: (st) => ObsModel.judgeObs(st, obsCtx(true)),
     priceLineCount: () => priceLines.length,
     frameNow: () => frameOf(curSym()),
-    setFrameH4: (frame) => { LIVE_H4[S.symbol] = frame; LIVE_META[metaKey(S.symbol, "H4")] = { marketAsOf: (frame.candles || []).length ? frame.candles[frame.candles.length - 1].time : null, confirmed: false, source: "fixture", delayStatus: "unknown", fetchedAt: new Date().toISOString(), servedAt: new Date().toISOString(), cacheHit: false }; S.sourceKind = "live"; hideOverlay(); renderAll(true); },
+    setFrameH4: (frame) => setFrameIntra("H4", frame),
+    setFrameIntra,
     render: (reset) => renderAll(!!reset),
     select: (t) => { S.selectedAsOf = t; obsPreview = false; renderAll(false); },
     visible: () => { try { return chart.timeScale().getVisibleRange(); } catch (e) { return null; } },
@@ -1634,6 +2139,9 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script src="toss-live.js"></script>
 <script src="entry-panel.js"></script>
+<script src="verdict.js"></script>
+<script src="verdict-panel.js"></script>
+<script src="price-zones-panel.js"></script>
 <script src="watchlist.js"></script>
 <script src="volume-profile-panel.js"></script>
 <script src="pattern-overlay.js"></script>
@@ -1641,10 +2149,16 @@ document.addEventListener("DOMContentLoaded", () => {
 <script src="pattern-panel.js"></script>
 <script src="flag-panel.js"></script>
 <script src="triangle-panel.js"></script>
+<script src="structure-panel.js"></script>
+<script src="structure-evidence-panel.js"></script>
 <script src="monitor-panel.js"></script>
 <script src="indicator-panel.js"></script>
 <script src="price-indicators.js"></script>
 <script src="chart-control.js"></script>
 <script src="context-help.js"></script>
+<script src="workspace-refresh.js"></script>
+<script src="watchlist-search.js"></script>
+<script src="ui-icons.js"></script>
+<script src="pattern-async.js"></script>
 </body>
 </html>

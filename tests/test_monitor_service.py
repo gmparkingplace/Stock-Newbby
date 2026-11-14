@@ -226,3 +226,14 @@ def test_runtime_hook_restores_worker_but_never_starts_monitoring_implicitly(rig
     module.start_runtime()
     assert rig.svc.thread.is_alive() and not rig.svc.status()['enabled'] and not rig.calls
     rig.svc.close();assert not rig.svc.thread.is_alive()
+
+
+def test_provider_rate_limit_is_a_deferral_not_an_error_count(rig):
+    class Throttled(Exception):
+        code='rate-limited';status=429;retry_at='2026-09-07T01:10:00+00:00'
+    rig.config([dict(symbol='AAPL')]);rig.svc.control('start');rig.error=Throttled()
+    rig.svc.step()
+    row=rig.svc.status()['items'][0]
+    assert row['status']=='waiting-rate-limit' and row['failStreak']==0
+    assert row['errorKind']=='rate-limited' and epoch(row['nextDueAt'])==T+600
+    assert rig.svc.status()['errorCount']==0

@@ -30,7 +30,12 @@
   const result=(judgmentMode,reason,message)=>({realtimeReady:sync.realtimeReady,syncReason:sync.reason,
    judgmentMode,judgmentReady:judgmentMode!=='blocked',reason,message});
   if(x.historical)return result('historical','historical','과거 기준 분석 · 당시 조건 비교');
-  if(x.lastError)return result('blocked','request-error','진입 판단 보류 · 최신 조회 실패');
+  if(x.lastError){
+   const kind=x.lastError?.kind;
+   if(kind==='stale')return result('blocked','stale','진입 판단 보류 · 이전 저장값 표시 · 최신 조회 진행 중');
+   if(kind==='queue-busy')return result('blocked','collecting','진입 판단 보류 · 자료 수집 중');
+   return result('blocked','request-error','진입 판단 보류 · 최신 조회 실패');
+  }
   if(!x.source||!x.fetchedAt)return result('blocked','data-missing','진입 판단 보류 · 서버 수집 자료 없음');
   const state=x.marketSession?.state;
   if(!['open','break','closed'].includes(state))return result('blocked','session-unknown','진입 판단 보류 · 시장 운영 정보 미확인');

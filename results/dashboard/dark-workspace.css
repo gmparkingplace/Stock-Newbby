@@ -1,0 +1,230 @@
+/* 마지막 색상 계층: 배치·숨김·둥근 모서리·선형 아이콘은 기존 스타일이 소유한다. */
+:root {
+  color-scheme: dark;
+  --bg: #111318;
+  --card: #191d25;
+  --surface-secondary: #202632;
+  --ink: #e8edf5;
+  --sub: #a4afc0;
+  --line: #323b49;
+  --accent: #73a9ff;
+  --focus: #73a9ff;
+  --success: #69d39b;
+  --warning: #f2bb68;
+  --error: #ff8389;
+  --hold: #71d0c4;
+  --pass: #69d39b;
+  --fail: #f2bb68;
+  /* 가격 등락은 한국 시장 관례. 매수·매도 판단색과 독립적이다. */
+  --up: #ff777f;
+  --down: #75aaff;
+  --text: #e8edf5;
+  --apple-hover: #262e3b;
+  --apple-pressed: #303c50;
+  --apple-selected: #213653;
+  --apple-border: #323b49;
+}
+
+html, body { background: var(--bg); color: var(--ink); }
+* { scrollbar-color: #56647a #191d25; }
+::-webkit-scrollbar { background: #191d25; }
+::-webkit-scrollbar-thumb { background: #56647a; border: 3px solid #191d25; border-radius: 10px; }
+h1, h2, h3, legend, .groundTitle { color: var(--ink); }
+a { color: var(--accent); }
+::selection { background: #355686; color: var(--ink); }
+.skip { background: var(--accent); color: #111318; }
+.hint, .sub, .symbolCode, .brandLine h1, .dataHealth,
+.symbolControls > label, .settingsRow, .controlField, .entryMeta,
+.sourceGrid dt, .sourceStatusRow, .lowFact span, .zoneGroup h3,
+.zoneToggle, .zoneList .zoneEmpty, .termList dd, #patternSnapshotMeta,
+#indicatorReadout .key, #indicatorComponents .key, #verdictMeta,
+.workspaceDialog .settingsRow, .workspaceDialog .controlField,
+.workspaceDialog .sourceStatusRow { color: var(--sub); }
+.brandLine .symbolHeading .sym, .symbolPrice, #verdictReason,
+#helpList dt, .dialogHead h2, .workspaceDialog .detailGroup > summary,
+.watchTitle h2 { color: var(--ink); }
+#helpList dd, .watchTitle h2[data-ui-icon]::before,
+.workspaceDialog .detailGroup > summary::before { color: var(--sub); }
+.topbar, .workspaceSide, .workspaceActions, .mainTfBar,
+.chartToolbar, #indicatorPanel { border-color: var(--line); }
+
+/* 모든 기본 조작은 불투명. 선택색은 파랑, 누름은 더 진한 표면이다. */
+button { background: var(--card); color: var(--ink); border-color: var(--line); box-shadow: none; }
+button:hover:not(:disabled) { background: var(--apple-hover); border-color: #56647a; color: var(--ink); }
+button[aria-pressed="true"] { background: var(--apple-selected); border-color: var(--accent); color: var(--accent); box-shadow: none; }
+button[aria-pressed="true"]:hover:not(:disabled) { background: #294467; border-color: #a0c5ff; color: #a9ceff; }
+button:active:not(:disabled) { background: var(--apple-pressed); border-color: #71829c; color: var(--ink); box-shadow: none; }
+button[aria-pressed="true"]:active:not(:disabled) { background: #30517b; border-color: var(--accent); color: var(--ink); }
+button:disabled { background: var(--card); color: var(--sub); border-color: var(--line); box-shadow: none; }
+input, select, textarea, option { color-scheme: dark; accent-color: var(--accent); }
+input:not([type="checkbox"]):not([type="radio"]), select, textarea,
+.topbar select, .topbar input[type="search"], #indicatorChoice,
+#priceIndicatorChoice, .controlField select, .settingsRow select,
+.entrySettingsScope select, #entryPanel select,
+.workspaceDialog :is(select, input:not([type="checkbox"]):not([type="radio"])),
+#helpQ, #wlSymbolQ, #wlGroupName, #wlManageName {
+  background: var(--surface-secondary); color: var(--ink); border-color: var(--line); box-shadow: none;
+}
+input::placeholder, textarea::placeholder, .topbar input::placeholder { color: var(--sub); opacity: 1; }
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus,
+.topbar input[type="search"]:focus, .topbar select:focus,
+.workspaceDialog :is(select, input:not([type="checkbox"]):not([type="radio"])):focus,
+#helpQ:focus, #wlSymbolQ:focus, #wlGroupName:focus, #wlManageName:focus {
+  background: var(--surface-secondary); border-color: var(--focus);
+}
+button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible, a:focus-visible { outline-color: var(--focus); }
+
+.statusbox, .card, .hist, details.src, #evDetail, .detailGroup,
+.chartDisplayControls, #selline, #priceIndicatorPanel,
+.workspaceDialog .statusbox, .workspaceDialog .detailGroup,
+.workspaceDialog #priceIndicatorPanel { background: var(--card); color: var(--ink); border-color: var(--line); }
+#evDetail { border-color: var(--accent); }
+.readout, .workspaceDialog .readout, .lowFact, .patternCard, .termFocus,
+#obsOverlay, .monitorRow, #entryPanel .entryOption, #entryPanel .entryBreakoutGroup,
+.entrySettingsScope .entryOption, .entrySettingsScope .entryBreakoutGroup {
+  background: var(--surface-secondary); border-color: var(--line); color: var(--ink);
+}
+.readout .key, .patternCard small, #obsOverlay .ob-meta,
+#obsOverlay .ob-r, #watchlistPanel .wl-row-code { color: var(--sub); }
+.readout .value, .sourceGrid dd, #obsOverlay .ob-n { color: var(--ink); }
+#indicatorReadout .readout, #indicatorComponents .readout { background: transparent; }
+#indicatorPanel, #watchlistPanel { background: transparent; }
+#chartWrap, #chart, #indicatorChart, #patternSnapshotChart { background: #151a22; }
+/* 캔버스가 아닌 외곽만 둥글게 잘라 축·표시 범위·마우스 영역을 유지한다. */
+#chartWrap, #indicatorChart, #patternSnapshotChart {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  isolation: isolate;
+}
+#chart { border-radius: inherit; }
+#chartWrap::after, #indicatorChart::after, #patternSnapshotChart::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--line);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 8;
+}
+#chartOverlay { background: #191d25; color: var(--ink); }
+.vpBar { background: #2c466a; }
+.vpPeak { color: var(--accent); }
+
+/* 가격색과 다른 판단 의미: 실제 data-verdict와 기존 data-tone을 함께 보존한다. */
+#verdictPanel { background: var(--card); border-color: var(--line); box-shadow: none; --verdict-color: var(--sub); }
+#verdictPanel[data-tone="up"], #verdictPanel[data-verdict="buy"] { --verdict-color: var(--success); }
+#verdictPanel[data-tone="accent"], #verdictPanel[data-verdict="hold"] { --verdict-color: var(--hold); }
+#verdictPanel[data-tone="down"], #verdictPanel[data-verdict="sell"] { --verdict-color: var(--error); }
+#verdictPanel[data-tone="neutral"], #verdictPanel[data-verdict="wait"] { --verdict-color: var(--sub); }
+#verdictPanel[data-tone="warn"], #verdictPanel[data-verdict="blocked"] { --verdict-color: var(--warning); }
+#verdictPanel[data-tone] { border-left-color: var(--verdict-color); }
+#verdictPanel[data-tone] #verdictLabel { color: var(--verdict-color); }
+#verdictTag, #verdictPanel[data-tone="warn"] #verdictTag { background: transparent; color: var(--verdict-color); border-color: var(--verdict-color); }
+#verdictPanel .verdictDetails { color: var(--accent); background: transparent; }
+#verdictPanel .verdictDetails:hover:not(:disabled) { background: var(--apple-selected); }
+#verdictPanel .verdictDetails:active:not(:disabled) { background: var(--apple-pressed); }
+.priceChange[data-tone="up"], .readout .value[data-tone="entry"] { color: var(--up); }
+.priceChange[data-tone="down"], .readout .value[data-tone="exit"] { color: var(--down); }
+.priceChange[data-tone="neutral"] { color: var(--sub); }
+#entryPanel { border-left-color: var(--sub); }
+#entryPanel[data-decision="candidate"] { background: #192a24; border-left-color: var(--success); }
+#entryPanel[data-decision="chase"], #entryPanel[data-decision="blocked"] { background: #2b251d; border-left-color: var(--warning); }
+#entryPanel[data-decision="avoid"] { background: #302126; border-left-color: var(--error); }
+#entryPanel[data-decision="candidate"] #entryTitle { color: var(--success); }
+#entryPanel[data-decision="chase"] #entryTitle, #entryPanel[data-decision="blocked"] #entryTitle { color: var(--warning); }
+#entryPanel[data-decision="avoid"] #entryTitle { color: var(--error); }
+.st-pass { color: var(--success); }
+.st-fail { color: var(--warning); }
+.st-unknown { color: var(--sub); }
+
+/* 확정은 방향 예측이 아니라 상태 확인. 잠정·보류·무효는 별도 색으로 남긴다. */
+.patternCard { --state-color: var(--sub); }
+.patternCard:is([data-state="ready"], [data-state="confirmed"], [data-state="retested"], [data-state="holding"]) { --state-color: var(--success); }
+.patternCard:is([data-state="breakout-pending"], [data-state="retesting"], [data-state="paused"], [data-state="warn"], [data-state="revised"]) { --state-color: var(--warning); }
+.patternCard:is([data-state="failed"], [data-state="invalidated"], [data-state="error"]) { --state-color: var(--error); }
+.patternCard[data-state] { border-color: var(--state-color); }
+.patternCard[data-state] strong { color: var(--state-color); }
+.dataHealth[data-warning="true"], .periodbar .custom { color: var(--warning); }
+.lookupFeedback, .banner { background: #2b251d; border-color: #79603d; color: var(--warning); }
+#patternComputeStatus { color: var(--sub); }
+#patternComputeStatus[data-state="error"], #monitorError,
+#wlSymbolErr, #wlGroupErr, #wlManageErr,
+.wl-symbol-status[data-state="error"] { color: var(--error); }
+.wl-symbol-status[data-state="success"] { color: var(--success); }
+
+.strategyFamilySwitch { background: var(--surface-secondary); border-color: var(--line); }
+.strategyFamilySwitch button, .mainTfBar button, .chartToolbar .periodbar button,
+.intradayTfBar button { background: transparent; color: var(--sub); box-shadow: none; }
+.strategyFamilySwitch button[aria-pressed="true"],
+.mainTfBar button[aria-pressed="true"], .chartToolbar .periodbar button[aria-pressed="true"],
+.intradayTfBar button[aria-pressed="true"] { background: var(--apple-selected); color: var(--accent); border-color: #5275a5; box-shadow: none; }
+.strategyFamilySwitch button:hover:not(:disabled), .mainTfBar button:hover:not(:disabled),
+.chartToolbar .periodbar button:hover:not(:disabled), .intradayTfBar button:hover:not(:disabled) { background: var(--apple-hover); border-color: #56647a; color: var(--ink); }
+.strategyFamilySwitch button[aria-pressed="true"]:hover:not(:disabled) { background: #294467; color: #a9ceff; }
+.strategyFamilySwitch button:active:not(:disabled), .mainTfBar button:active:not(:disabled),
+.chartToolbar .periodbar button:active:not(:disabled), .intradayTfBar button:active:not(:disabled) { background: var(--apple-pressed); border-color: var(--accent); color: var(--ink); }
+
+/* 관심 목록·관리 메뉴와 검색의 모든 밝은 표면을 덮는다. */
+.watchManage > summary, #watchlistPanel .wl-groupstrip button { color: var(--sub); }
+.watchManage > summary:hover, .watchManage[open] > summary { color: var(--accent); background: var(--apple-selected); }
+.watchManage[open] > .wl-actions { background: var(--card); border-color: var(--line); box-shadow: 0 8px 28px #0008; }
+.watchManage .wl-actions button { color: var(--ink); }
+#watchlistPanel .wl-groupstrip button[aria-pressed="true"] { color: var(--accent); background: var(--apple-selected); border-color: #5275a5; }
+#watchlistPanel > #wlAddSymbol, #wlSymbolList .wl-symbol-add { color: var(--accent); background: #1b293d; border-color: #45638d; }
+#watchlistPanel > #wlAddSymbol:hover, #wlSymbolList .wl-symbol-add:hover:not(:disabled) { background: #263e5e; border-color: var(--accent); }
+#watchlistPanel > #wlAddSymbol:active, #wlSymbolList .wl-symbol-add:active:not(:disabled) { background: #30517b; }
+#wlSymbolList .wl-symbol-add:disabled { background: var(--card); color: var(--sub); border-color: var(--line); }
+#watchlistPanel .wl-row { background: transparent; color: var(--ink); border-bottom-color: var(--line); box-shadow: none; }
+#watchlistPanel .wl-row:hover { background: var(--apple-hover); border-left-color: #71829c; }
+#watchlistPanel .wl-row[aria-current="true"] { background: var(--apple-selected); border-left-color: var(--accent); border-bottom-color: #45638d; }
+#watchlistPanel .wl-row[aria-current="true"]:hover { background: #294467; }
+#watchlistPanel .wl-row:active { background: var(--apple-pressed); }
+#watchlistPanel .wl-row-state, #wlInfo, #wlEmpty { color: var(--sub); }
+#watchlistPanel .wl-tone[data-tone="entry"] { background: var(--success); }
+#watchlistPanel .wl-tone[data-tone="exit"] { background: var(--error); }
+#watchlistPanel .wl-tone[data-tone="neutral"] { background: var(--sub); }
+#watchlistPanel .wl-row:has(.wl-tone[data-tone="entry"]) .wl-row-state { color: var(--success); }
+#watchlistPanel .wl-row:has(.wl-tone[data-tone="exit"]) .wl-row-state { color: var(--error); }
+
+/* 대화상자·도움말·표·출처도 같은 불투명 어두운 표면을 쓴다. */
+dialog, .workspaceDialog, #helpDlg, #patternDialog, #wlSymbolDlg, #wlGroupDlg, #wlManageDlg {
+  background: var(--card); color: var(--ink); border-color: var(--line); box-shadow: 0 24px 80px #0009;
+}
+.workspaceDialog { background: var(--bg); }
+dialog::backdrop, .workspaceDialog::backdrop, #helpDlg::backdrop, #patternDialog::backdrop,
+#wlSymbolDlg::backdrop, #wlGroupDlg::backdrop, #wlManageDlg::backdrop { background: #080b12b3; }
+.dialogHead { background: var(--card); border-bottom-color: var(--line); }
+.workspaceDialog .detailGroup > summary:hover { background: var(--apple-hover); }
+.workspaceDialog .detailGroup[open] > summary { border-bottom-color: var(--line); }
+.helpTrigger { background: var(--card); color: var(--sub); border-color: var(--line); }
+.helpTrigger:hover:not(:disabled), .helpTrigger[aria-expanded="true"] { background: var(--apple-selected); color: var(--accent); border-color: var(--accent); }
+.helpContent { background: var(--card); color: var(--ink); border-color: var(--line); box-shadow: 0 8px 28px #0008; }
+.helpContent .helpClose { background: var(--surface-secondary); color: var(--sub); }
+.helpContent .helpClose:hover { background: var(--apple-hover); color: var(--ink); }
+#wlGroupOk, #wlManageOk { background: var(--accent); border-color: var(--accent); color: #111318; }
+#wlGroupOk:hover:not(:disabled), #wlManageOk:hover:not(:disabled) { background: #a0c5ff; border-color: #a0c5ff; color: #111318; }
+#wlGroupOk:active:not(:disabled), #wlManageOk:active:not(:disabled) { background: #6398ef; color: #111318; }
+#wlManageDelete { color: var(--error); border-color: #865158; }
+#wlManageDelete:hover:not(:disabled) { color: #ffb1b5; background: #40272d; }
+table, #entryPanel table, .entrySettingsScope table { color: var(--ink); }
+th { color: var(--sub); }
+#entryPanel th, #entryPanel td, .entrySettingsScope th, .entrySettingsScope td,
+.vpTable th, .vpTable td { border-bottom-color: var(--line); }
+
+/* 반투명은 작은 관리 메뉴와 대화상자 머리글에만 허용한다. */
+@supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
+  .watchManage[open] > .wl-actions, .workspaceDialog > .dialogHead {
+    background: rgb(25 29 37 / 96%);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .watchManage[open] > .wl-actions, .workspaceDialog > .dialogHead {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

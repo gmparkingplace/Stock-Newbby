@@ -39,9 +39,15 @@ class ProviderBudget:
 
     def success(self, path):
         with self.lock:
-            state = self._state(group(path))
+            category = group(path)
+            state = self._state(category)
+            # A normal response while nothing is blocked changes no persisted
+            # state. Writing on every success serializes otherwise independent
+            # provider calls behind the shared client lock and store lock.
+            changed = bool(state['until'] or state['failures'] or state['status'] or state['code'])
             state.update(until=0,failures=0,status=0,code=None)
-            self._save(group(path),state)
+            if changed:
+                self._save(category,state)
 
     def failure(self, path, error):
         with self.lock:

@@ -205,12 +205,19 @@ def test_toss_h4_ohlcv_aggregation_and_unready_signals(monkeypatch):
     monkeypatch.setattr(toss_market.CANDLES, 'minute',
                         lambda *a, **kw: (rows, False, '2026-10-06T16:00:00Z', 'rev', {}))
     monkeypatch.setattr(server, '_with_meta', lambda payload, meta: payload)
+    # Session-continuity annotation must not require live Toss credentials.
+    import time_contract
+    import exchange_sessions
+    monkeypatch.setattr(time_contract, 'calendar_days',
+                        lambda market, day, source=None: exchange_sessions.calendar_days(market, day))
     f = server._toss_intraday('SATL')
     assert f['source'] == 'toss' and f['sourceInterval'] == '1m'
     assert len(f['candles']) == 3
     assert f['candles'][0] == dict(time=epoch('2026-10-05T13:30:00Z'),
-                                  open=10, high=12, low=8, close=9, volume=7)
+                                  open=10, high=12, low=8, close=9, volume=7,
+                                  missingBarsBefore=0)
     assert f['candles'][1]['volume'] == 5 and f['candles'][2]['volume'] == 6
     assert f['barAsOf'] is None
     assert f['lines']['sma60'] == []
     assert all(s['sigF'] == 'none' and s['don_hi'] is None for s in f['state'])
+    assert [c['missingBarsBefore'] for c in f['candles']] == [0, 0, 0]

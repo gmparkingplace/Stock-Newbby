@@ -9,7 +9,7 @@ const analysis={enabled:true,sourceStatus:'ready',timeline:[{barTime:'2026-09-07
 const before=JSON.stringify(analysis),v=view(analysis,'D',null,false);
 assert.equal(v.patterns.length,1);assert.equal(v.events.length,1);assert.equal(JSON.stringify(analysis),before);
 assert.equal(v.window.start,'2026-06-07');
-assert.equal(observations.length,7);assert.equal(colors.uptrend,'#2E7D32');assert.equal(colors.breaklow,'#C62828');assert.equal(colors.watch,'#B26A00');
+assert.equal(observations.length,7);assert.equal(colors.uptrend,'#69d39b');assert.equal(colors.breaklow,'#ff777f');assert.equal(colors.watch,'#f1b65d');
 const end=Date.UTC(2026,4,31,12)/1000,begin=Date.UTC(2026,1,28,12)/1000;
 assert.equal(W.start(end),begin);
 const h4={enabled:true,timeframe:'H4',sourceStatus:'ready',provisionalEligible:true,timeline:[{barTime:end,confirmed:false,status:'ready',patterns:[{structureStartTime:begin,status:'breakout-pending'}]}],recentEvents:[{anchorTime:begin,confirmedBarTime:end,timeframe:'H4'}]};

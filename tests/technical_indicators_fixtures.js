@@ -43,7 +43,7 @@ const macd=aux(frame,'macd',79);near(macd.histogramValue,-.24910824765185188);as
 assert.equal(aux(frame,'macd',32).status,'insufficient-data');assert.equal(aux(frame,'macd',33).status,'ready');
 const past=aux(frame,'macd',40);assert.deepEqual(aux(altered,'macd',40),past);
 for(const field of ['series','signalSeries','histogramSeries'])assert(past[field].slice(41).every(p=>Object.keys(p).length===1));
-assert.equal(macd.histogramSeries[79].color,'rgba(24,89,201,.65)');
+assert.equal(macd.histogramSeries[79].color,require('../results/dashboard/chart-theme').colors.histogramDown);
 // Prefix invariance includes warm-up and every timeframe's actual bar count.
 for(let n=1;n<=80;n++){
  const part={...frame,candles:frame.candles.slice(0,n)},computed=M.calculate(part);

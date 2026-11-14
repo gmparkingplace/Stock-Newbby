@@ -6,14 +6,16 @@ import math
 
 def validated(candles, confirmed_through, timeframe='D', symbol=None):
     from universe import is_coin
-    stock_h4 = timeframe == 'H4' and symbol is not None and not is_coin(symbol)
+    from intraday_timeframes import is_intraday, seconds
+    intraday = is_intraday(timeframe)
+    stock_intraday = intraday and symbol is not None and not is_coin(symbol)
     rows = deepcopy(candles)
     previous = None
     for row in rows:
         stamp = row['time']
-        if timeframe=='H4':
-            valid_time=type(stamp) is int and stamp>0 and stamp%(60 if stock_h4 else 14400)==0
-            if stock_h4:
+        if intraday:
+            valid_time=type(stamp) is int and stamp>0 and stamp%(60 if stock_intraday else seconds(timeframe))==0
+            if stock_intraday:
                 missing = row.get('missingBarsBefore')
                 valid_time = valid_time and type(missing) is int and missing >= 0
             if valid_time:
@@ -36,18 +38,20 @@ def validated(candles, confirmed_through, timeframe='D', symbol=None):
 
 
 def analyze_contiguous(analyzer, rows, symbol, confirmed_through, provisional, levels, timeframe, profile):
-    """Restart H4 preparation and structures after missing bars; retain earlier history.
+    """Restart intraday preparation and structures after missing bars; retain history.
 
     Each segment uses local indexes for ATR/pivots/geometry. Event identity and
     projected geometry use timestamps, so segment offsets need no translation.
     Legacy remains available only for the existing read-only profile comparison.
     """
-    if timeframe != 'H4' or profile == 'legacy':
+    from intraday_timeframes import is_intraday, seconds
+    if not is_intraday(timeframe) or profile == 'legacy':
         return None
     from universe import is_coin
     coin = is_coin(symbol)
+    step = seconds(timeframe)
     starts = [0] + [i for i in range(1, len(rows)) if
-                   (rows[i]['time']-rows[i-1]['time'] != 14400 if coin else rows[i]['missingBarsBefore'] > 0)]
+                   (rows[i]['time']-rows[i-1]['time'] != step if coin else rows[i]['missingBarsBefore'] > 0)]
     if len(starts) == 1:
         return None
     timeline, events, warnings = [], [], []
@@ -62,8 +66,9 @@ def analyze_contiguous(analyzer, rows, symbol, confirmed_through, provisional, l
         timeline.extend(result['timeline'])
         events.extend(result['events'])
         if start:
-            warnings.append(dict(code='missing-h4-bars', previous=rows[start-1]['time'],
-                                 next=rows[start]['time'], missingBars=(rows[start]['time']-rows[start-1]['time'])//14400-1 if coin else rows[start]['missingBarsBefore']))
+            warnings.append(dict(code='missing-h4-bars' if timeframe == 'H4' else 'missing-intraday-bars',
+                                 previous=rows[start-1]['time'], next=rows[start]['time'],
+                                 missingBars=(rows[start]['time']-rows[start-1]['time'])//step-1 if coin else rows[start]['missingBarsBefore']))
     return dict(result, confirmedThrough=confirmed_through, timeline=timeline, events=events,
                 segmentCount=len(starts), dataWarnings=warnings)
 
@@ -96,6 +101,19 @@ def channel_coverage(rows, start, end, upper, lower, tolerance):
         if good:inside+=1;run=0
         else:run+=1;longest=max(longest,run)
     return (inside/(end-start+1),longest) if end>=start else (0,0)
+
+
+def pivot_prefix(rows):
+    """같은 입력의 확정 피벗은 한 번만 계산하고 요청 시점까지 잘라 쓴다.
+
+    오른쪽 두 봉으로 확정되므로 through-2 이후 피벗은 절대 노출하지 않는다.
+    반환 목록은 사본이며 전역 캐시나 입력 변경은 없다.
+    """
+    from bisect import bisect_right
+    hi, lo = pivots(rows, len(rows) - 1)
+    hi_indices, lo_indices = [i for i, _ in hi], [i for i, _ in lo]
+    return lambda through: (hi[:bisect_right(hi_indices, through - 2)],
+                            lo[:bisect_right(lo_indices, through - 2)])
 
 
 def pivots(rows, through):

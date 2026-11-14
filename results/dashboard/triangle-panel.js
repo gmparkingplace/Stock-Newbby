@@ -18,8 +18,9 @@
   }
   if(typeof module!=='undefined'&&module.exports){module.exports={view,name,label,errorText,fitBounds};return;}
   const $=id=>document.getElementById(id);let choice='auto',last='',fitted=null;
+  const INTRADAY=new Set(['M5','M15','M30','H1','H2','H4']);
   const number=n=>n==null?'—':Number(n).toLocaleString('ko-KR',{maximumFractionDigits:2});
-  function current(){const f=frameOf(curSym()),a=S.tf==='H4'?f?.triangleAnalysis:curSym()?.triangleAnalysis;
+  function current(){const f=frameOf(curSym()),a=INTRADAY.has(S.tf)?f?.triangleAnalysis:curSym()?.triangleAnalysis;
     const context=ChartTiming.patternContext({frame:f,analysis:a,selectedAsOf:S.selectedAsOf,lastError:S.lastErr,enabled:S.autoRef&&!document.hidden});
     return view(a,S.tf,context.asOf,context.blocked);
   }
@@ -28,8 +29,8 @@
   function tick(){if(signature(current())!==last)render();}
   function render(){const v=current();last=signature(v);$('trianglePanel').hidden=v.status==='disabled';
     if(v.status==='disabled'){FlagPanel.update();return;}
-    $('triangleState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'삼각수렴은 주식·코인 일봉/4시간봉에서 확인합니다.',paused:'자료 보류 · 이전 이력은 유지합니다.',error:'계산 오류 · 새 판단 보류','insufficient-data':'확정된 접촉점 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'돌파 방향을 확인하세요.':v.pastPatterns?.length?'현재 유효 삼각형 없음 · 선택 목록에서 과거 구조 확인':'확인된 삼각형 없음'}`;
-    if(v.status==='error')$('triangleState').textContent=errorText((S.tf==='H4'?frameOf(curSym()):curSym())?.triangleAnalysis?.errorCode)+' · 새 판단 보류';
+    $('triangleState').textContent=({'out-of-window':'패턴 범위 밖 · 최신 자료 기준 최근 3개월입니다.',unsupported:'삼각수렴은 주식·코인 일봉과 분봉에서 확인합니다.',computing:'차트 표시 완료 · 삼각수렴 계산 중…',paused:'자료 보류 · 이전 이력은 유지합니다.',error:'계산 오류 · 새 판단 보류','insufficient-data':'확정된 접촉점 자료가 부족합니다.'})[v.status]||`${PatternWindow.format(v.barTime)||'—'} 기준 · ${v.patterns.length?'돌파 방향을 확인하세요.':v.pastPatterns?.length?'현재 유효 삼각형 없음 · 선택 목록에서 과거 구조 확인':'확인된 삼각형 없음'}`;
+    if(v.status==='error')$('triangleState').textContent=errorText((INTRADAY.has(S.tf)?frameOf(curSym()):curSym())?.triangleAnalysis?.errorCode)+' · 새 판단 보류';
     const select=$('triangleChoice');select.replaceChildren();const add=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);};
     add('auto','최근 유효 삼각형');for(const p of v.patterns)add(p.patternId,`${name(p)} · ${label(p)}`);
     for(const p of v.pastPatterns||[])add('past:'+p.patternId,`과거 · ${PatternWindow.format(p.barTime)} · ${name(p)} · ${label(p)}`);

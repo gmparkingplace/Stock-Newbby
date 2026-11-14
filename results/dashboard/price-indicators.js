@@ -2,7 +2,9 @@
 (function(){
   'use strict';
   const math=typeof module!=='undefined'&&module.exports?require('./technical-indicators.js'):TechnicalIndicators;
-  const periods=[20,60,120,200],colors=['#2962ff','#FF6D00','#7c3aed','#0f766e'];
+  const theme=typeof module!=='undefined'&&module.exports?require('./chart-theme.js'):typeof ChartTheme!=='undefined'?ChartTheme:null;
+  const periods=[20,60,120,200],colors=theme?periods.map(n=>theme.colors['sma'+n]):['#2962ff','#FF6D00','#7c3aed','#0f766e'];
+  const bandColors=kind=>kind==='donchian'?(theme?[theme.colors.up,theme.colors.neutral,theme.colors.down]:['#d32f2f','#64748b','#1859C9']):(theme?[theme.colors.sma200,theme.colors.sma120,theme.colors.sma200]:['#0f766e','#7c3aed','#0f766e']);
   const definitions={};
   for(const kind of ['sma','ema','wma'])definitions[kind]={label:kind.toUpperCase()+' 20·60·120·200',names:periods.map(n=>kind.toUpperCase()+' '+n),
     help:'파랑 20봉 · 주황 60봉 · 보라 120봉 · 초록 200봉입니다. '+(kind==='sma'?'종가의 단순평균입니다.':kind==='ema'?'최근 가격 비중을 높이는 지수평균입니다.':'오래된 봉부터 1~기간 길이 가중치를 적용한 평균입니다.')+' 전략 A/F는 기존 SMA 20·60을 사용합니다.'};
@@ -39,7 +41,7 @@
     $('priceIndicatorDate').textContent=s.basisTime==null?'—':fmtT(s.basisTime);
     for(let i=0;i<4;i++){
       $('priceIndicatorCell'+i).hidden=channel(kind)&&i===3;
-      $('priceIndicatorLabel'+i).textContent=definitions[kind].names[i]||'—';$('priceIndicatorLabel'+i).style.color=channel(kind)?'':colors[i];
+      $('priceIndicatorLabel'+i).textContent=definitions[kind].names[i]||'—';$('priceIndicatorLabel'+i).style.color=channel(kind)?bandColors(kind)[i]||'':colors[i];
       $('priceIndicatorValue'+i).textContent=s.values[i]==null?'자료 부족':fmtP(s.values[i]);
     }
     $('priceIndicatorStatus').textContent=s.status==='paused'?'자료 보류':s.status==='partial-data'?'일부 자료 부족':s.status!=='ready'?'계산 자료 부족':s.provisional?'진행 중 · 잠정':'확정봉 기준';
@@ -53,14 +55,14 @@
       series.applyOptions({visible:moving,color:colors[i],title:moving?definitions[kind].names[i]:''});
       series.setData(moving?data.series[i]:[]);
     });
-    const channelColors=kind==='donchian'?['#d32f2f','#64748b','#1859C9']:['#0f766e','#7c3aed','#0f766e'];
+    const channelColors=bandColors(kind);
     bands.forEach((series,i)=>{series.applyOptions({visible:channel(kind),color:channelColors[i],title:channel(kind)?definitions[kind].names[i]:''});series.setData(channel(kind)?data.series[i]:[]);});
   }
   function tick(){if(bands.length&&JSON.stringify(current())!==last)readout();}
   window.PriceIndicators={current,render,tick,series:()=>channel(kind)?bands:[sma20S,sma60S,...longAverages]};
   document.addEventListener('DOMContentLoaded',()=>{
     longAverages=colors.slice(2).map(color=>chart.addSeries(LightweightCharts.LineSeries,{color,lineWidth:1,priceLineVisible:false,lastValueVisible:false,visible:false}));
-    bands=['#0f766e','#7c3aed','#0f766e'].map((color,i)=>chart.addSeries(LightweightCharts.LineSeries,{color,lineWidth:i===1?1:2,lineStyle:i===1?2:0,priceLineVisible:false,lastValueVisible:false,visible:false}));
+    bands=bandColors('bollinger').map((color,i)=>chart.addSeries(LightweightCharts.LineSeries,{color,lineWidth:i===1?1:2,lineStyle:i===1?2:0,priceLineVisible:false,lastValueVisible:false,visible:false}));
     $('priceIndicatorChoice').onchange=e=>{kind=e.target.value;render();};
     document.addEventListener('visibilitychange',tick);render();
   });

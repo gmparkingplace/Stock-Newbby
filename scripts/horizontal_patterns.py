@@ -7,9 +7,10 @@ RULE = 'horizontal-d-v1'
 
 
 def rule_version(timeframe='D'):
-    if timeframe not in ('D', 'H4'):
+    from intraday_timeframes import is_intraday
+    if timeframe != 'D' and not is_intraday(timeframe):
         raise ValueError('unsupported-pattern-timeframe')
-    return RULE if timeframe == 'D' else 'horizontal-h4-v1'
+    return RULE if timeframe == 'D' else f'horizontal-{timeframe.lower()}-v1'
 
 
 def settings(value=None):

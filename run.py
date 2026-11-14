@@ -5,7 +5,7 @@ import argparse
 import importlib.util
 import json
 import os
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 import sys
 import threading
@@ -36,25 +36,11 @@ def open_default_browser(url):
         print(f'브라우저 자동 열기 실패: {exc}\n원하는 브라우저에서 {url} 를 열어 주세요.', flush=True)
 
 
-def main():
-    parser = argparse.ArgumentParser(description='초보자 차트 보조기 — 통합 실행')
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--offline', action='store_true', help='저장된 자료만 사용')
-    mode.add_argument('--live', action='store_true', help='최신조회 서버 사용 (Python 의존성 필요)')
-    parser.add_argument('--port', type=int, default=8734)
-    parser.add_argument('--no-browser', action='store_true')
-    args = parser.parse_args()
-    local_python = ROOT / '.venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
-    if not args.offline and local_python.is_file() and Path(sys.prefix).resolve() != (ROOT / '.venv').resolve():
-        os.execv(str(local_python), [str(local_python), str(Path(__file__).resolve()), *sys.argv[1:]])
-    missing = [name for name in ('pandas', 'numpy', 'yfinance') if importlib.util.find_spec(name) is None]
-    if args.live and missing:
-        parser.exit(2, '최신조회 의존성 누락: ' + ', '.join(missing) + '\npython setup.py 로 설치하거나 --offline으로 실행하세요.\n')
-    live = not args.offline and not missing
+def create_handler(live):
+    """Build the request handler shared by the browser and desktop launchers."""
     sys.path.insert(0, str(ROOT / 'scripts'))
     from local_http import LocalOnlyHTTPMixin
     if live:
-        sys.path.insert(0, str(ROOT / 'scripts'))
         from serve_dashboard import H as BaseHandler
     else:
         class BaseHandler(LocalOnlyHTTPMixin, SimpleHTTPRequestHandler):
@@ -63,7 +49,6 @@ def main():
             def log_message(self, *a):
                 pass
 
-    sys.path.insert(0, str(ROOT / 'scripts'))
     from chart_control import handle as control_handle
 
     class Handler(BaseHandler):
@@ -97,8 +82,32 @@ def main():
                 return
             return super().do_GET()
 
+    return Handler
+
+
+def create_server(port, live, host='127.0.0.1'):
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from local_http import LocalThreadingHTTPServer
+    return LocalThreadingHTTPServer((host, port), create_handler(live))
+
+
+def main():
+    parser = argparse.ArgumentParser(description='초보자 차트 보조기 — 통합 실행')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--offline', action='store_true', help='저장된 자료만 사용')
+    mode.add_argument('--live', action='store_true', help='최신조회 서버 사용 (Python 의존성 필요)')
+    parser.add_argument('--port', type=int, default=8734)
+    parser.add_argument('--no-browser', action='store_true')
+    args = parser.parse_args()
+    local_python = ROOT / '.venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    if not args.offline and local_python.is_file() and Path(sys.prefix).resolve() != (ROOT / '.venv').resolve():
+        os.execv(str(local_python), [str(local_python), str(Path(__file__).resolve()), *sys.argv[1:]])
+    missing = [name for name in ('pandas', 'numpy', 'yfinance') if importlib.util.find_spec(name) is None]
+    if args.live and missing:
+        parser.exit(2, '최신조회 의존성 누락: ' + ', '.join(missing) + '\npython setup.py 로 설치하거나 --offline으로 실행하세요.\n')
+    live = not args.offline and not missing
     try:
-        server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
+        server = create_server(args.port, live)
     except OSError as exc:
         parser.exit(2, f'서버를 열지 못했습니다: {exc}\n다른 포트로 실행하세요: python run.py --port 8735\n')
     url = f'http://127.0.0.1:{server.server_port}/chart-first.html'

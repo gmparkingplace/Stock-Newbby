@@ -21,12 +21,13 @@
     if(points.length<3||points.some(p=>!p))return null;
     return {points,pole:(geometry.pole||[]).map(point).filter(Boolean)};
   }
-  function choose(flag,triangle,category='auto'){
+  function choose(flag,triangle,structure,category='auto'){
     const valid=p=>p&&!['failed','expired','paused'].includes(p.status);
     if(category==='flag')return valid(flag)?flag:null;
     if(category==='triangle')return valid(triangle)?triangle:null;
+    if(category==='structure')return valid(structure)?structure:null;
     const rank={confirmed:0,retested:0,'breakout-pending':1,forming:2};
-    return [flag,triangle].filter(valid).sort((a,b)=>(rank[a.status]??3)-(rank[b.status]??3)||String(b.discoveredTime||'').localeCompare(a.discoveredTime||''))[0]||null;
+    return [flag,triangle,structure].filter(valid).sort((a,b)=>(rank[a.status]??3)-(rank[b.status]??3)||String(b.discoveredTime||'').localeCompare(a.discoveredTime||''))[0]||null;
   }
   if(typeof module!=='undefined'&&module.exports){module.exports={project,choose};return;}
   const ns='http://www.w3.org/2000/svg';let serial=0;
@@ -47,11 +48,12 @@
       node('rect',{x:left,y:0,width:Math.max(0,w-right-left),height:Math.max(0,plotHeight)},clip);
       const polygon=shape.points.map(p=>`${p.x},${p.y}`).join(' ');
       const area=node('clipPath',{id:id+'-shape'},defs);node('polygon',{points:polygon},area);
-      const up=model.direction==='up',neutral=model.direction==='neutral',fill=neutral?'#e2e8f0':up?'#dbeafe':'#fee2e2',stroke=neutral?'#64748b':up?'#2563eb':'#b91c1c';
+      const palette=typeof ChartTheme!=='undefined'?ChartTheme.colors:null;
+       const up=model.direction==='up',neutral=model.direction==='neutral',fill=palette?(neutral?palette.patternNeutralFill:up?palette.patternUpFill:palette.patternDownFill):(neutral?'#e2e8f0':up?'#dbeafe':'#fee2e2'),stroke=palette?(neutral?palette.neutral:up?palette.up:palette.down):(neutral?'#64748b':up?'#2563eb':'#b91c1c');
       const group=node('g',{'clip-path':`url(#${id}-plot)`});
       node('polygon',{points:polygon,fill,stroke,'stroke-width':2,'stroke-dasharray':['confirmed','retested'].includes(model.status)?'none':'6 4','data-pattern':model.patternId||'shape'},group);
       const hatch=node('g',{'clip-path':`url(#${id}-shape)`},group);
-      for(let x=-h;x<w;x+=20)node('line',{x1:x,y1:0,x2:x+h,y2:h,stroke:neutral?'#cbd5e1':up?'#bfdbfe':'#fecaca','stroke-width':1},hatch);
+      for(let x=-h;x<w;x+=20)node('line',{x1:x,y1:0,x2:x+h,y2:h,stroke:palette?(neutral?palette.patternNeutralHatch:up?palette.patternUpHatch:palette.patternDownHatch):(neutral?'#cbd5e1':up?'#bfdbfe':'#fecaca'),'stroke-width':1},hatch);
       if(shape.pole.length===2)node('polyline',{points:shape.pole.map(p=>`${p.x},${p.y}`).join(' '),fill:'none',stroke,'stroke-width':3},group);
     }
     function schedule(){if(!removed&&!raf)raf=requestAnimationFrame(draw);}
